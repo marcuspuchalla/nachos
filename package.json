@@ -1,0 +1,101 @@
+{
+  "name": "@cbor-codec/core",
+  "version": "1.0.0-alpha.1",
+  "description": "RFC 8949 CBOR encoder/decoder with full source map support for interactive debugging. Zero dependencies, TypeScript, works in Node.js and browsers.",
+  "keywords": [
+    "cbor",
+    "codec",
+    "encoder",
+    "decoder",
+    "rfc8949",
+    "serialization",
+    "deserialization",
+    "cardano",
+    "blockchain",
+    "plutus",
+    "binary",
+    "parser",
+    "source-map",
+    "typescript",
+    "zero-dependencies"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/cbor-codec.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/cbor-codec/issues"
+  },
+  "homepage": "https://github.com/yourusername/cbor-codec#readme",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./parser": {
+      "import": {
+        "types": "./dist/parser/index.d.ts",
+        "default": "./dist/parser/index.js"
+      },
+      "require": {
+        "types": "./dist/parser/index.d.ts",
+        "default": "./dist/parser/index.cjs"
+      }
+    },
+    "./encoder": {
+      "import": {
+        "types": "./dist/encoder/index.d.ts",
+        "default": "./dist/encoder/index.js"
+      },
+      "require": {
+        "types": "./dist/encoder/index.d.ts",
+        "default": "./dist/encoder/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "build:watch": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "~5.6.3",
+    "vitest": "^2.1.8"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  }
+}
