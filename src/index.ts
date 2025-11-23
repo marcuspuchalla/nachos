@@ -25,19 +25,24 @@
  */
 
 // Re-export from parser (decoder)
-export { useCborParser } from '../../src/parser/composables/useCborParser'
-export { useCborInteger } from '../../src/parser/composables/useCborInteger'
-export { useCborString } from '../../src/parser/composables/useCborString'
-export { useCborCollection } from '../../src/parser/composables/useCborCollection'
-export { useCborFloat } from '../../src/parser/composables/useCborFloat'
-export { useCborTag } from '../../src/parser/composables/useCborTag'
+export { useCborParser } from './parser/composables/useCborParser'
+export { useCborInteger } from './parser/composables/useCborInteger'
+export { useCborString } from './parser/composables/useCborString'
+export { useCborCollection } from './parser/composables/useCborCollection'
+export { useCborFloat } from './parser/composables/useCborFloat'
+export { useCborTag } from './parser/composables/useCborTag'
+export { useCborDiagnostic } from './parser/composables/useCborDiagnostic'
+export type { DiagnosticOptions } from './parser/composables/useCborDiagnostic'
+
+// Re-export utilities
+export { PathBuilder } from './parser/utils/pathBuilder'
 
 // Re-export from encoder
-export { useCborEncoder } from '../../src/encoder/composables/useCborEncoder'
-export { useCborIntegerEncoder } from '../../src/encoder/composables/useCborIntegerEncoder'
-export { useCborStringEncoder } from '../../src/encoder/composables/useCborStringEncoder'
-export { useCborCollectionEncoder } from '../../src/encoder/composables/useCborCollectionEncoder'
-export { useCborSimpleEncoder } from '../../src/encoder/composables/useCborSimpleEncoder'
+export { useCborEncoder } from './encoder/composables/useCborEncoder'
+export { useCborIntegerEncoder } from './encoder/composables/useCborIntegerEncoder'
+export { useCborStringEncoder } from './encoder/composables/useCborStringEncoder'
+export { useCborCollectionEncoder } from './encoder/composables/useCborCollectionEncoder'
+export { useCborSimpleEncoder } from './encoder/composables/useCborSimpleEncoder'
 
 // Re-export types
 export type {
@@ -59,7 +64,7 @@ export type {
   PlutusBytes,
   SourceMapEntry,
   Result
-} from '../../src/parser/types'
+} from './parser/types'
 
 export {
   DEFAULT_OPTIONS,
@@ -68,7 +73,7 @@ export {
   CborAdditionalInfo,
   CborSimpleValue,
   CborTag
-} from '../../src/parser/types'
+} from './parser/types'
 
 export type {
   // Encoder types
@@ -76,17 +81,17 @@ export type {
   EncodeOptions,
   EncodableValue,
   EncodeContext
-} from '../../src/encoder/types'
+} from './encoder/types'
 
 export {
   DEFAULT_ENCODE_OPTIONS
-} from '../../src/encoder/types'
+} from './encoder/types'
 
 // Convenience exports with cleaner names for library users
-import { useCborParser } from '../../src/parser/composables/useCborParser'
-import { useCborEncoder } from '../../src/encoder/composables/useCborEncoder'
-import type { ParseResult, ParseResultWithMap, ParseOptions } from '../../src/parser/types'
-import type { EncodeResult, EncodeOptions, EncodableValue } from '../../src/encoder/types'
+import { useCborParser } from './parser/composables/useCborParser'
+import { useCborEncoder } from './encoder/composables/useCborEncoder'
+import type { ParseResult, ParseResultWithMap, ParseOptions } from './parser/types'
+import type { EncodeResult, EncodeOptions, EncodableValue } from './encoder/types'
 
 /**
  * Decode CBOR hex string to JavaScript value
@@ -367,4 +372,61 @@ export class CborEncoder {
   encodeSequence(values: EncodableValue[]): EncodeResult {
     return encodeSequence(values, this.options)
   }
+}
+
+// Import diagnostic notation utilities
+import { useCborDiagnostic } from './parser/composables/useCborDiagnostic'
+import type { DiagnosticOptions } from './parser/composables/useCborDiagnostic'
+
+/**
+ * Convert a JavaScript value to RFC 8949 diagnostic notation
+ *
+ * Diagnostic notation is a human-readable representation of CBOR data
+ * as defined in RFC 8949 Appendix B.
+ *
+ * @param value - JavaScript value to convert
+ * @param options - Optional formatting options
+ * @returns Diagnostic notation string
+ *
+ * @example
+ * ```typescript
+ * toDiagnostic(100)                    // "100"
+ * toDiagnostic(new Uint8Array([1,2]))  // "h'0102'"
+ * toDiagnostic([1, 2, 3])              // "[1, 2, 3]"
+ * toDiagnostic({a: 1})                 // '{"a": 1}'
+ * toDiagnostic({tag: 1, value: 123})   // "1(123)"
+ *
+ * // Pretty print
+ * toDiagnostic([1, 2], { pretty: true })
+ * // "[\n  1,\n  2\n]"
+ *
+ * // Indefinite length
+ * toDiagnostic([1, 2], { indefinite: true })
+ * // "[_ 1, 2]"
+ * ```
+ */
+export function toDiagnostic(value: unknown, options?: DiagnosticOptions): string {
+  const { toDiagnostic: convert } = useCborDiagnostic()
+  return convert(value, options)
+}
+
+/**
+ * Decode CBOR and return diagnostic notation
+ *
+ * Combines decoding and diagnostic conversion in one step.
+ *
+ * @param hexString - CBOR data as hex string
+ * @param options - Optional formatting options
+ * @returns Diagnostic notation string
+ *
+ * @example
+ * ```typescript
+ * decodeToDiagnostic('1864')           // "100"
+ * decodeToDiagnostic('83010203')       // "[1, 2, 3]"
+ * decodeToDiagnostic('d87980')         // "121([])"
+ * ```
+ */
+export function decodeToDiagnostic(hexString: string, options?: DiagnosticOptions): string {
+  const { value } = decode(hexString)
+  return toDiagnostic(value, options)
 }
