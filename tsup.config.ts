@@ -2,7 +2,11 @@ import { defineConfig } from 'tsup'
 
 export default defineConfig({
   // Entry points
-  entry: ['src/index.ts'],
+  entry: {
+    index: 'src/index.ts',
+    'parser/index': 'src/parser/index.ts',
+    'encoder/index': 'src/encoder/index.ts'
+  },
 
   // Output formats
   format: ['esm', 'cjs'],

@@ -326,11 +326,11 @@ export function useCborDiagnostic() {
 
     // Byte strings h'...'
     const hexMatch = trimmed.match(/^h'([0-9a-fA-F]*)'$/)
-    if (hexMatch) {
+    if (hexMatch && hexMatch[1] !== undefined) {
       const hex = hexMatch[1]
       const bytes = new Uint8Array(hex.length / 2)
       for (let i = 0; i < hex.length; i += 2) {
-        bytes[i / 2] = parseInt(hex.substr(i, 2), 16)
+        bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16)
       }
       return bytes
     }

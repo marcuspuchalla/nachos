@@ -130,10 +130,10 @@ export const PathBuilder = {
 
     // Match array index or object key at end
     const arrayMatch = normalized.match(/^(.+)\[\d+\]$/)
-    if (arrayMatch) return arrayMatch[1]
+    if (arrayMatch && arrayMatch[1] !== undefined) return arrayMatch[1]
 
     const keyMatch = normalized.match(/^(.+)\.[^.]+$/)
-    if (keyMatch) return keyMatch[1]
+    if (keyMatch && keyMatch[1] !== undefined) return keyMatch[1]
 
     // Root level item
     if (normalized.startsWith('[') || normalized.startsWith('.')) {
@@ -176,7 +176,7 @@ export const PathBuilder = {
     while (remaining) {
       // Array index
       const indexMatch = remaining.match(/^\[(\d+)\]/)
-      if (indexMatch) {
+      if (indexMatch && indexMatch[1] !== undefined) {
         segments.push({ type: 'index', value: parseInt(indexMatch[1], 10) })
         remaining = remaining.slice(indexMatch[0].length)
         continue
@@ -184,7 +184,7 @@ export const PathBuilder = {
 
       // Object key
       const keyMatch = remaining.match(/^\.([^.\[\]]+)/)
-      if (keyMatch) {
+      if (keyMatch && keyMatch[1] !== undefined) {
         // Unescape special characters
         const key = keyMatch[1].replace(/\\(.)/g, '$1')
         segments.push({ type: 'key', value: key })
@@ -197,7 +197,7 @@ export const PathBuilder = {
     }
 
     // Add marker if present
-    if (markerMatch) {
+    if (markerMatch && markerMatch[1] !== undefined) {
       segments.push({ type: 'marker', value: markerMatch[1] })
     }
 

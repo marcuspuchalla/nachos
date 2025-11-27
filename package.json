@@ -19,16 +19,16 @@
     "typescript",
     "zero-dependencies"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "Marcus Puchalla <REMOVED>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/cbor-codec.git"
+    "url": "https://github.com/marcuspuchalla/cbor-codec.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/cbor-codec/issues"
+    "url": "https://github.com/marcuspuchallya/cbor-codec/issues"
   },
-  "homepage": "https://github.com/yourusername/cbor-codec#readme",
+  "homepage": "https://github.com/marcuspuchalla/cbor-codec#readme",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
