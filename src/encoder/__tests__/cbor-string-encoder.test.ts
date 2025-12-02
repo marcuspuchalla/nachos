@@ -280,5 +280,66 @@ describe('CBOR String Encoder', () => {
       expect(() => encodeTextString(largeString))
         .toThrow('Encoded output exceeds maximum size')
     })
+
+    it('should respect maxOutputSize option for byte strings', () => {
+      const { encodeByteString } = useCborStringEncoder({ maxOutputSize: 10 })
+      const largeBytes = new Uint8Array(1000)
+
+      expect(() => encodeByteString(largeBytes))
+        .toThrow('Encoded output exceeds maximum size')
+    })
+  })
+
+  describe('Indefinite encoding via options', () => {
+    it('should encode text string as indefinite when option is set', () => {
+      const { encodeTextString } = useCborStringEncoder()
+      const result = encodeTextString('hello', { indefinite: true })
+
+      // Should start with 0x7f (indefinite text start) and end with 0xff (break)
+      expect(result.bytes[0]).toBe(0x7f)
+      expect(result.bytes[result.bytes.length - 1]).toBe(0xff)
+    })
+
+    it('should encode byte string as indefinite when option is set', () => {
+      const { encodeByteString } = useCborStringEncoder()
+      const result = encodeByteString(new Uint8Array([1, 2, 3]), { indefinite: true })
+
+      // Should start with 0x5f (indefinite bytes start) and end with 0xff (break)
+      expect(result.bytes[0]).toBe(0x5f)
+      expect(result.bytes[result.bytes.length - 1]).toBe(0xff)
+    })
+
+    it('should reject indefinite text encoding in canonical mode', () => {
+      const { encodeTextString } = useCborStringEncoder({ canonical: true })
+
+      expect(() => encodeTextString('hello', { indefinite: true }))
+        .toThrow('Indefinite-length encoding not allowed in canonical mode')
+    })
+
+    it('should reject indefinite text chunks in canonical mode', () => {
+      const { encodeTextStringIndefinite } = useCborStringEncoder({ canonical: true })
+
+      expect(() => encodeTextStringIndefinite(['a', 'b']))
+        .toThrow('Indefinite-length encoding not allowed in canonical mode')
+    })
+
+    it('should reject indefinite byte chunks in canonical mode', () => {
+      const { encodeByteStringIndefinite } = useCborStringEncoder({ canonical: true })
+
+      expect(() => encodeByteStringIndefinite([new Uint8Array([1])]))
+        .toThrow('Indefinite-length encoding not allowed in canonical mode')
+    })
+  })
+
+  describe('Byte string array handling', () => {
+    it('should encode array of byte arrays as indefinite', () => {
+      const { encodeByteString } = useCborStringEncoder()
+      const chunks = [new Uint8Array([1, 2]), new Uint8Array([3, 4])]
+      const result = encodeByteString(chunks)
+
+      // Should start with 0x5f and end with 0xff
+      expect(result.bytes[0]).toBe(0x5f)
+      expect(result.bytes[result.bytes.length - 1]).toBe(0xff)
+    })
   })
 })
