@@ -1,6 +1,10 @@
-# <img src="assets/img2.jpg" alt="NACHOS Logo" height="40" align="absmiddle"> NACHOS
+<p align="center">
+  <img src="assets/img2.jpg" alt="NACHOS Logo" height="242">
+</p>
 
-**Not Another CBOR Handling Object System**
+<h1 align="center">NACHOS</h1>
+
+<p align="center"><strong>Not Another CBOR Handling Object System</strong></p>
 
 > RFC 8949 CBOR encoder/decoder with full source map support for interactive debugging
 
