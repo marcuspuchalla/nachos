@@ -1,4 +1,4 @@
-# <img src="img2.jpg" alt="NACHOS Logo" height="40" align="absmiddle"> NACHOS
+# <img src="assets/img2.jpg" alt="NACHOS Logo" height="40" align="absmiddle"> NACHOS
 
 **Not Another CBOR Handling Object System**
 
@@ -251,7 +251,7 @@ const result2 = decode(hex.slice(result1.bytesRead * 2))  // "hello"
 | Tagged Value (MT 6) | `{ tag, value }` | `{ tag: 121, value: [] }` |
 | Simple/Float (MT 7) | `boolean`, `null`, `undefined`, `number` | `true`, `null`, `3.14` |
 
-![NACHOS](img1.jpg)
+![NACHOS](assets/img1.jpg)
 
 ## Cardano Support
 
