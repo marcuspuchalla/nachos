@@ -1,6 +1,6 @@
 {
   "name": "@marcuspuchalla/nachos",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "NACHOS - Not Another CBOR Handling Object System. RFC 8949 CBOR encoder/decoder with full source map support for interactive debugging. Zero dependencies, TypeScript, works in Node.js and browsers.",
   "keywords": [
     "nachos",
