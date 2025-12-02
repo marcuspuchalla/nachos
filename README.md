@@ -1,4 +1,4 @@
-# NACHOS
+# <img src="img2.jpg" alt="NACHOS Logo" height="40" align="absmiddle"> NACHOS
 
 **Not Another CBOR Handling Object System**
 
@@ -251,6 +251,8 @@ const result2 = decode(hex.slice(result1.bytesRead * 2))  // "hello"
 | Tagged Value (MT 6) | `{ tag, value }` | `{ tag: 121, value: [] }` |
 | Simple/Float (MT 7) | `boolean`, `null`, `undefined`, `number` | `true`, `null`, `3.14` |
 
+![NACHOS](img1.jpg)
+
 ## Cardano Support
 
 Full support for Cardano Plutus Data encoding:
@@ -272,19 +274,9 @@ decode('d87a81182a')  // Constructor 1, [42]
 decode('d8668218c8811863')  // Constructor 200, [[99]]
 ```
 
-## Performance
+## Testing
 
-Benchmarked on M1 MacBook Pro:
-
-- **Small messages (<1KB):** < 0.1ms
-- **Medium messages (1-100KB):** < 10ms
-- **Large messages (1MB):** < 100ms
-- **Cardano transactions (2-5KB):** ~0.2ms
-
-Memory usage:
-- **Parser:** < 1MB base
-- **Source maps:** ~2x input size
-- **Encoder:** < 500KB base
+This library is validated against the [core-cbor](https://github.com/marcuspuchalla/core-cbor) correctness test suite, ensuring RFC 8949 compliance and proper handling of edge cases.
 
 ## Browser Compatibility
 
