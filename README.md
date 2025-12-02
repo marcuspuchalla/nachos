@@ -280,7 +280,7 @@ decode('d8668218c8811863')  // Constructor 200, [[99]]
 
 ## Testing
 
-This library is validated against the [core-cbor](https://github.com/marcuspuchalla/core-cbor) correctness test suite, ensuring RFC 8949 compliance and proper handling of edge cases.
+This library is validated against the [taco](https://github.com/marcuspuchalla/taco) correctness test suite, ensuring RFC 8949 compliance and proper handling of edge cases.
 
 ## Browser Compatibility
 
