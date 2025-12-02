@@ -10,8 +10,8 @@ This project follows **Test-Driven Development (TDD)** and **Composable Architec
 
 ### Prerequisites
 
-- Node.js >= 16.0.0
-- npm >= 7.0.0
+- Node.js >= 18.0.0
+- npm >= 9.0.0
 
 ### Setup
 

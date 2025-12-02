@@ -290,7 +290,7 @@ Requires ES2020+ for BigInt support:
 - ✅ Firefox 68+
 - ✅ Safari 14+
 - ✅ Edge 79+
-- ✅ Node.js 16+
+- ✅ Node.js 18+
 
 ## Security
 
