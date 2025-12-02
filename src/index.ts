@@ -70,16 +70,11 @@ export {
   // Default options
   DEFAULT_OPTIONS,
   DEFAULT_LIMITS,
-  // Option presets
-  PRESET_STRICT,
-  PRESET_CARDANO,
-  PRESET_PERMISSIVE,
   // Enums
   CborMajorType,
   CborAdditionalInfo,
   CborSimpleValue,
-  CborTag,
-  CardanoTag
+  CborTag
 } from './parser/types'
 
 export type {

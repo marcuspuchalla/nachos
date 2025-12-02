@@ -4,7 +4,7 @@
  * Following RFC 8949 specification
  */
 
-import type { EncodeResult, EncodeOptions, EncodableValue } from '../types'
+import type { EncodeResult, EncodeOptions, EncodableValue, TaggedValue } from '../types'
 import { DEFAULT_ENCODE_OPTIONS } from '../types'
 import { useCborIntegerEncoder } from './useCborIntegerEncoder'
 import { useCborStringEncoder } from './useCborStringEncoder'
@@ -123,12 +123,12 @@ export function useCborEncoder(globalOptions?: Partial<EncodeOptions>) {
     // Handle tagged values (MUST come before plain objects)
     // Check for {tag: number, value: any} structure
     if (typeof value === 'object' && value !== null && 'tag' in value && 'value' in value && typeof (value as { tag: unknown }).tag === 'number') {
-      return encodeTaggedValue(value as { tag: number; value: unknown }, encode)
+      return encodeTaggedValue(value as TaggedValue, encode)
     }
 
     // Handle plain objects
     if (typeof value === 'object' && value !== null) {
-      return encodeMap(value)
+      return encodeMap(value as { [key: string]: EncodableValue })
     }
 
     throw new Error(`Unsupported value type: ${typeof value}`)
