@@ -326,6 +326,10 @@ npm run build:watch
 
 GPL-3.0 © 2025 Marcus Puchalla
 
+## Demo
+
+See this library in action at [cbor.app](https://cbor.app).
+
 ## Related
 
 - [RFC 8949 - CBOR Specification](https://datatracker.ietf.org/doc/html/rfc8949)
