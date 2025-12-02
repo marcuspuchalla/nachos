@@ -301,7 +301,7 @@ Security features:
 - ✅ **UTF-8 validation** - Rejects invalid sequences
 - ✅ **Overflow detection** - Safe integer arithmetic
 
-Report security issues to: REMOVED
+Report security issues via [GitHub Issues](https://github.com/marcuspuchalla/nachos/issues).
 
 ## Development
 
