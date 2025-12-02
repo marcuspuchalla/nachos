@@ -1,7 +1,7 @@
 /**
- * CBOR Encoder Module
+ * NACHOS Encoder Module
  *
- * @module @cbor-codec/core/encoder
+ * @module @marcuspuchalla/nachos/encoder
  */
 
 // Export encoder composables

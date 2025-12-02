@@ -1,29 +1,31 @@
-# @cbor-codec/core
+# NACHOS
+
+**Not Another CBOR Handling Object System**
 
 > RFC 8949 CBOR encoder/decoder with full source map support for interactive debugging
 
-[![npm version](https://img.shields.io/npm/v/@cbor-codec/core.svg)](https://www.npmjs.com/package/@cbor-codec/core)
+[![npm version](https://img.shields.io/npm/v/@marcuspuchalla/nachos.svg)](https://www.npmjs.com/package/@marcuspuchalla/nachos)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Test Coverage](https://img.shields.io/badge/coverage-99.4%25-brightgreen.svg)]()
 
 A production-ready, zero-dependency CBOR (Concise Binary Object Representation) codec implementation in TypeScript. Works in Node.js and browsers.
 
 ## Features
 
-✅ **RFC 8949 Compliant** - Full implementation of CBOR specification
-✅ **Zero Dependencies** - No runtime dependencies, ~25KB minified
-✅ **TypeScript First** - Complete type definitions with strict mode
-✅ **Source Maps** - Bidirectional linking between hex bytes and decoded values
-✅ **Cardano Support** - Plutus constructor tags (121-127, 1280-1400, 102)
-✅ **Canonical Encoding** - Deterministic encoding for blockchain use cases
-✅ **Tree-Shakeable** - Import only what you need
-✅ **Browser & Node.js** - Works everywhere with ES2020 support
+- ✅ **RFC 8949 Compliant** - Full implementation of CBOR specification
+- ✅ **Zero Dependencies** - No runtime dependencies, ~25KB minified
+- ✅ **TypeScript First** - Complete type definitions with strict mode
+- ✅ **Source Maps** - Bidirectional linking between hex bytes and decoded values
+- ✅ **Cardano Support** - Plutus constructor tags (121-127, 1280-1400, 102)
+- ✅ **Canonical Encoding** - Deterministic encoding for blockchain use cases
+- ✅ **Tree-Shakeable** - Import only what you need
+- ✅ **Browser & Node.js** - Works everywhere with ES2020 support
 
 ## Installation
 
 ```bash
-npm install @cbor-codec/core
+npm install @marcuspuchalla/nachos
 ```
 
 ## Quick Start
@@ -31,7 +33,7 @@ npm install @cbor-codec/core
 ### Decoding CBOR
 
 ```typescript
-import { decode } from '@cbor-codec/core'
+import { decode } from '@marcuspuchalla/nachos'
 
 // Decode integer
 const result = decode('1864')
@@ -53,7 +55,7 @@ decode('d87980')  // { value: { tag: 121, value: [] }, bytesRead: 3 }
 ### Encoding CBOR
 
 ```typescript
-import { encode } from '@cbor-codec/core'
+import { encode } from '@marcuspuchalla/nachos'
 
 // Encode number
 encode(100)  // { hex: "1864", bytes: Uint8Array[0x18, 0x64] }
@@ -75,7 +77,7 @@ encode({ tag: 121, value: [] })  // { hex: "d87980", bytes: ... }
 ### Source Maps (Interactive Debugging)
 
 ```typescript
-import { decodeWithSourceMap } from '@cbor-codec/core'
+import { decodeWithSourceMap } from '@marcuspuchalla/nachos'
 
 const { value, sourceMap } = decodeWithSourceMap('d87980')
 
@@ -111,13 +113,13 @@ console.log(`Array is at hex bytes ${entry.start}-${entry.end}`)
 
 ```typescript
 // Decoder
-import { decode, decodeWithSourceMap } from '@cbor-codec/core'
+import { decode, decodeWithSourceMap } from '@marcuspuchalla/nachos'
 
 decode(hexString: string, options?: ParseOptions): ParseResult
 decodeWithSourceMap(hexString: string, options?: ParseOptions): ParseResultWithMap
 
 // Encoder
-import { encode, encodeToHex, encodeToBytes, encodeSequence } from '@cbor-codec/core'
+import { encode, encodeToHex, encodeToBytes, encodeSequence } from '@marcuspuchalla/nachos'
 
 encode(value: EncodableValue, options?: EncodeOptions): EncodeResult
 encodeToHex(value: EncodableValue, options?: EncodeOptions): string
@@ -128,7 +130,7 @@ encodeSequence(values: EncodableValue[], options?: EncodeOptions): EncodeResult
 ### Class API (Alternative)
 
 ```typescript
-import { CborDecoder, CborEncoder } from '@cbor-codec/core'
+import { CborDecoder, CborEncoder } from '@marcuspuchalla/nachos'
 
 // Decoder with persistent options
 const decoder = new CborDecoder({ strict: true })
@@ -181,7 +183,7 @@ interface EncodeOptions {
 ### Cardano Transaction Decoding
 
 ```typescript
-import { decode } from '@cbor-codec/core'
+import { decode } from '@marcuspuchalla/nachos'
 
 // Real Cardano UTXO collateral
 const collateralHex = '8282582048bd01d51e580cde15afa6d28f63d89c9137b93a910e5941192e26b12906106700'
@@ -194,7 +196,7 @@ console.log(result.value)
 ### Canonical Encoding for Blockchain
 
 ```typescript
-import { encode } from '@cbor-codec/core'
+import { encode } from '@marcuspuchalla/nachos'
 
 // Canonical encoding ensures deterministic output
 const tx = {
@@ -209,7 +211,7 @@ const { hex } = encode(tx, { canonical: true })
 ### Round-Trip Encoding/Decoding
 
 ```typescript
-import { encode, decode } from '@cbor-codec/core'
+import { encode, decode } from '@marcuspuchalla/nachos'
 
 const original = { a: 1, b: [2, 3], c: "hello" }
 
@@ -225,7 +227,7 @@ console.log(value)  // { a: 1, b: [2, 3], c: "hello" }
 ### Streaming with CBOR Sequences
 
 ```typescript
-import { encodeSequence, decode } from '@cbor-codec/core'
+import { encodeSequence, decode } from '@marcuspuchalla/nachos'
 
 // Encode multiple values as sequence (RFC 8742)
 const { hex } = encodeSequence([1, "hello", [2, 3]])
@@ -258,7 +260,7 @@ Full support for Cardano Plutus Data encoding:
 - **Tag 102**: Alternative constructor encoding
 
 ```typescript
-import { decode } from '@cbor-codec/core'
+import { decode } from '@marcuspuchalla/nachos'
 
 // Plutus constructor tag 121 (Constructor 0)
 const plutusData = decode('d87980')  // Constructor 0, []
@@ -303,7 +305,7 @@ Security features:
 - ✅ **UTF-8 validation** - Rejects invalid sequences
 - ✅ **Overflow detection** - Safe integer arithmetic
 
-Report security issues to: security@example.com
+Report security issues to: REMOVED
 
 ## Development
 
@@ -326,7 +328,7 @@ npm run build:watch
 
 ## License
 
-MIT © 2025
+GPL-3.0 © 2025 Marcus Puchalla
 
 ## Related
 

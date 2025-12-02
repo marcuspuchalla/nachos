@@ -1,7 +1,7 @@
 /**
- * CBOR Parser (Decoder) Module
+ * NACHOS Parser (Decoder) Module
  *
- * @module @cbor-codec/core/parser
+ * @module @marcuspuchalla/nachos/parser
  */
 
 // Export parser composables

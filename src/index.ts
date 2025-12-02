@@ -1,24 +1,24 @@
 /**
- * @cbor-codec/core
+ * NACHOS - Not Another CBOR Handling Object System
  *
  * RFC 8949 CBOR (Concise Binary Object Representation) encoder and decoder
  * with full source map support for interactive debugging.
  *
- * @module @cbor-codec/core
+ * @module @marcuspuchalla/nachos
  * @see https://datatracker.ietf.org/doc/html/rfc8949
  *
  * @example
  * ```typescript
  * // Simple decoding
- * import { decode } from '@cbor-codec/core'
+ * import { decode } from '@marcuspuchalla/nachos'
  * const result = decode('1864')  // { value: 100, bytesRead: 2 }
  *
  * // Simple encoding
- * import { encode } from '@cbor-codec/core'
+ * import { encode } from '@marcuspuchalla/nachos'
  * const { hex, bytes } = encode(100)  // hex: "1864"
  *
  * // With source maps for debugging
- * import { decodeWithSourceMap } from '@cbor-codec/core'
+ * import { decodeWithSourceMap } from '@marcuspuchalla/nachos'
  * const { value, sourceMap } = decodeWithSourceMap('d87980')
  * // sourceMap links hex bytes to decoded values
  * ```
@@ -67,12 +67,19 @@ export type {
 } from './parser/types'
 
 export {
+  // Default options
   DEFAULT_OPTIONS,
   DEFAULT_LIMITS,
+  // Option presets
+  PRESET_STRICT,
+  PRESET_CARDANO,
+  PRESET_PERMISSIVE,
+  // Enums
   CborMajorType,
   CborAdditionalInfo,
   CborSimpleValue,
-  CborTag
+  CborTag,
+  CardanoTag
 } from './parser/types'
 
 export type {

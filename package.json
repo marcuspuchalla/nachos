@@ -1,8 +1,9 @@
 {
-  "name": "@cbor-codec/core",
-  "version": "1.0.0-alpha.1",
-  "description": "RFC 8949 CBOR encoder/decoder with full source map support for interactive debugging. Zero dependencies, TypeScript, works in Node.js and browsers.",
+  "name": "@marcuspuchalla/nachos",
+  "version": "0.1.0",
+  "description": "NACHOS - Not Another CBOR Handling Object System. RFC 8949 CBOR encoder/decoder with full source map support for interactive debugging. Zero dependencies, TypeScript, works in Node.js and browsers.",
   "keywords": [
+    "nachos",
     "cbor",
     "codec",
     "encoder",
@@ -20,15 +21,15 @@
     "zero-dependencies"
   ],
   "author": "Marcus Puchalla <REMOVED>",
-  "license": "MIT",
+  "license": "GPL-3.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/marcuspuchalla/cbor-codec.git"
+    "url": "https://github.com/marcuspuchalla/nachos.git"
   },
   "bugs": {
-    "url": "https://github.com/marcuspuchallya/cbor-codec/issues"
+    "url": "https://github.com/marcuspuchalla/nachos/issues"
   },
-  "homepage": "https://github.com/marcuspuchalla/cbor-codec#readme",
+  "homepage": "https://github.com/marcuspuchalla/nachos#readme",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -87,9 +88,9 @@
   "engines": {
     "node": ">=16.0.0"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@vitest/coverage-v8": "^2.1.8",
     "tsup": "^8.0.0",
     "typescript": "~5.6.3",
     "vitest": "^2.1.8"
