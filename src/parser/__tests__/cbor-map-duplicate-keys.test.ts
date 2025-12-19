@@ -169,17 +169,16 @@ describe('CBOR Map Duplicate Key Detection', () => {
   })
 
   describe('Mixed Type Keys - Duplicate Detection', () => {
-    it('should reject keys that collide in JavaScript object model', () => {
+    it('should allow distinct CBOR keys even if they stringify similarly', () => {
       const { parseMap } = useCborCollection()
 
       // Map: {1: 10, "1": 20} - different types in CBOR (int vs string)
       // a2 (map of 2) + 01 (key:1 integer) + 0a (val:10) + 6131 (key:"1" string) + 14 (val:20)
-      // SECURITY: Both convert to string "1" in JavaScript, causing collision
-      // This is correctly rejected to prevent unexpected behavior in Cardano applications
+      // Keys are distinct at the CBOR level and should not be treated as duplicates
       const mixedTypes = 'a2010a613114'
 
-      expect(() => parseMap(mixedTypes, { dupMapKeyMode: 'reject' }))
-        .toThrow(/duplicate.*key/i)
+      const result = parseMap(mixedTypes, { dupMapKeyMode: 'reject' })
+      expect(result.value.size).toBe(2)
     })
 
     it('should detect duplicates when both are strings', () => {

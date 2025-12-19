@@ -4,7 +4,7 @@
  * Supports standard tags (0-5), encoding hints (21-36), self-describe (55799), and Cardano tags
  */
 
-import type { ParseResult, CborValue, TaggedValue, CborMap, ParseOptions, PlutusConstr } from '../types'
+import type { ParseResult, CborValue, TaggedValue, CborMap, ParseOptions, PlutusConstr, CborByteString } from '../types'
 import { INDEFINITE_SYMBOL } from '../types'
 import { hexToBytes, readByte, readUint, readBigUint, extractCborHeader, hasDuplicates } from '../utils'
 import { useCborInteger } from './useCborInteger'
@@ -37,7 +37,13 @@ export function useCborTag() {
    * @param tagDepth - Current tag nesting depth (for limit checking)
    * @returns Parsed value and bytes consumed
    */
-  const parseItem = (buffer: Uint8Array, offset: number, options?: ParseOptions, tagDepth: number = 0): ParseResult => {
+  const parseItem = (
+    buffer: Uint8Array,
+    offset: number,
+    options?: ParseOptions,
+    tagDepth: number = 0,
+    depth: number = 0
+  ): ParseResult => {
     if (offset >= buffer.length) {
       throw new Error(`Unexpected end of buffer at offset ${offset}`)
     }
@@ -64,13 +70,13 @@ export function useCborTag() {
         return parseTextString(buffer, offset, options)
 
       case 4: // Array
-        return parseArrayInternal(buffer, offset, options)
+        return parseArrayInternal(buffer, offset, options, tagDepth, depth)
 
       case 5: // Map
-        return parseMapInternal(buffer, offset, options)
+        return parseMapInternal(buffer, offset, options, tagDepth, depth)
 
       case 6: // Tag (recursive)
-        return parseTagFromBuffer(buffer, offset, options, tagDepth)
+        return parseTagFromBuffer(buffer, offset, options, tagDepth, depth)
 
       case 7: // Simple/Float
         {
@@ -98,7 +104,13 @@ export function useCborTag() {
   /**
    * Internal array parser that uses the tag-aware parseItem
    */
-  const parseArrayInternal = (buffer: Uint8Array, offset: number, options?: ParseOptions): ParseResult => {
+  const parseArrayInternal = (
+    buffer: Uint8Array,
+    offset: number,
+    options?: ParseOptions,
+    tagDepth: number = 0,
+    depth: number = 0
+  ): ParseResult => {
     const initialByte = readByte(buffer, offset)
     const { majorType, additionalInfo } = extractCborHeader(initialByte)
 
@@ -130,10 +142,18 @@ export function useCborTag() {
       length = Number(lengthBigInt)
       bytesConsumed = 8
     } else if (additionalInfo === 31) {
+      const isIndefiniteAllowed = options?.allowIndefinite ?? !(options?.validateCanonical || options?.strict)
+      if (!isIndefiniteAllowed) {
+        throw new Error('Indefinite-length encoding is not allowed (strict/canonical mode)')
+      }
       length = null // Indefinite
       bytesConsumed = 0
     } else {
       throw new Error(`Invalid additional info for array: ${additionalInfo}`)
+    }
+
+    if (options?.limits?.maxDepth && depth >= options.limits.maxDepth) {
+      throw new Error(`Maximum nesting depth ${options.limits.maxDepth} exceeded`)
     }
 
     let currentOffset = offset + 1 + bytesConsumed
@@ -141,23 +161,36 @@ export function useCborTag() {
 
     if (length === null) {
       // Indefinite-length array
+      let index = 0
+      let foundBreak = false
       while (currentOffset < buffer.length) {
         const nextByte = readByte(buffer, currentOffset)
         if (nextByte === 0xff) {
           currentOffset++
+          foundBreak = true
           break
         }
-        const itemResult = parseItem(buffer, currentOffset, options)
+        if (options?.limits?.maxArrayLength && index >= options.limits.maxArrayLength) {
+          throw new Error(`Array length exceeds limit of ${options.limits.maxArrayLength}`)
+        }
+        const itemResult = parseItem(buffer, currentOffset, options, tagDepth, depth + 1)
         items.push(itemResult.value)
         currentOffset += itemResult.bytesRead
+        index++
+      }
+      if (!foundBreak) {
+        throw new Error('Indefinite-length array missing break code (0xFF)')
       }
 
       // Mark as indefinite-length for round-trip preservation
       ;(items as any)[INDEFINITE_SYMBOL] = true
     } else {
       // Definite-length array
+      if (options?.limits?.maxArrayLength && length > options.limits.maxArrayLength) {
+        throw new Error(`Array length ${length} exceeds limit of ${options.limits.maxArrayLength}`)
+      }
       for (let i = 0; i < length; i++) {
-        const itemResult = parseItem(buffer, currentOffset, options)
+        const itemResult = parseItem(buffer, currentOffset, options, tagDepth, depth + 1)
         items.push(itemResult.value)
         currentOffset += itemResult.bytesRead
       }
@@ -172,7 +205,13 @@ export function useCborTag() {
   /**
    * Internal map parser that uses the tag-aware parseItem
    */
-  const parseMapInternal = (buffer: Uint8Array, offset: number, options?: ParseOptions): ParseResult => {
+  const parseMapInternal = (
+    buffer: Uint8Array,
+    offset: number,
+    options?: ParseOptions,
+    tagDepth: number = 0,
+    depth: number = 0
+  ): ParseResult => {
     const initialByte = readByte(buffer, offset)
     const { majorType, additionalInfo } = extractCborHeader(initialByte)
 
@@ -204,10 +243,18 @@ export function useCborTag() {
       length = Number(lengthBigInt)
       bytesConsumed = 8
     } else if (additionalInfo === 31) {
+      const isIndefiniteAllowed = options?.allowIndefinite ?? !(options?.validateCanonical || options?.strict)
+      if (!isIndefiniteAllowed) {
+        throw new Error('Indefinite-length encoding is not allowed (strict/canonical mode)')
+      }
       length = null // Indefinite
       bytesConsumed = 0
     } else {
       throw new Error(`Invalid additional info for map: ${additionalInfo}`)
+    }
+
+    if (options?.limits?.maxDepth && depth >= options.limits.maxDepth) {
+      throw new Error(`Maximum nesting depth ${options.limits.maxDepth} exceeded`)
     }
 
     let currentOffset = offset + 1 + bytesConsumed
@@ -215,31 +262,44 @@ export function useCborTag() {
 
     if (length === null) {
       // Indefinite-length map
+      let index = 0
+      let foundBreak = false
       while (currentOffset < buffer.length) {
         const nextByte = readByte(buffer, currentOffset)
         if (nextByte === 0xff) {
           currentOffset++
+          foundBreak = true
           break
         }
-        const keyResult = parseItem(buffer, currentOffset, options)
+        if (options?.limits?.maxMapSize && index >= options.limits.maxMapSize) {
+          throw new Error(`Map size exceeds limit of ${options.limits.maxMapSize}`)
+        }
+        const keyResult = parseItem(buffer, currentOffset, options, tagDepth, depth + 1)
         currentOffset += keyResult.bytesRead
 
-        const valueResult = parseItem(buffer, currentOffset, options)
+        const valueResult = parseItem(buffer, currentOffset, options, tagDepth, depth + 1)
         currentOffset += valueResult.bytesRead
 
         // Store with original key type (not string!)
         map.set(keyResult.value, valueResult.value)
+        index++
+      }
+      if (!foundBreak) {
+        throw new Error('Indefinite-length map missing break code (0xFF)')
       }
 
       // Mark as indefinite-length for round-trip preservation
       ;(map as any)[INDEFINITE_SYMBOL] = true
     } else {
       // Definite-length map
+      if (options?.limits?.maxMapSize && length > options.limits.maxMapSize) {
+        throw new Error(`Map size ${length} exceeds limit of ${options.limits.maxMapSize}`)
+      }
       for (let i = 0; i < length; i++) {
-        const keyResult = parseItem(buffer, currentOffset, options)
+        const keyResult = parseItem(buffer, currentOffset, options, tagDepth, depth + 1)
         currentOffset += keyResult.bytesRead
 
-        const valueResult = parseItem(buffer, currentOffset, options)
+        const valueResult = parseItem(buffer, currentOffset, options, tagDepth, depth + 1)
         currentOffset += valueResult.bytesRead
 
         // Store with original key type (not string!)
@@ -641,7 +701,13 @@ export function useCborTag() {
    * @param options - Parser options
    * @returns Parsed tagged value and bytes read
    */
-  const parseTagFromBuffer = (buffer: Uint8Array, offset: number, options?: ParseOptions, tagDepth: number = 0): ParseResult => {
+  const parseTagFromBuffer = (
+    buffer: Uint8Array,
+    offset: number,
+    options?: ParseOptions,
+    tagDepth: number = 0,
+    depth: number = 0
+  ): ParseResult => {
     const initialByte = readByte(buffer, offset)
     const { majorType, additionalInfo } = extractCborHeader(initialByte)
 
@@ -664,34 +730,44 @@ export function useCborTag() {
       throw new Error(`Unexpected end of buffer after tag ${tagNumber}`)
     }
 
-    const valueResult = parseItem(buffer, currentOffset, options, tagDepth + 1)
+    const valueResult = parseItem(buffer, currentOffset, options, tagDepth + 1, depth)
     currentOffset += valueResult.bytesRead
 
     // Validate bignum size limits for tags 2 and 3 (CVE-2020-28491 mitigation)
-    if ((tagNumber === 2 || tagNumber === 3) && valueResult.value instanceof Uint8Array) {
-      const maxBignumBytes = options?.limits?.maxBignumBytes ?? 1024
-      if (valueResult.value.length > maxBignumBytes) {
-        throw new Error(
-          `Bignum (tag ${tagNumber}) size ${valueResult.value.length} bytes exceeds limit of ${maxBignumBytes} bytes`
-        )
-      }
+    if (tagNumber === 2 || tagNumber === 3) {
+      const bytes =
+        valueResult.value instanceof Uint8Array
+          ? valueResult.value
+          : (valueResult.value &&
+            typeof valueResult.value === 'object' &&
+            (valueResult.value as CborByteString).type === 'cbor-byte-string')
+            ? (valueResult.value as CborByteString).bytes
+            : null
 
-      // Convert bignum bytes to BigInt, then to decimal string
-      // This provides the expected format for test compatibility
-      const bytes = valueResult.value
-      let bigintValue = 0n
+      if (bytes) {
+        const maxBignumBytes = options?.limits?.maxBignumBytes ?? 1024
+        if (bytes.length > maxBignumBytes) {
+          throw new Error(
+            `Bignum (tag ${tagNumber}) size ${bytes.length} bytes exceeds limit of ${maxBignumBytes} bytes`
+          )
+        }
 
-      // Convert bytes to BigInt (big-endian)
-      for (let i = 0; i < bytes.length; i++) {
-        bigintValue = (bigintValue << 8n) | BigInt(bytes[i]!)
-      }
+        // Convert bignum bytes to BigInt, then to decimal string
+        // This provides the expected format for test compatibility
+        let bigintValue = 0n
 
-      // Tag 2: Positive bignum - return as decimal string
-      // Tag 3: Negative bignum - apply formula: -1 - n
-      if (tagNumber === 2) {
-        valueResult.value = bigintValue
-      } else if (tagNumber === 3) {
-        valueResult.value = -1n - bigintValue
+        // Convert bytes to BigInt (big-endian)
+        for (let i = 0; i < bytes.length; i++) {
+          bigintValue = (bigintValue << 8n) | BigInt(bytes[i]!)
+        }
+
+        // Tag 2: Positive bignum - return as decimal string
+        // Tag 3: Negative bignum - apply formula: -1 - n
+        if (tagNumber === 2) {
+          valueResult.value = bigintValue
+        } else if (tagNumber === 3) {
+          valueResult.value = -1n - bigintValue
+        }
       }
     }
 

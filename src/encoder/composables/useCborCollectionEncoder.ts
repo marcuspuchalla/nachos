@@ -9,6 +9,7 @@ import { DEFAULT_ENCODE_OPTIONS, INDEFINITE_SYMBOL, ALL_ENTRIES_SYMBOL } from '.
 import { bytesToHex, concatenateUint8Arrays, compareBytes } from '../utils'
 import { useCborIntegerEncoder } from './useCborIntegerEncoder'
 import { useCborStringEncoder } from './useCborStringEncoder'
+import { useCborSimpleEncoder } from './useCborSimpleEncoder'
 import { useCborByteString, useCborTextString } from '../../parser/composables/useCborStringTypes'
 
 interface CollectionEncodeOptions {
@@ -49,6 +50,7 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
   // Get other encoders
   const { encodeInteger } = useCborIntegerEncoder()
   const { encodeTextString, encodeByteString } = useCborStringEncoder(globalOptions)
+  const { encodeFloat } = useCborSimpleEncoder(options)
   const { isCborByteString } = useCborByteString()
   const { isCborTextString } = useCborTextString()
 
@@ -90,7 +92,16 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
       // true: 0xf5, false: 0xf4
       return new Uint8Array([value ? 0xf5 : 0xf4])
     }
-    else if (typeof value === 'number' || typeof value === 'bigint') {
+    else if (typeof value === 'number') {
+      if (Object.is(value, -0)) {
+        return encodeFloat(value, 16).bytes
+      }
+      if (Number.isInteger(value) && Number.isSafeInteger(value)) {
+        return encodeInteger(value).bytes
+      }
+      return encodeFloat(value).bytes
+    }
+    else if (typeof value === 'bigint') {
       return encodeInteger(value).bytes
     }
     else if (typeof value === 'string' || isCborTextString(value)) {

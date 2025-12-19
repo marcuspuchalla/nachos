@@ -77,6 +77,9 @@ export function useCborEncoder(globalOptions?: Partial<EncodeOptions>) {
 
     // Handle numbers
     if (typeof value === 'number') {
+      if (Object.is(value, -0)) {
+        return encodeFloat(value, 16)
+      }
       // Check if it's an integer
       if (Number.isInteger(value) && Number.isSafeInteger(value)) {
         return encodeInteger(value)

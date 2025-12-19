@@ -123,6 +123,14 @@ describe('Public API - Functional Encode', () => {
     expect(result.hex).toBe('010203')
     expect(result.bytes).toEqual(new Uint8Array([0x01, 0x02, 0x03]))
   })
+
+  it('encode() should preserve -0', () => {
+    const result = encode(-0)
+    expect(result.hex).toBe('f98000')
+
+    const decoded = decode(result.hex)
+    expect(Object.is(decoded.value, -0)).toBe(true)
+  })
 })
 
 describe('Public API - Diagnostic Notation', () => {

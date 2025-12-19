@@ -31,17 +31,6 @@ export function useCborCollection() {
   const { parseTag } = useCborTag()
 
   /**
-   * Convert a CBOR value to a string key for use in JavaScript objects
-   * Handles Uint8Array keys by converting them to hex strings
-   */
-  const convertKeyToString = (key: CborValue): string => {
-    if (key instanceof Uint8Array) {
-      return bytesToHex(key)
-    }
-    return String(key)
-  }
-
-  /**
    * Internal parser dispatcher for CBOR items
    * Handles recursive parsing of nested structures
    *
@@ -357,7 +346,7 @@ export function useCborCollection() {
         currentOffset += valueResult.bytesRead
 
         // For duplicate key detection, serialize the key
-        const keyString = convertKeyToString(keyResult.value)
+        const keyString = bytesToHex(buffer.slice(keyStart, keyEnd))
 
         // Check for duplicate keys based on dupMapKeyMode
         // RFC 8949: Deterministic encoding SHOULD reject duplicate keys
@@ -421,7 +410,7 @@ export function useCborCollection() {
         currentOffset += valueResult.bytesRead
 
         // For duplicate key detection, serialize the key
-        const keyString = convertKeyToString(keyResult.value)
+        const keyString = bytesToHex(buffer.slice(keyStart, keyEnd))
 
         // Check for duplicate keys based on dupMapKeyMode
         // RFC 8949: Deterministic encoding SHOULD reject duplicate keys

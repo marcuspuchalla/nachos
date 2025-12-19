@@ -429,6 +429,13 @@ export function useCborParser() {
     path: string,
     sourceMap: SourceMapEntry[]
   ): ParseResult => {
+    const previousDepth = ctx.currentDepth ?? 0
+    const maxDepth = ctx.options?.limits?.maxDepth
+    if (maxDepth !== undefined && previousDepth >= maxDepth) {
+      throw new Error(`Maximum nesting depth ${maxDepth} exceeded`)
+    }
+    ctx.currentDepth = previousDepth + 1
+
     const startOffset = offset
     const initialByte = readByte(ctx.buffer, offset)
     const { additionalInfo } = extractCborHeader(initialByte)
@@ -459,6 +466,10 @@ export function useCborParser() {
       length = Number(bigLength)
       currentOffset += 8
     } else if (additionalInfo === 31) {
+      const isIndefiniteAllowed = ctx.options?.allowIndefinite ?? !(ctx.options?.validateCanonical || ctx.options?.strict)
+      if (!isIndefiniteAllowed) {
+        throw new Error('Indefinite-length encoding is not allowed (strict/canonical mode)')
+      }
       isIndefinite = true
       length = 0
     } else {
@@ -480,56 +491,71 @@ export function useCborParser() {
       headerEnd
     })
 
-    // Parse array elements
-    const childPaths: string[] = []
-    if (isIndefinite) {
-      let index = 0
-      while (currentOffset < ctx.buffer.length) {
-        const nextByte = readByte(ctx.buffer, currentOffset)
-        if (nextByte === 0xff) {
-          currentOffset++
-          break
-        }
-        const elementPath = `${path}[${index}]`
-        childPaths.push(elementPath)
-        const elementResult = parseValueWithMap(ctx, currentOffset, elementPath, sourceMap)
-        items.push(elementResult.value)
-        currentOffset += elementResult.bytesRead
+    try {
+      // Parse array elements
+      const childPaths: string[] = []
+      if (isIndefinite) {
+        let index = 0
+        let foundBreak = false
+        while (currentOffset < ctx.buffer.length) {
+          const nextByte = readByte(ctx.buffer, currentOffset)
+          if (nextByte === 0xff) {
+            currentOffset++
+            foundBreak = true
+            break
+          }
+          if (ctx.options?.limits?.maxArrayLength && index >= ctx.options.limits.maxArrayLength) {
+            throw new Error(`Array length exceeds limit of ${ctx.options.limits.maxArrayLength}`)
+          }
+          const elementPath = `${path}[${index}]`
+          childPaths.push(elementPath)
+          const elementResult = parseValueWithMap(ctx, currentOffset, elementPath, sourceMap)
+          items.push(elementResult.value)
+          currentOffset += elementResult.bytesRead
 
-        // Mark element as child of this array
-        const elementEntry = sourceMap.find(e => e.path === elementPath)
-        if (elementEntry) {
-          elementEntry.parent = path
-        }
+          // Mark element as child of this array
+          const elementEntry = sourceMap.find(e => e.path === elementPath)
+          if (elementEntry) {
+            elementEntry.parent = path
+          }
 
-        index++
+          index++
+        }
+        if (!foundBreak) {
+          throw new Error('Indefinite-length array missing break code (0xFF)')
+        }
+      } else {
+        if (ctx.options?.limits?.maxArrayLength && length > ctx.options.limits.maxArrayLength) {
+          throw new Error(`Array length ${length} exceeds limit of ${ctx.options.limits.maxArrayLength}`)
+        }
+        for (let i = 0; i < length; i++) {
+          const elementPath = `${path}[${i}]`
+          childPaths.push(elementPath)
+          const elementResult = parseValueWithMap(ctx, currentOffset, elementPath, sourceMap)
+          items.push(elementResult.value)
+          currentOffset += elementResult.bytesRead
+
+          // Mark element as child of this array
+          const elementEntry = sourceMap.find(e => e.path === elementPath)
+          if (elementEntry) {
+            elementEntry.parent = path
+          }
+        }
       }
-    } else {
-      for (let i = 0; i < length; i++) {
-        const elementPath = `${path}[${i}]`
-        childPaths.push(elementPath)
-        const elementResult = parseValueWithMap(ctx, currentOffset, elementPath, sourceMap)
-        items.push(elementResult.value)
-        currentOffset += elementResult.bytesRead
 
-        // Mark element as child of this array
-        const elementEntry = sourceMap.find(e => e.path === elementPath)
-        if (elementEntry) {
-          elementEntry.parent = path
-        }
+      const bytesRead = currentOffset - offset
+
+      // Only set children if array is non-empty
+      if (childPaths.length > 0 && sourceMap[arrayEntryIndex]) {
+        sourceMap[arrayEntryIndex].children = childPaths
       }
-    }
 
-    const bytesRead = currentOffset - offset
-
-    // Only set children if array is non-empty
-    if (childPaths.length > 0 && sourceMap[arrayEntryIndex]) {
-      sourceMap[arrayEntryIndex].children = childPaths
-    }
-
-    return {
-      value: items,
-      bytesRead
+      return {
+        value: items,
+        bytesRead
+      }
+    } finally {
+      ctx.currentDepth = previousDepth
     }
   }
 
@@ -542,6 +568,13 @@ export function useCborParser() {
     path: string,
     sourceMap: SourceMapEntry[]
   ): ParseResult => {
+    const previousDepth = ctx.currentDepth ?? 0
+    const maxDepth = ctx.options?.limits?.maxDepth
+    if (maxDepth !== undefined && previousDepth >= maxDepth) {
+      throw new Error(`Maximum nesting depth ${maxDepth} exceeded`)
+    }
+    ctx.currentDepth = previousDepth + 1
+
     const startOffset = offset
     const initialByte = readByte(ctx.buffer, offset)
     const { additionalInfo } = extractCborHeader(initialByte)
@@ -572,6 +605,10 @@ export function useCborParser() {
       length = Number(bigLength)
       currentOffset += 8
     } else if (additionalInfo === 31) {
+      const isIndefiniteAllowed = ctx.options?.allowIndefinite ?? !(ctx.options?.validateCanonical || ctx.options?.strict)
+      if (!isIndefiniteAllowed) {
+        throw new Error('Indefinite-length encoding is not allowed (strict/canonical mode)')
+      }
       isIndefinite = true
       length = 0
     } else {
@@ -593,100 +630,118 @@ export function useCborParser() {
       headerEnd
     })
 
-    // Parse map entries
-    const childPaths: string[] = []
-    const seenKeys = new Set<string>()
+    try {
+      // Parse map entries
+      const childPaths: string[] = []
+      const seenKeys = new Set<string>()
 
-    if (isIndefinite) {
-      while (currentOffset < ctx.buffer.length) {
-        const nextByte = readByte(ctx.buffer, currentOffset)
-        if (nextByte === 0xff) {
-          currentOffset++
-          break
+      if (isIndefinite) {
+        let count = 0
+        let foundBreak = false
+        while (currentOffset < ctx.buffer.length) {
+          const nextByte = readByte(ctx.buffer, currentOffset)
+          if (nextByte === 0xff) {
+            currentOffset++
+            foundBreak = true
+            break
+          }
+          if (ctx.options?.limits?.maxMapSize && count >= ctx.options.limits.maxMapSize) {
+            throw new Error(`Map size exceeds limit of ${ctx.options.limits.maxMapSize}`)
+          }
+
+          // Parse key with path suffix to indicate it's a key
+          const keyPath = `${path}${path ? '.' : ''}#key`
+          const keyResult = parseValueWithMap(ctx, currentOffset, keyPath, sourceMap)
+          currentOffset += keyResult.bytesRead
+
+          // For duplicate detection and path generation, stringify the key
+          const keyString = keyResult.value instanceof Uint8Array
+            ? Array.from(keyResult.value).map(b => b.toString(16).padStart(2, '0')).join('')
+            : String(keyResult.value)
+
+          // Check for duplicate keys based on dupMapKeyMode
+          if (seenKeys.has(keyString)) {
+            const mode = ctx.options?.dupMapKeyMode || 'allow'
+            if (mode === 'reject') {
+              throw new Error(`Duplicate map key detected: ${keyString} at offset ${currentOffset}`)
+            } else if (mode === 'warn') {
+              logger.warn(`Duplicate map key detected: ${keyString} at offset ${currentOffset}`)
+            }
+          }
+          seenKeys.add(keyString)
+
+          // Parse value
+          const valuePath = path ? `${path}.${keyString}` : `.${keyString}`
+          childPaths.push(valuePath)
+          const valueResult = parseValueWithMap(ctx, currentOffset, valuePath, sourceMap)
+          map.set(keyResult.value, valueResult.value)
+          currentOffset += valueResult.bytesRead
+
+          // Mark value entry as child of this map
+          const valueEntry = sourceMap.find(e => e.path === valuePath)
+          if (valueEntry) {
+            valueEntry.parent = path
+          }
+
+          count++
         }
+        if (!foundBreak) {
+          throw new Error('Indefinite-length map missing break code (0xFF)')
+        }
+      } else {
+        if (ctx.options?.limits?.maxMapSize && length > ctx.options.limits.maxMapSize) {
+          throw new Error(`Map size ${length} exceeds limit of ${ctx.options.limits.maxMapSize}`)
+        }
+        for (let i = 0; i < length; i++) {
+          // Parse key with path suffix to indicate it's a key
+          const keyPath = `${path}${path ? '.' : ''}#key${i}`
+          const keyResult = parseValueWithMap(ctx, currentOffset, keyPath, sourceMap)
+          currentOffset += keyResult.bytesRead
 
-        // Parse key with path suffix to indicate it's a key
-        const keyPath = `${path}${path ? '.' : ''}#key`
-        const keyResult = parseValueWithMap(ctx, currentOffset, keyPath, sourceMap)
-        currentOffset += keyResult.bytesRead
+          // For duplicate detection and path generation, stringify the key
+          const keyString = keyResult.value instanceof Uint8Array
+            ? Array.from(keyResult.value).map(b => b.toString(16).padStart(2, '0')).join('')
+            : String(keyResult.value)
 
-        // For duplicate detection and path generation, stringify the key
-        const keyString = keyResult.value instanceof Uint8Array
-          ? Array.from(keyResult.value).map(b => b.toString(16).padStart(2, '0')).join('')
-          : String(keyResult.value)
+          // Check for duplicate keys based on dupMapKeyMode
+          if (seenKeys.has(keyString)) {
+            const mode = ctx.options?.dupMapKeyMode || 'allow'
+            if (mode === 'reject') {
+              throw new Error(`Duplicate map key detected: ${keyString} at offset ${currentOffset}`)
+            } else if (mode === 'warn') {
+              logger.warn(`Duplicate map key detected: ${keyString} at offset ${currentOffset}`)
+            }
+          }
+          seenKeys.add(keyString)
 
-        // Check for duplicate keys based on dupMapKeyMode
-        if (seenKeys.has(keyString)) {
-          const mode = ctx.options?.dupMapKeyMode || 'allow'
-          if (mode === 'reject') {
-            throw new Error(`Duplicate map key detected: ${keyString} at offset ${currentOffset}`)
-          } else if (mode === 'warn') {
-            logger.warn(`Duplicate map key detected: ${keyString} at offset ${currentOffset}`)
+          // Parse value
+          const valuePath = path ? `${path}.${keyString}` : `.${keyString}`
+          childPaths.push(valuePath)
+          const valueResult = parseValueWithMap(ctx, currentOffset, valuePath, sourceMap)
+          map.set(keyResult.value, valueResult.value)
+          currentOffset += valueResult.bytesRead
+
+          // Mark value entry as child of this map
+          const valueEntry = sourceMap.find(e => e.path === valuePath)
+          if (valueEntry) {
+            valueEntry.parent = path
           }
         }
-        seenKeys.add(keyString)
-
-        // Parse value
-        const valuePath = path ? `${path}.${keyString}` : `.${keyString}`
-        childPaths.push(valuePath)
-        const valueResult = parseValueWithMap(ctx, currentOffset, valuePath, sourceMap)
-        map.set(keyResult.value, valueResult.value)
-        currentOffset += valueResult.bytesRead
-
-        // Mark value entry as child of this map
-        const valueEntry = sourceMap.find(e => e.path === valuePath)
-        if (valueEntry) {
-          valueEntry.parent = path
-        }
       }
-    } else {
-      for (let i = 0; i < length; i++) {
-        // Parse key with path suffix to indicate it's a key
-        const keyPath = `${path}${path ? '.' : ''}#key${i}`
-        const keyResult = parseValueWithMap(ctx, currentOffset, keyPath, sourceMap)
-        currentOffset += keyResult.bytesRead
 
-        // For duplicate detection and path generation, stringify the key
-        const keyString = keyResult.value instanceof Uint8Array
-          ? Array.from(keyResult.value).map(b => b.toString(16).padStart(2, '0')).join('')
-          : String(keyResult.value)
+      const bytesRead = currentOffset - offset
 
-        // Check for duplicate keys based on dupMapKeyMode
-        if (seenKeys.has(keyString)) {
-          const mode = ctx.options?.dupMapKeyMode || 'allow'
-          if (mode === 'reject') {
-            throw new Error(`Duplicate map key detected: ${keyString} at offset ${currentOffset}`)
-          } else if (mode === 'warn') {
-            logger.warn(`Duplicate map key detected: ${keyString} at offset ${currentOffset}`)
-          }
-        }
-        seenKeys.add(keyString)
-
-        // Parse value
-        const valuePath = path ? `${path}.${keyString}` : `.${keyString}`
-        childPaths.push(valuePath)
-        const valueResult = parseValueWithMap(ctx, currentOffset, valuePath, sourceMap)
-        map.set(keyResult.value, valueResult.value)
-        currentOffset += valueResult.bytesRead
-
-        // Mark value entry as child of this map
-        const valueEntry = sourceMap.find(e => e.path === valuePath)
-        if (valueEntry) {
-          valueEntry.parent = path
-        }
+      // Set children for the map entry
+      if (sourceMap[mapEntryIndex]) {
+        sourceMap[mapEntryIndex].children = childPaths
       }
-    }
 
-    const bytesRead = currentOffset - offset
-
-    // Set children for the map entry
-    if (sourceMap[mapEntryIndex]) {
-      sourceMap[mapEntryIndex].children = childPaths
-    }
-
-    return {
-      value: map,
-      bytesRead
+      return {
+        value: map,
+        bytesRead
+      }
+    } finally {
+      ctx.currentDepth = previousDepth
     }
   }
 

@@ -5,10 +5,21 @@
 /**
  * Converts hex string to Uint8Array
  *
+ * Validates even length and hex-only characters.
+ *
  * @param hex - Hex string (e.g., "1864")
  * @returns Byte array
  */
 export const hexToBytes = (hex: string): Uint8Array => {
+  if (hex.length === 0) {
+    return new Uint8Array(0)
+  }
+  if (hex.length % 2 !== 0) {
+    throw new Error('Hex string must have even length')
+  }
+  if (!/^[0-9a-fA-F]+$/.test(hex)) {
+    throw new Error(`Invalid hex character in: ${hex}`)
+  }
   const bytes = hex.match(/.{1,2}/g)
   if (!bytes) return new Uint8Array(0)
   return new Uint8Array(bytes.map(byte => parseInt(byte, 16)))

@@ -68,8 +68,8 @@ export function useCborSimpleEncoder(_globalOptions?: Partial<EncodeOptions>) {
    */
   const encodeFloat16Bytes = (value: number): Uint8Array => {
     // Handle special cases
+    if (Object.is(value, -0)) return new Uint8Array([0x80, 0x00])
     if (value === 0) return new Uint8Array([0x00, 0x00])
-    if (value === -0) return new Uint8Array([0x80, 0x00])
     if (Number.isNaN(value)) return new Uint8Array([0x7e, 0x00])
     if (value === Infinity) return new Uint8Array([0x7c, 0x00])
     if (value === -Infinity) return new Uint8Array([0xfc, 0x00])
@@ -150,7 +150,7 @@ export function useCborSimpleEncoder(_globalOptions?: Partial<EncodeOptions>) {
    */
   const canBeFloat16 = (value: number): boolean => {
     // Special values
-    if (!Number.isFinite(value) || value === 0 || value === -0) {
+    if (!Number.isFinite(value) || Object.is(value, 0) || Object.is(value, -0)) {
       return true
     }
 
@@ -190,7 +190,7 @@ export function useCborSimpleEncoder(_globalOptions?: Partial<EncodeOptions>) {
    */
   const canBeFloat32 = (value: number): boolean => {
     // Special values
-    if (!Number.isFinite(value) || value === 0 || value === -0) {
+    if (!Number.isFinite(value) || Object.is(value, 0) || Object.is(value, -0)) {
       return true
     }
 
