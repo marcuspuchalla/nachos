@@ -228,6 +228,16 @@ export function useCborFloat() {
           if (offset + 2 >= buffer.length) {
             throw new Error('Unexpected end of buffer while reading Float16')
           }
+          if (options?.validateCanonical) {
+            const byte1 = readByte(buffer, offset + 1)
+            const byte2 = readByte(buffer, offset + 2)
+            const bits = (byte1 << 8) | byte2
+            const exp = (bits >> 10) & 0x1f
+            const mant = bits & 0x03ff
+            if (exp === 0x1f && mant !== 0 && bits !== 0x7e00) {
+              throw new Error('Non-canonical NaN encoding: use 0xf97e00')
+            }
+          }
           const value = float16ToFloat64(buffer, offset + 1)
           return { value, bytesRead: 3 }
         }
