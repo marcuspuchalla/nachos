@@ -106,6 +106,9 @@ export function useCborStringEncoder(globalOptions?: Partial<EncodeOptions>) {
 
     // Handle indefinite-length encoding
     if (encodeOptions?.indefinite || Array.isArray(data) || isIndefinite) {
+      if (options.allowIndefinite === false) {
+        throw new Error('Indefinite-length encoding is not allowed')
+      }
       if (options.canonical) {
         throw new Error('Indefinite-length encoding not allowed in canonical mode')
       }
@@ -146,6 +149,9 @@ export function useCborStringEncoder(globalOptions?: Partial<EncodeOptions>) {
    * @returns Encoded CBOR bytes and hex string
    */
   const encodeByteStringIndefinite = (chunks: Uint8Array[]): EncodeResult => {
+    if (options.allowIndefinite === false) {
+      throw new Error('Indefinite-length encoding is not allowed')
+    }
     if (options.canonical) {
       throw new Error('Indefinite-length encoding not allowed in canonical mode')
     }
@@ -187,6 +193,9 @@ export function useCborStringEncoder(globalOptions?: Partial<EncodeOptions>) {
 
     // Handle indefinite-length encoding
     if (encodeOptions?.indefinite || isIndefinite) {
+      if (options.allowIndefinite === false) {
+        throw new Error('Indefinite-length encoding is not allowed')
+      }
       if (options.canonical) {
         throw new Error('Indefinite-length encoding not allowed in canonical mode')
       }
@@ -232,6 +241,9 @@ export function useCborStringEncoder(globalOptions?: Partial<EncodeOptions>) {
    * @returns Encoded CBOR bytes and hex string
    */
   const encodeTextStringIndefinite = (chunks: string[]): EncodeResult => {
+    if (options.allowIndefinite === false) {
+      throw new Error('Indefinite-length encoding is not allowed')
+    }
     if (options.canonical) {
       throw new Error('Indefinite-length encoding not allowed in canonical mode')
     }

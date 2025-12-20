@@ -105,6 +105,9 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
       const newCtx = { ...ctx, depth: ctx.depth + 1 }
 
       if (isIndefinite) {
+        if (ctx.options.allowIndefinite === false) {
+          throw new Error('Indefinite-length encoding is not allowed')
+        }
         // Use indefinite encoding - but need to recursively encode items
         const parts: Uint8Array[] = [new Uint8Array([0x9f])]  // Start marker
         for (const item of value) {
@@ -130,6 +133,9 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
       const newCtx = { ...ctx, depth: ctx.depth + 1 }
 
       if (isIndefinite) {
+        if (ctx.options.allowIndefinite === false) {
+          throw new Error('Indefinite-length encoding is not allowed')
+        }
         // Use indefinite encoding
         const entries: Array<[EncodableValue, EncodableValue]> =
           value instanceof Map
@@ -233,6 +239,9 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
 
     // Handle indefinite-length encoding
     if (encodeOptions?.indefinite || isIndefinite) {
+      if (options.allowIndefinite === false) {
+        throw new Error('Indefinite-length encoding is not allowed')
+      }
       if (options.canonical) {
         throw new Error('Indefinite-length encoding not allowed in canonical mode')
       }
@@ -256,6 +265,9 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
    * @returns Encoded CBOR bytes and hex string
    */
   const encodeArrayIndefinite = (array: EncodableValue[]): EncodeResult => {
+    if (options.allowIndefinite === false) {
+      throw new Error('Indefinite-length encoding is not allowed')
+    }
     if (options.canonical) {
       throw new Error('Indefinite-length encoding not allowed in canonical mode')
     }
@@ -354,6 +366,9 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
 
     // Handle indefinite-length encoding
     if (encodeOptions?.indefinite || isIndefinite) {
+      if (options.allowIndefinite === false) {
+        throw new Error('Indefinite-length encoding is not allowed')
+      }
       if (options.canonical) {
         throw new Error('Indefinite-length encoding not allowed in canonical mode')
       }
@@ -379,6 +394,9 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
   const encodeMapIndefinite = (
     map: Map<EncodableValue, EncodableValue> | { [key: string]: EncodableValue }
   ): EncodeResult => {
+    if (options.allowIndefinite === false) {
+      throw new Error('Indefinite-length encoding is not allowed')
+    }
     if (options.canonical) {
       throw new Error('Indefinite-length encoding not allowed in canonical mode')
     }
