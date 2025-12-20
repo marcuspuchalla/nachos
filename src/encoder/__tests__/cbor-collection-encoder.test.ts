@@ -122,6 +122,13 @@ describe('CBOR Collection Encoder', () => {
         expect(() => encodeArray([], { indefinite: true }))
           .toThrow('Indefinite-length encoding not allowed in canonical mode')
       })
+
+      it('should reject indefinite arrays when allowIndefinite is false', () => {
+        const { encodeArray } = useCborCollectionEncoder({ allowIndefinite: false })
+
+        expect(() => encodeArray([], { indefinite: true }))
+          .toThrow('Indefinite-length encoding is not allowed')
+      })
     })
   })
 
@@ -257,6 +264,13 @@ describe('CBOR Collection Encoder', () => {
 
         expect(() => encodeMap({}, { indefinite: true }))
           .toThrow('Indefinite-length encoding not allowed in canonical mode')
+      })
+
+      it('should reject indefinite maps when allowIndefinite is false', () => {
+        const { encodeMap } = useCborCollectionEncoder({ allowIndefinite: false })
+
+        expect(() => encodeMap({}, { indefinite: true }))
+          .toThrow('Indefinite-length encoding is not allowed')
       })
     })
   })

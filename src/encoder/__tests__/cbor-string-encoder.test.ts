@@ -329,6 +329,20 @@ describe('CBOR String Encoder', () => {
       expect(() => encodeByteStringIndefinite([new Uint8Array([1])]))
         .toThrow('Indefinite-length encoding not allowed in canonical mode')
     })
+
+    it('should reject allowIndefinite=false for text strings', () => {
+      const { encodeTextStringIndefinite } = useCborStringEncoder({ allowIndefinite: false })
+
+      expect(() => encodeTextStringIndefinite(['a', 'b']))
+        .toThrow('Indefinite-length encoding is not allowed')
+    })
+
+    it('should reject allowIndefinite=false for byte strings', () => {
+      const { encodeByteStringIndefinite } = useCborStringEncoder({ allowIndefinite: false })
+
+      expect(() => encodeByteStringIndefinite([new Uint8Array([1])]))
+        .toThrow('Indefinite-length encoding is not allowed')
+    })
   })
 
   describe('Byte string array handling', () => {
