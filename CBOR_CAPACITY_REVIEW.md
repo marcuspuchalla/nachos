@@ -1,4 +1,4 @@
-# Seaborne (CBOR) Encoding/Decoding Quality Review
+# CBOR Encoding/Decoding Quality Review
 
 Date: 2025-12-19
 Scope: End-to-end CBOR encoding/decoding capacity and quality review for NACHOS
@@ -60,4 +60,3 @@ Overall assessment: Strong baseline implementation with clear structure and exte
 - Security capacity: Strong once limit enforcement is consistent across all parsers.
 - Encoding correctness: Strong after float/-0 fixes and canonical float validation.
 - Interop with other CBOR implementations: High, with deterministic encoding compliance improvements.
-

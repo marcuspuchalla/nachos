@@ -1,7 +1,7 @@
 # Final Implementation Plan
 
 Date: 2025-12-19
-Inputs: `IMPLEMENTATION_PLAN.md`, `AUDIT_REPORT.md`, `SEABORNE_CAPACITY_REVIEW.md`
+Inputs: `IMPLEMENTATION_PLAN.md`, `AUDIT_REPORT.md`, `CBOR_CAPACITY_REVIEW.md`
 
 ## Status Summary
 
