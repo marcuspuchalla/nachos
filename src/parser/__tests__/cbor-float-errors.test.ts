@@ -211,6 +211,47 @@ describe('useCborFloat - Error Handling', () => {
     })
   })
 
+  describe('Canonical float validation', () => {
+    it('should reject float32 when value fits in float16', () => {
+      const { parseFloat } = useCborFloat()
+
+      // 1.0 fits in float16, but encoded as float32
+      expect(() => parseFloat('fa3f800000', { validateCanonical: true }))
+        .toThrow(/canonical.*float16/i)
+    })
+
+    it('should reject float64 when value fits in float32', () => {
+      const { parseFloat } = useCborFloat()
+
+      // 1.0 fits in float32, but encoded as float64
+      expect(() => parseFloat('fb3ff0000000000000', { validateCanonical: true }))
+        .toThrow(/canonical.*float16\/float32/i)
+    })
+
+    it('should reject non-canonical NaN encodings for float32/float64', () => {
+      const { parseFloat } = useCborFloat()
+
+      // Float16 NaN with non-canonical payload
+      expect(() => parseFloat('f97e01', { validateCanonical: true }))
+        .toThrow(/nan/i)
+
+      // Float32 NaN
+      expect(() => parseFloat('fa7fc00000', { validateCanonical: true }))
+        .toThrow(/nan/i)
+
+      // Float64 NaN
+      expect(() => parseFloat('fb7ff8000000000001', { validateCanonical: true }))
+        .toThrow(/nan/i)
+    })
+
+    it('should accept float16 when canonical validation is enabled', () => {
+      const { parseFloat } = useCborFloat()
+
+      const result = parseFloat('f93e00', { validateCanonical: true })
+      expect(result.value).toBe(1.5)
+    })
+  })
+
   describe('Wrong Major Type in parse()', () => {
     it('should throw error when auto-detecting with wrong major type', () => {
       const { parse } = useCborFloat()
