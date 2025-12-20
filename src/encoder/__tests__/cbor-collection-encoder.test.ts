@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'vitest'
 import { useCborCollectionEncoder } from '../composables/useCborCollectionEncoder'
 import type { EncodableValue } from '../types'
+import { ALL_ENTRIES_SYMBOL } from '../types'
 
 describe('CBOR Collection Encoder', () => {
   describe('Arrays (Major Type 4)', () => {
@@ -271,6 +272,17 @@ describe('CBOR Collection Encoder', () => {
 
         expect(() => encodeMap({}, { indefinite: true }))
           .toThrow('Indefinite-length encoding is not allowed')
+      })
+    })
+
+    describe('Duplicate key handling', () => {
+      it('should reject duplicate keys when rejectDuplicateKeys is true', () => {
+        const { encodeMap } = useCborCollectionEncoder({ rejectDuplicateKeys: true })
+        const map = new Map<EncodableValue, EncodableValue>([['a', 1]])
+        ;(map as any)[ALL_ENTRIES_SYMBOL] = [['a', 1], ['a', 2]]
+
+        expect(() => encodeMap(map))
+          .toThrow('Duplicate map key detected')
       })
     })
   })

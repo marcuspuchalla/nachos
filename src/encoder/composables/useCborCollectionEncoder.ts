@@ -325,6 +325,18 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
       })
     }
 
+    if (ctx.options.rejectDuplicateKeys) {
+      const seen = new Set<string>()
+      for (const [key] of entries) {
+        const keyBytes = encodeValue(key, { ...ctx, depth: ctx.depth + 1, bytesWritten: 0 })
+        const keyHex = bytesToHex(keyBytes)
+        if (seen.has(keyHex)) {
+          throw new Error('Duplicate map key detected')
+        }
+        seen.add(keyHex)
+      }
+    }
+
     const header = encodeLengthHeader(5, entries.length)
     const parts: Uint8Array[] = [header]
 
