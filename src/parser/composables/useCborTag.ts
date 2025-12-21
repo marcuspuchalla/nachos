@@ -336,6 +336,14 @@ export function useCborTag() {
     return false
   }
 
+  const isByteString = (value: CborValue): value is Uint8Array | CborByteString => {
+    if (value instanceof Uint8Array) return true
+    if (value && typeof value === 'object' && 'type' in value && (value as any).type === 'cbor-byte-string') {
+      return true
+    }
+    return false
+  }
+
   /**
    * Gets string value from CborTextString or plain string
    */
@@ -370,6 +378,15 @@ export function useCborTag() {
 
         if (typeof value !== 'number' && typeof value !== 'bigint') {
           throw new Error(`Tag 1 (epoch time) must contain a number (integer or float), got ${typeof value}`)
+        }
+        break
+
+      case 2: // Positive bignum
+      case 3: // Negative bignum
+        if (!shouldValidateStandard) break
+
+        if (!isByteString(value)) {
+          throw new Error(`Tag ${tagNumber} (bignum) must contain a byte string, got ${typeof value}`)
         }
         break
 

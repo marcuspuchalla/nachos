@@ -221,6 +221,35 @@ describe('CBOR Standard Tags (RFC 8949)', () => {
     })
   })
 
+  describe('Tags 2-3: Bignums', () => {
+    it('should parse tag 2 with byte string', () => {
+      // c2 (tag 2) + 41 (1-byte byte string) + 01
+      const hex = 'c24101'
+      const result = parse(hex)
+
+      expect(result.value).toMatchObject({
+        tag: 2,
+        value: 1n
+      })
+    })
+
+    it('should reject non-byte-string tag 2 in strict mode', () => {
+      // c2 (tag 2) + 01 (integer)
+      const hex = 'c201'
+
+      expect(() => parse(hex, { strict: true, validateTagSemantics: true }))
+        .toThrow(/byte string/i)
+    })
+
+    it('should reject non-byte-string tag 3 in strict mode', () => {
+      // c3 (tag 3) + 01 (integer)
+      const hex = 'c301'
+
+      expect(() => parse(hex, { strict: true, validateTagSemantics: true }))
+        .toThrow(/byte string/i)
+    })
+  })
+
   describe('Tag 32: URI', () => {
     it('should parse valid URI', () => {
       // d8 20 (tag 32) + 76 (22-byte text) + "http://www.example.com"
