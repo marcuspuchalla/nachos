@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-02-09
+
+### Fixed
+
+#### Critical Bugs
+- **Float parser ReferenceError** - `options` variable was not accessible in float parsing, causing 29 test failures
+- **Missing CborByteString import** - Tag parser failed when decoding byte-string tagged values
+- **Float16 subnormal encoding** - Mantissa bits were being lost for subnormal half-precision floats
+
+#### Security Hardening
+- **Tag parser internal security checks** - Added depth, array length, map size, and indefinite-length validation to tag-internal array/map parsing
+- **String encoder pre-allocation check** - Size validation now happens before buffer allocation (DoS prevention)
+- **Default nesting limits** - Updated default `maxDepth` and `maxTagDepth` to 100 (was hardcoded as 64)
+- **Replaced magic numbers** - All hardcoded limit values now use `DEFAULT_LIMITS` constants
+
+#### RFC 8949 Compliance
+- **Canonical NaN validation** - Float32/float64 NaN payloads are now validated in canonical mode
+- **Canonical shortest-form float validation** - Values that fit in float16 are rejected in float32/float64 canonical mode
+- **Indefinite-length chunk validation** - String chunks inside indefinite-length strings must be definite-length per RFC 3.2.3
+- **Canonical + indefinite conflict** - Auto-resolves `canonical: true` with `allowIndefinite: true` instead of silently misbehaving
+
+### Added
+
+#### Tests
+- 91 round-trip encode/decode tests covering all CBOR major types
+- 70 encoder error handling and canonical encoding tests
+- Total test count increased from 1038 to 1199
+
+### Removed
+- Stale Emacs backup file
+- Commented-out dead code in parser
+
 ## [0.1.0] - 2025-12-01
 
 ### Added
