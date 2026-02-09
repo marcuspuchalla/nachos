@@ -794,25 +794,6 @@ export function useCborParser() {
   }
 
   /**
-   * Get tag number for description
-   * Note: Reserved for future tag description features
-   */
-  // const getTagNumber = (buffer: Uint8Array, offset: number): number => {
-  //   const initialByte = readByte(buffer, offset)
-  //   const { additionalInfo } = extractCborHeader(initialByte)
-  //
-  //   if (additionalInfo < 24) return additionalInfo
-  //   if (additionalInfo === 24) return readByte(buffer, offset + 1)
-  //   if (additionalInfo === 25) return readUint(buffer, offset + 1, 2)
-  //   if (additionalInfo === 26) return readUint(buffer, offset + 1, 4)
-  //   if (additionalInfo === 27) {
-  //     const bigNum = readBigUint(buffer, offset + 1, 8)
-  //     return bigNum <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(bigNum) : -1
-  //   }
-  //   return -1
-  // }
-
-  /**
    * Get simple type description
    */
   const getSimpleTypeDescription = (ai: number): string => {

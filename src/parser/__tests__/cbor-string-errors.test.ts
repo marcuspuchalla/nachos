@@ -112,8 +112,8 @@ describe('useCborString - Error Handling', () => {
       // 5f (indefinite byte string) + 6161 (text "a") + ff (break)
       const buffer = new Uint8Array([0x5f, 0x61, 0x61, 0xff])
 
-      // The error is thrown when trying to parse the text string as a byte string
-      expect(() => parseByteString(buffer, 0)).toThrow('Expected major type 2')
+      // The error is thrown when validating the chunk type
+      expect(() => parseByteString(buffer, 0)).toThrow('chunks must be byte strings')
     })
   })
 
@@ -125,8 +125,8 @@ describe('useCborString - Error Handling', () => {
       // 7f (indefinite text string) + 4161 (byte string containing 'a') + ff (break)
       const buffer = new Uint8Array([0x7f, 0x41, 0x61, 0xff])
 
-      // The error is thrown when trying to parse the byte string as a text string
-      expect(() => parseTextString(buffer, 0)).toThrow('Expected major type 3')
+      // The error is thrown when validating the chunk type
+      expect(() => parseTextString(buffer, 0)).toThrow('chunks must be text strings')
     })
   })
 

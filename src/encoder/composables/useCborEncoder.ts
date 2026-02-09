@@ -42,6 +42,11 @@ import { useCborByteString, useCborTextString } from '../../parser/composables/u
 export function useCborEncoder(globalOptions?: Partial<EncodeOptions>) {
   const options = { ...DEFAULT_ENCODE_OPTIONS, ...globalOptions }
 
+  // Canonical mode overrides: indefinite-length is forbidden per RFC 8949 Section 4.2
+  if (options.canonical && options.allowIndefinite) {
+    options.allowIndefinite = false
+  }
+
   // Get all specialized encoders
   const { encodeInteger } = useCborIntegerEncoder()
   const { encodeTextString, encodeByteString } = useCborStringEncoder(options)
@@ -78,7 +83,7 @@ export function useCborEncoder(globalOptions?: Partial<EncodeOptions>) {
     // Handle numbers
     if (typeof value === 'number') {
       // Check if it's an integer
-      if (Number.isInteger(value) && Number.isSafeInteger(value)) {
+      if (Number.isSafeInteger(value)) {
         return encodeInteger(value)
       }
       // It's a float

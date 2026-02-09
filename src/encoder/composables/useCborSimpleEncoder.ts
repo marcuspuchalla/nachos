@@ -91,10 +91,15 @@ export function useCborSimpleEncoder(_globalOptions?: Partial<EncodeOptions>) {
     let exp16: number
     let mant16: number
 
-    if (exp64 < -14) {
-      // Subnormal or zero
+    if (exp64 < -24) {
+      // Too small even for subnormal float16
       exp16 = 0
       mant16 = 0
+    } else if (exp64 < -14) {
+      // Subnormal float16: shift the implicit 1.mantissa into the fraction bits
+      exp16 = 0
+      const shift = -14 - exp64
+      mant16 = (((1 << 10) | (mant64 >> 42)) + ((1 << (shift - 1)) - 1)) >> shift
     } else if (exp64 > 15) {
       // Overflow to infinity
       exp16 = 31
