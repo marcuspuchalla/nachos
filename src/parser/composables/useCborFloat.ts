@@ -62,76 +62,56 @@ export function useCborFloat() {
     return (sign === 0 ? 1 : -1) * Math.pow(2, exponent - 15) * (1 + fraction / 1024)
   }
 
-  const isNegativeZero = (value: number): boolean => Object.is(value, -0)
+  /**
+   * Checks if a float64 value can be exactly represented as float16
+   * Used for canonical encoding validation (RFC 8949 Section 4.2.2)
+   */
+  const fitsInFloat16 = (value: number): boolean => {
+    if (Number.isNaN(value) || value === Infinity || value === -Infinity) return true
+    if (Object.is(value, 0) || Object.is(value, -0)) return true
 
-  const encodeFloat16Bytes = (value: number): Uint8Array => {
-    if (isNegativeZero(value)) return new Uint8Array([0x80, 0x00])
-    if (value === 0) return new Uint8Array([0x00, 0x00])
-    if (Number.isNaN(value)) return new Uint8Array([0x7e, 0x00])
-    if (value === Infinity) return new Uint8Array([0x7c, 0x00])
-    if (value === -Infinity) return new Uint8Array([0xfc, 0x00])
+    const abs = Math.abs(value)
+    // Float16 range: subnormals ~5.96e-8 to max normal 65504
+    if (abs > 65504) return false
+    if (abs < 5.960464477539063e-8) return false
 
+    // Encode to float16 and back to see if value is preserved
     const sign = value < 0 ? 1 : 0
-    const absValue = Math.abs(value)
-
-    const buffer = new ArrayBuffer(8)
-    const view = new DataView(buffer)
-    view.setFloat64(0, absValue, false)
-
-    const bits = view.getBigUint64(0, false)
-    const exp64 = Number((bits >> 52n) & 0x7ffn) - 1023
-    const mant64 = Number(bits & 0xfffffffffffffn)
+    const buf = new ArrayBuffer(8)
+    const view = new DataView(buf)
+    view.setFloat64(0, abs, false)
+    const bits64 = view.getBigUint64(0, false)
+    const exp64 = Number((bits64 >> 52n) & 0x7ffn) - 1023
+    const mant64 = Number(bits64 & 0xfffffffffffffn)
 
     let exp16: number
     let mant16: number
-
     if (exp64 < -14) {
+      // Subnormal float16
       exp16 = 0
-      mant16 = 0
+      const shift = -14 - exp64
+      mant16 = ((1 << 10) | (mant64 >> 42)) >> shift
     } else if (exp64 > 15) {
-      exp16 = 31
-      mant16 = 0
+      return false
     } else {
       exp16 = exp64 + 15
       mant16 = mant64 >> 42
     }
 
-    const float16 = (sign << 15) | (exp16 << 10) | mant16
-
-    return new Uint8Array([
-      (float16 >> 8) & 0xff,
-      float16 & 0xff
-    ])
-  }
-
-  const canBeFloat16 = (value: number): boolean => {
-    if (Number.isNaN(value)) return true
-    if (!Number.isFinite(value) || Object.is(value, 0) || isNegativeZero(value)) {
-      return true
+    const float16Bits = (sign << 15) | (exp16 << 10) | mant16
+    // Decode back
+    const s = (float16Bits & 0x8000) >> 15
+    const e = (float16Bits & 0x7c00) >> 10
+    const f = float16Bits & 0x03ff
+    let reconstructed: number
+    if (e === 0) {
+      reconstructed = (s === 0 ? 1 : -1) * Math.pow(2, -14) * (f / 1024)
+    } else if (e === 0x1f) {
+      reconstructed = f === 0 ? (s === 0 ? Infinity : -Infinity) : NaN
+    } else {
+      reconstructed = (s === 0 ? 1 : -1) * Math.pow(2, e - 15) * (1 + f / 1024)
     }
-
-    const absValue = Math.abs(value)
-    if (absValue < 0.00006103515625 || absValue > 65504) {
-      return false
-    }
-
-    const bytes = encodeFloat16Bytes(value)
-    const decoded = float16ToFloat64(bytes, 0)
-    return Object.is(decoded, value)
-  }
-
-  const canBeFloat32 = (value: number): boolean => {
-    if (Number.isNaN(value)) return true
-    if (!Number.isFinite(value) || Object.is(value, 0) || isNegativeZero(value)) {
-      return true
-    }
-
-    const buffer = new ArrayBuffer(4)
-    const view = new DataView(buffer)
-    view.setFloat32(0, value, false)
-    const decoded = view.getFloat32(0, false)
-
-    return Object.is(decoded, value)
+    return reconstructed === value
   }
 
   /**
@@ -252,10 +232,11 @@ export function useCborFloat() {
           const value = dataView.getFloat32(0, false) // false = big-endian
           if (options?.validateCanonical) {
             if (Number.isNaN(value)) {
-              throw new Error('Non-canonical NaN encoding: use float16 NaN')
+              throw new Error('Non-canonical NaN encoding: NaN must use float16 0xf97e00')
             }
-            if (canBeFloat16(value)) {
-              throw new Error('Non-canonical float encoding: value fits in float16')
+            // Check if value could be represented as float16 (shortest form)
+            if (fitsInFloat16(value)) {
+              throw new Error('Non-canonical float32: value fits in float16, use shortest encoding')
             }
           }
           return { value, bytesRead: 5 }
@@ -271,10 +252,16 @@ export function useCborFloat() {
           const value = dataView.getFloat64(0, false) // false = big-endian
           if (options?.validateCanonical) {
             if (Number.isNaN(value)) {
-              throw new Error('Non-canonical NaN encoding: use float16 NaN')
+              throw new Error('Non-canonical NaN encoding: NaN must use float16 0xf97e00')
             }
-            if (canBeFloat16(value) || canBeFloat32(value)) {
-              throw new Error('Non-canonical float encoding: value fits in float16/float32')
+            // Check if value could be represented in a smaller float
+            if (fitsInFloat16(value)) {
+              throw new Error('Non-canonical float64: value fits in float16/float32, use shortest encoding')
+            }
+            // Check if float64 value fits in float32
+            const f32 = Math.fround(value)
+            if (f32 === value || (Object.is(value, -0) && Object.is(f32, -0))) {
+              throw new Error('Non-canonical float64: value fits in float16/float32, use shortest encoding')
             }
           }
           return { value, bytesRead: 9 }
@@ -314,7 +301,7 @@ export function useCborFloat() {
    * Parses CBOR simple value from hex string
    *
    * @param hexString - CBOR hex string
-   * @param _options - Parser options (optional, for future use)
+   * @param _options - Parser options (reserved for future use)
    * @returns Parsed simple value and bytes read
    */
   const parseSimple = (hexString: string, _options?: ParseOptions): ParseResult => {

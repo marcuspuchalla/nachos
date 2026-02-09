@@ -125,13 +125,14 @@ export function useCborStringEncoder(globalOptions?: Partial<EncodeOptions>) {
 
     // Definite-length encoding - extract bytes from CborByteString if needed
     const bytes = isCborByteString(data) ? data.bytes : (data as Uint8Array)
+
+    // Check size limit before allocating (header is at most 9 bytes)
+    if (bytes.length + 9 > options.maxOutputSize) {
+      throw new Error(`Encoded output exceeds maximum size`)
+    }
+
     const header = encodeLengthHeader(2, bytes.length)
     const result = concatenateUint8Arrays([header, bytes])
-
-    // Check output size limit
-    if (result.length > options.maxOutputSize) {
-      throw new Error('Encoded output exceeds maximum size')
-    }
 
     return {
       bytes: result,
@@ -217,13 +218,13 @@ export function useCborStringEncoder(globalOptions?: Partial<EncodeOptions>) {
     const encoder = new TextEncoder()
     const utf8Bytes = encoder.encode(textStr)
 
+    // Check size limit before allocating (header is at most 9 bytes)
+    if (utf8Bytes.length + 9 > options.maxOutputSize) {
+      throw new Error(`Encoded output exceeds maximum size`)
+    }
+
     const header = encodeLengthHeader(3, utf8Bytes.length)
     const result = concatenateUint8Arrays([header, utf8Bytes])
-
-    // Check output size limit
-    if (result.length > options.maxOutputSize) {
-      throw new Error('Encoded output exceeds maximum size')
-    }
 
     return {
       bytes: result,

@@ -261,8 +261,8 @@ describe('RUSTSEC-2019-0025: Tag Nesting Stack Overflow Protection', () => {
     it('should use default tag depth limit when not specified', () => {
       const { parseTag } = useCborTag()
 
-      // 100 nested tags (exceeds default 64)
-      const nested = 'c0'.repeat(100) + '00'
+      // 150 nested tags (exceeds default 100)
+      const nested = 'c0'.repeat(150) + '00'
 
       expect(() => parseTag(nested)) // No options = use defaults
         .toThrow(/tag nesting depth.*exceeds/i)

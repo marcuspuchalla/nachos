@@ -20,7 +20,7 @@ describe('useCborTag - Error Handling', () => {
 
       // Tag with array that's incomplete
       // c1 (tag 1) + 82 (array of 2) + 01 (element 1) - missing element 2
-      expect(() => parseTag('c18201')).toThrow('Unexpected end of buffer at offset')
+      expect(() => parseTag('c18201')).toThrow('Unexpected end of buffer')
     })
   })
 

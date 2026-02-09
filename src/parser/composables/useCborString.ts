@@ -133,8 +133,17 @@ export function useCborString() {
           break
         }
 
-        // Parse chunk (must be definite-length byte string)
-        // Use try-catch to provide better error context for indefinite strings
+        // Validate chunk is definite-length (RFC 8949 Section 3.2.3)
+        const chunkInitialByte = readByte(buffer, currentOffset)
+        const chunkHeader = extractCborHeader(chunkInitialByte)
+        if (chunkHeader.majorType !== 2) {
+          throw new Error(`Indefinite byte string chunks must be byte strings (major type 2), got ${chunkHeader.majorType}`)
+        }
+        if (chunkHeader.additionalInfo === 31) {
+          throw new Error('Indefinite byte string chunks must be definite-length (RFC 8949 Section 3.2.3)')
+        }
+
+        // Parse chunk
         let chunkResult
         try {
           chunkResult = parseByteString(buffer, currentOffset, options)
@@ -237,8 +246,17 @@ export function useCborString() {
           break
         }
 
-        // Parse chunk (must be definite-length text string)
-        // Use try-catch to provide better error context for indefinite strings
+        // Validate chunk is definite-length (RFC 8949 Section 3.2.3)
+        const chunkInitialByte = readByte(buffer, currentOffset)
+        const chunkHeader = extractCborHeader(chunkInitialByte)
+        if (chunkHeader.majorType !== 3) {
+          throw new Error(`Indefinite text string chunks must be text strings (major type 3), got ${chunkHeader.majorType}`)
+        }
+        if (chunkHeader.additionalInfo === 31) {
+          throw new Error('Indefinite text string chunks must be definite-length (RFC 8949 Section 3.2.3)')
+        }
+
+        // Parse chunk
         let chunkResult
         try {
           chunkResult = parseTextString(buffer, currentOffset, options)
