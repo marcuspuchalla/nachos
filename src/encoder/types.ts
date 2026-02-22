@@ -81,8 +81,6 @@ export interface TaggedValue {
 export interface EncodeContext {
   /** Current nesting depth */
   depth: number
-  /** Bytes written so far */
-  bytesWritten: number
   /** Encoder options */
   options: Required<EncodeOptions>
 }

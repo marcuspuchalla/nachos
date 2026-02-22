@@ -20,11 +20,9 @@
 
 import { describe, it, expect } from 'vitest'
 import { useCborParser } from '../composables/useCborParser'
-import { useCborTag } from '../composables/useCborTag'
 
 describe('CBOR Standard Tags (RFC 8949)', () => {
   const { parse } = useCborParser()
-  const { parseTag } = useCborTag()
 
   describe('Tag 0: Date/Time String (RFC 3339)', () => {
     it('should parse valid ISO 8601 date/time string', () => {
@@ -149,17 +147,57 @@ describe('CBOR Standard Tags (RFC 8949)', () => {
     })
 
     it('should reject non-integer exponent in strict mode', () => {
-      // Tag 4 + [3.14, 500] (invalid - exponent must be integer)
+      // Tag 4 + [3.14, 500] (invalid - exponent must be integer per RFC 8949)
       // fb 40091eb851eb851f = float64 3.14
       // 1901f4 = uint 500
       const hex = 'c482fb40091eb851eb851f1901f4' // [3.14, 500]
 
-      // Note: The parser validates that exponent is number|bigint, and 3.14 is a number
-      // So this passes parsing but semantically the exponent should be integer
-      // The current implementation accepts floats as exponents, which is RFC-compliant
-      // (RFC says "integer" but implementations often accept any number)
+      expect(() => parse(hex, { strict: true, validateTagSemantics: true }))
+        .toThrow(/exponent must be an integer/)
+    })
+
+    it('should reject non-integer mantissa in strict mode', () => {
+      // Tag 4 + [-2, 3.14] (invalid - mantissa must be integer per RFC 8949)
+      // 21 = -2
+      // fb 40091eb851eb851f = float64 3.14
+      const hex = 'c48221fb40091eb851eb851f' // [-2, 3.14]
+
+      expect(() => parse(hex, { strict: true, validateTagSemantics: true }))
+        .toThrow(/mantissa must be an integer/)
+    })
+
+    it('should accept integer exponent and mantissa values', () => {
+      // Tag 4 + [0, 42]
+      // 00 = 0, 1829 = 42 (wrong, 182a = 42)
+      // Actually: 00 = 0, 18 2a = 42
+      const hex = 'c48200182a' // [0, 42]
       const result = parse(hex, { strict: true, validateTagSemantics: true })
       expect(result.value).toMatchObject({ tag: 4 })
+      const arr = (result.value as any).value as number[]
+      expect(arr[0]).toBe(0)
+      expect(arr[1]).toBe(42)
+    })
+
+    it('should accept negative integer exponent', () => {
+      // Tag 4 + [-1, 500]
+      // 20 = -1, 1901f4 = 500
+      const hex = 'c482201901f4' // [-1, 500]
+      const result = parse(hex, { strict: true, validateTagSemantics: true })
+      expect(result.value).toMatchObject({ tag: 4 })
+      const arr = (result.value as any).value as number[]
+      expect(arr[0]).toBe(-1)
+      expect(arr[1]).toBe(500)
+    })
+
+    it('should accept zero exponent and large mantissa', () => {
+      // Tag 4 + [0, 12345]
+      // 00 = 0, 193039 = 12345
+      const hex = 'c48200193039'
+      const result = parse(hex, { strict: true, validateTagSemantics: true })
+      expect(result.value).toMatchObject({ tag: 4 })
+      const arr = (result.value as any).value as number[]
+      expect(arr[0]).toBe(0)
+      expect(arr[1]).toBe(12345)
     })
   })
 
@@ -186,6 +224,36 @@ describe('CBOR Standard Tags (RFC 8949)', () => {
 
       expect(() => parse(hex, { strict: true, validateTagSemantics: true }))
         .toThrow(/exactly 2 elements/i)
+    })
+
+    it('should reject non-integer exponent in strict mode', () => {
+      // Tag 5 + [3.14, 500] (invalid - exponent must be integer per RFC 8949)
+      // fb 40091eb851eb851f = float64 3.14
+      // 1901f4 = uint 500
+      const hex = 'c582fb40091eb851eb851f1901f4' // [3.14, 500]
+
+      expect(() => parse(hex, { strict: true, validateTagSemantics: true }))
+        .toThrow(/exponent must be an integer/)
+    })
+
+    it('should reject non-integer mantissa in strict mode', () => {
+      // Tag 5 + [-2, 3.14] (invalid - mantissa must be integer per RFC 8949)
+      // 21 = -2
+      // fb 40091eb851eb851f = float64 3.14
+      const hex = 'c58221fb40091eb851eb851f' // [-2, 3.14]
+
+      expect(() => parse(hex, { strict: true, validateTagSemantics: true }))
+        .toThrow(/mantissa must be an integer/)
+    })
+
+    it('should accept integer exponent and mantissa values', () => {
+      // Tag 5 + [-2, 500]
+      const hex = 'c5822119 01f4'.replace(/\s/g, '')
+      const result = parse(hex, { strict: true, validateTagSemantics: true })
+      expect(result.value).toMatchObject({ tag: 5 })
+      const arr = (result.value as any).value as number[]
+      expect(arr[0]).toBe(-2)
+      expect(arr[1]).toBe(500)
     })
   })
 

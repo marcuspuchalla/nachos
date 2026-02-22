@@ -23,9 +23,12 @@ import { useCborFloat } from './useCborFloat'
  * ```
  */
 export function useCborTag() {
-  const { parseInteger } = useCborInteger()
+  const { parseIntegerFromBuffer } = useCborInteger()
   const { parseByteString, parseTextString } = useCborString()
-  const { parseFloat, parseSimple } = useCborFloat()
+  const { parseFromBuffer: parseFloatOrSimpleFromBuffer } = useCborFloat()
+
+  /** Tracks when parsing started for timeout enforcement */
+  let parseStartTime = 0
 
   /**
    * Internal parser dispatcher for CBOR items
@@ -38,24 +41,25 @@ export function useCborTag() {
    * @returns Parsed value and bytes consumed
    */
   const parseItem = (buffer: Uint8Array, offset: number, options?: ParseOptions, tagDepth: number = 0, collectionDepth: number = 0): ParseResult => {
+    // Check timeout on every recursive call
+    if (parseStartTime > 0 && options?.limits?.maxParseTime) {
+      const elapsed = Date.now() - parseStartTime
+      if (elapsed > options.limits.maxParseTime) {
+        throw new Error(`Parse timeout: exceeded ${options.limits.maxParseTime}ms limit`)
+      }
+    }
+
     if (offset >= buffer.length) {
       throw new Error(`Unexpected end of buffer at offset ${offset}`)
     }
 
     const initialByte = readByte(buffer, offset)
-    const { majorType, additionalInfo } = extractCborHeader(initialByte)
+    const { majorType } = extractCborHeader(initialByte)
 
     switch (majorType) {
       case 0: // Unsigned integer
       case 1: // Negative integer
-        {
-          // Create a hex string from the buffer starting at offset
-          const intHex = Array.from(buffer.slice(offset))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('')
-          const result = parseInteger(intHex, options)
-          return { value: result.value, bytesRead: result.bytesRead }
-        }
+        return parseIntegerFromBuffer(buffer, offset, options)
 
       case 2: // Byte string
         return parseByteString(buffer, offset, options)
@@ -73,22 +77,7 @@ export function useCborTag() {
         return parseTagFromBuffer(buffer, offset, options, tagDepth)
 
       case 7: // Simple/Float
-        {
-          const simpleHex = Array.from(buffer.slice(offset))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('')
-
-          // Try to parse as simple value or float
-          if (additionalInfo >= 25 && additionalInfo <= 27) {
-            // Float16, Float32, Float64
-            const result = parseFloat(simpleHex, options)
-            return { value: result.value, bytesRead: result.bytesRead }
-          } else {
-            // Simple value (boolean, null, undefined, etc.)
-            const result = parseSimple(simpleHex, options)
-            return { value: result.value, bytesRead: result.bytesRead }
-          }
-        }
+        return parseFloatOrSimpleFromBuffer(buffer, offset, options)
 
       default:
         throw new Error(`Unknown major type: ${majorType}`)
@@ -470,11 +459,13 @@ export function useCborTag() {
         if (value.length !== 2) {
           throw new Error(`Tag 4 (decimal fraction) array must have exactly 2 elements [exponent, mantissa], got ${value.length}`)
         }
-        if (typeof value[0] !== 'number' && typeof value[0] !== 'bigint') {
-          throw new Error(`Tag 4 (decimal fraction) exponent must be an integer, got ${typeof value[0]}`)
+        if ((typeof value[0] !== 'number' && typeof value[0] !== 'bigint') ||
+            (typeof value[0] === 'number' && !Number.isInteger(value[0]))) {
+          throw new Error(`Tag 4 (decimal fraction) exponent must be an integer, got ${value[0]}`)
         }
-        if (typeof value[1] !== 'number' && typeof value[1] !== 'bigint') {
-          throw new Error(`Tag 4 (decimal fraction) mantissa must be an integer, got ${typeof value[1]}`)
+        if ((typeof value[1] !== 'number' && typeof value[1] !== 'bigint') ||
+            (typeof value[1] === 'number' && !Number.isInteger(value[1]))) {
+          throw new Error(`Tag 4 (decimal fraction) mantissa must be an integer, got ${value[1]}`)
         }
         break
 
@@ -487,11 +478,13 @@ export function useCborTag() {
         if (value.length !== 2) {
           throw new Error(`Tag 5 (bigfloat) array must have exactly 2 elements [exponent, mantissa], got ${value.length}`)
         }
-        if (typeof value[0] !== 'number' && typeof value[0] !== 'bigint') {
-          throw new Error(`Tag 5 (bigfloat) exponent must be an integer, got ${typeof value[0]}`)
+        if ((typeof value[0] !== 'number' && typeof value[0] !== 'bigint') ||
+            (typeof value[0] === 'number' && !Number.isInteger(value[0]))) {
+          throw new Error(`Tag 5 (bigfloat) exponent must be an integer, got ${value[0]}`)
         }
-        if (typeof value[1] !== 'number' && typeof value[1] !== 'bigint') {
-          throw new Error(`Tag 5 (bigfloat) mantissa must be an integer, got ${typeof value[1]}`)
+        if ((typeof value[1] !== 'number' && typeof value[1] !== 'bigint') ||
+            (typeof value[1] === 'number' && !Number.isInteger(value[1]))) {
+          throw new Error(`Tag 5 (bigfloat) mantissa must be an integer, got ${value[1]}`)
         }
         break
 
@@ -812,7 +805,19 @@ export function useCborTag() {
     // Remove spaces from hex string
     const cleanHex = hexString.replace(/\s+/g, '')
     const buffer = hexToBytes(cleanHex)
-    return parseTagFromBuffer(buffer, 0, options)
+
+    // Set parse start time for timeout enforcement (only if not already set by caller)
+    const isTopLevel = parseStartTime === 0
+    if (isTopLevel && options?.limits?.maxParseTime) {
+      parseStartTime = Date.now()
+    }
+    try {
+      return parseTagFromBuffer(buffer, 0, options)
+    } finally {
+      if (isTopLevel) {
+        parseStartTime = 0
+      }
+    }
   }
 
   /**
@@ -822,6 +827,9 @@ export function useCborTag() {
 
   return {
     parseTag,
-    parse
+    parse,
+    parseTagFromBuffer,
+    validateTagSemantics,
+    decodePlutusConstructor
   }
 }

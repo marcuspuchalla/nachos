@@ -10,9 +10,10 @@
  * These tests verify protections against known CBOR implementation vulnerabilities.
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { useCborTag } from '../composables/useCborTag'
 import { useCborParser } from '../composables/useCborParser'
+import type { TaggedValue } from '../types'
 import { useCborCollection } from '../composables/useCborCollection'
 
 describe('CVE-2020-28491: Bignum Memory Exhaustion Protection', () => {
@@ -26,10 +27,10 @@ describe('CVE-2020-28491: Bignum Memory Exhaustion Protection', () => {
 
       const result = parseTag(bignum, { limits: { maxBignumBytes: 1024 } })
 
-      expect(result.value.tag).toBe(2)
-      expect(typeof result.value.value).toBe('bigint')
+      expect((result.value as TaggedValue).tag).toBe(2)
+      expect(typeof (result.value as TaggedValue).value).toBe('bigint')
       // 512 bytes of 0x00 = BigInt 0
-      expect(result.value.value).toBe(0n)
+      expect((result.value as TaggedValue).value).toBe(0n)
     })
 
     it('should reject tag 2 bignum exceeding size limit', () => {
@@ -64,11 +65,11 @@ describe('CVE-2020-28491: Bignum Memory Exhaustion Protection', () => {
 
       const result = parseTag(bignum, { limits: { maxBignumBytes: 1024 } })
 
-      expect(result.value.tag).toBe(2)
-      expect(typeof result.value.value).toBe('bigint')
+      expect((result.value as TaggedValue).tag).toBe(2)
+      expect(typeof (result.value as TaggedValue).value).toBe('bigint')
       // 1024 bytes of 0xff should be a large positive bigint
       // 2^(1024*8) - 1
-      expect(result.value.value > 0n).toBe(true)
+      expect(((result.value as TaggedValue).value as bigint) > 0n).toBe(true)
     })
 
     it('should reject tag 2 with 1 byte over limit', () => {
@@ -102,10 +103,10 @@ describe('CVE-2020-28491: Bignum Memory Exhaustion Protection', () => {
 
       const result = parseTag(bignum, { limits: { maxBignumBytes: 4096 } })
 
-      expect(result.value.tag).toBe(2)
-      expect(typeof result.value.value).toBe('bigint')
+      expect((result.value as TaggedValue).tag).toBe(2)
+      expect(typeof (result.value as TaggedValue).value).toBe('bigint')
       // 2048 bytes of 0xbb should be a large positive bigint
-      expect(result.value.value > 0n).toBe(true)
+      expect(((result.value as TaggedValue).value as bigint) > 0n).toBe(true)
     })
 
     it('should accept empty bignum (edge case)', () => {
@@ -116,10 +117,10 @@ describe('CVE-2020-28491: Bignum Memory Exhaustion Protection', () => {
 
       const result = parseTag(bignum, { limits: { maxBignumBytes: 1024 } })
 
-      expect(result.value.tag).toBe(2)
-      expect(typeof result.value.value).toBe('bigint')
+      expect((result.value as TaggedValue).tag).toBe(2)
+      expect(typeof (result.value as TaggedValue).value).toBe('bigint')
       // Empty byte string = BigInt 0
-      expect(result.value.value).toBe(0n)
+      expect((result.value as TaggedValue).value).toBe(0n)
     })
   })
 
@@ -133,11 +134,11 @@ describe('CVE-2020-28491: Bignum Memory Exhaustion Protection', () => {
 
       const result = parseTag(bignum, { limits: { maxBignumBytes: 1024 } })
 
-      expect(result.value.tag).toBe(3)
-      expect(typeof result.value.value).toBe('bigint')
+      expect((result.value as TaggedValue).tag).toBe(3)
+      expect(typeof (result.value as TaggedValue).value).toBe('bigint')
       // Tag 3 = -1 - n, where n is the bignum value
       // 256 bytes of 0xff should be a large negative bigint
-      expect(result.value.value < 0n).toBe(true)
+      expect(((result.value as TaggedValue).value as bigint) < 0n).toBe(true)
     })
 
     it('should reject tag 3 bignum exceeding size limit', () => {
@@ -183,8 +184,8 @@ describe('CVE-2020-28491: Bignum Memory Exhaustion Protection', () => {
 
       const result = parseTag(epochTag, { limits: { maxBignumBytes: 100 } })
 
-      expect(result.value.tag).toBe(1)
-      expect(result.value.value).toBe(1363896240)
+      expect((result.value as TaggedValue).tag).toBe(1)
+      expect((result.value as TaggedValue).value).toBe(1363896240)
     })
 
     it('should NOT apply bignum limit to tag 24 (embedded CBOR)', () => {
@@ -195,8 +196,8 @@ describe('CVE-2020-28491: Bignum Memory Exhaustion Protection', () => {
 
       const result = parseTag(embeddedCBOR, { limits: { maxBignumBytes: 2 } })
 
-      expect(result.value.tag).toBe(24)
-      expect(result.value.value).toBeInstanceOf(Uint8Array)
+      expect((result.value as TaggedValue).tag).toBe(24)
+      expect((result.value as TaggedValue).value).toBeInstanceOf(Uint8Array)
     })
 
     it('should NOT apply bignum limit to tag 258 (set)', () => {
@@ -207,8 +208,8 @@ describe('CVE-2020-28491: Bignum Memory Exhaustion Protection', () => {
 
       const result = parseTag(setTag, { limits: { maxBignumBytes: 2 } })
 
-      expect(result.value.tag).toBe(258)
-      expect(result.value.value).toBeInstanceOf(Array)
+      expect((result.value as TaggedValue).tag).toBe(258)
+      expect((result.value as TaggedValue).value).toBeInstanceOf(Array)
     })
   })
 })
@@ -223,7 +224,7 @@ describe('RUSTSEC-2019-0025: Tag Nesting Stack Overflow Protection', () => {
 
       const result = parseTag(nested, { limits: { maxTagDepth: 64 } })
 
-      expect(result.value.tag).toBe(0)
+      expect((result.value as TaggedValue).tag).toBe(0)
       // Nested structure: tag 0 -> tag 0 -> ... -> 0
     })
 
@@ -255,7 +256,7 @@ describe('RUSTSEC-2019-0025: Tag Nesting Stack Overflow Protection', () => {
 
       const result = parseTag(nested, { limits: { maxTagDepth: 10 } })
 
-      expect(result.value.tag).toBe(0)
+      expect((result.value as TaggedValue).tag).toBe(0)
     })
 
     it('should use default tag depth limit when not specified', () => {
@@ -276,7 +277,7 @@ describe('RUSTSEC-2019-0025: Tag Nesting Stack Overflow Protection', () => {
 
       const result = parseTag(nested, { limits: { maxTagDepth: 150 } })
 
-      expect(result.value.tag).toBe(0)
+      expect((result.value as TaggedValue).tag).toBe(0)
     })
 
     it('should handle nested tags with different tag numbers', () => {
@@ -287,9 +288,9 @@ describe('RUSTSEC-2019-0025: Tag Nesting Stack Overflow Protection', () => {
 
       const result = parseTag(nested, { limits: { maxTagDepth: 5 } })
 
-      expect(result.value.tag).toBe(1)
-      expect(result.value.value.tag).toBe(2)
-      expect((result.value.value as any).value).toHaveProperty('tag', 3)
+      expect((result.value as TaggedValue).tag).toBe(1)
+      expect(((result.value as TaggedValue).value as TaggedValue).tag).toBe(2)
+      expect(((result.value as TaggedValue).value as any).value).toHaveProperty('tag', 3)
     })
 
     it('should reject deeply nested mixed tags', () => {
@@ -312,8 +313,8 @@ describe('RUSTSEC-2019-0025: Tag Nesting Stack Overflow Protection', () => {
         limits: { maxTagDepth: 5, maxDepth: 5 }
       })
 
-      expect(result.value.tag).toBe(1)
-      expect(result.value.value).toEqual([1, 2, 3])
+      expect((result.value as TaggedValue).tag).toBe(1)
+      expect((result.value as TaggedValue).value).toEqual([1, 2, 3])
     })
 
     it('should prevent stack overflow with minimal input (< 1KB)', () => {
@@ -467,7 +468,7 @@ describe('Combined Security Protections', () => {
       }
     })
 
-    expect(result.value.tag).toBe(1)
+    expect((result.value as TaggedValue).tag).toBe(1)
   })
 
   it('should reject when any single limit is exceeded', () => {
@@ -499,5 +500,137 @@ describe('Combined Security Protections', () => {
     const duplicateMap = 'a2616101616102'
     expect(() => parse(duplicateMap, { strict: true }))
       .toThrow(/duplicate/i)
+  })
+})
+
+describe('maxParseTime Timeout Protection for Standard decode() Path', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  describe('useCborCollection: parseItem timeout', () => {
+    it('should enforce maxParseTime when parsing deeply nested arrays via standard path', () => {
+      // Mock Date.now: first call returns start time, subsequent calls simulate time passing
+      let callCount = 0
+      vi.spyOn(Date, 'now').mockImplementation(() => {
+        callCount++
+        // First call sets parseStartTime, subsequent calls check elapsed
+        return callCount <= 1 ? 1000 : 1100
+      })
+
+      const { parseArray } = useCborCollection()
+
+      // Build a deeply nested array: [[[[...]]]]
+      // 10 levels of nesting, innermost value is 0x00 (integer 0)
+      const nested = '81'.repeat(10) + '00'
+
+      // maxParseTime=50ms, but mocked time shows 100ms elapsed
+      expect(() => parseArray(nested, { limits: { maxParseTime: 50, maxDepth: 200 } }))
+        .toThrow(/parse timeout/i)
+    })
+
+    it('should enforce maxParseTime when parsing deeply nested maps via standard path', () => {
+      let callCount = 0
+      vi.spyOn(Date, 'now').mockImplementation(() => {
+        callCount++
+        return callCount <= 1 ? 1000 : 1100
+      })
+
+      const { parseMap } = useCborCollection()
+
+      // Build nested map: {"a": {"a": ... 0 }}
+      const nested = 'a16161'.repeat(10) + '00'
+
+      expect(() => parseMap(nested, { limits: { maxParseTime: 50, maxDepth: 200 } }))
+        .toThrow(/parse timeout/i)
+    })
+
+    it('should enforce maxParseTime via the top-level decode() function', () => {
+      let callCount = 0
+      vi.spyOn(Date, 'now').mockImplementation(() => {
+        callCount++
+        return callCount <= 1 ? 1000 : 1100
+      })
+
+      const { parse } = useCborParser()
+
+      // Nested arrays through the standard parse() path
+      const nested = '81'.repeat(10) + '00'
+
+      expect(() => parse(nested, { limits: { maxParseTime: 50, maxDepth: 200 } }))
+        .toThrow(/parse timeout/i)
+    })
+
+    it('should NOT timeout when parsing completes quickly with generous maxParseTime', () => {
+      // Mock Date.now to always return same value (no time passes)
+      vi.spyOn(Date, 'now').mockReturnValue(1000)
+
+      const { parse } = useCborParser()
+
+      // Simple array [1, 2, 3]
+      const result = parse('83010203', { limits: { maxParseTime: 5000 } })
+      expect(result.value).toEqual([1, 2, 3])
+    })
+
+    it('should NOT timeout for simple values when maxParseTime is set', () => {
+      vi.spyOn(Date, 'now').mockReturnValue(1000)
+
+      const { parse } = useCborParser()
+
+      const result = parse('1864', { limits: { maxParseTime: 5000 } })
+      expect(result.value).toBe(100)
+    })
+  })
+
+  describe('useCborTag: parseItem timeout', () => {
+    it('should enforce maxParseTime when parsing tags containing deeply nested structures', () => {
+      let callCount = 0
+      vi.spyOn(Date, 'now').mockImplementation(() => {
+        callCount++
+        return callCount <= 1 ? 1000 : 1100
+      })
+
+      const { parseTag } = useCborTag()
+
+      // Tag 1 wrapping deeply nested arrays
+      const nested = 'c1' + '81'.repeat(10) + '00'
+
+      expect(() => parseTag(nested, { limits: { maxParseTime: 50, maxDepth: 200, maxTagDepth: 200 } }))
+        .toThrow(/parse timeout/i)
+    })
+
+    it('should enforce maxParseTime for deeply nested tags', () => {
+      let callCount = 0
+      vi.spyOn(Date, 'now').mockImplementation(() => {
+        callCount++
+        return callCount <= 1 ? 1000 : 1100
+      })
+
+      const { parseTag } = useCborTag()
+
+      // 10 nested tags wrapping an integer
+      const nested = 'c0'.repeat(10) + '00'
+
+      expect(() => parseTag(nested, { limits: { maxParseTime: 50, maxTagDepth: 200 } }))
+        .toThrow(/parse timeout/i)
+    })
+  })
+
+  describe('parseSequence timeout', () => {
+    it('should enforce maxParseTime when parsing a CBOR sequence', () => {
+      let callCount = 0
+      vi.spyOn(Date, 'now').mockImplementation(() => {
+        callCount++
+        return callCount <= 1 ? 1000 : 1100
+      })
+
+      const { parseSequence } = useCborParser()
+
+      // Sequence of nested arrays
+      const nested = '81'.repeat(10) + '00'
+
+      expect(() => parseSequence(nested, { limits: { maxParseTime: 50, maxDepth: 200 } }))
+        .toThrow(/parse timeout/i)
+    })
   })
 })

@@ -88,6 +88,9 @@ export function useCborSimpleEncoder(_globalOptions?: Partial<EncodeOptions>) {
     const mant64 = Number(bits & 0xfffffffffffffn)
 
     // Convert to float16 range
+    // Use BigInt for bit manipulation since mant64 can exceed 32 bits,
+    // which would cause JavaScript's bitwise operators to truncate silently.
+    const mant64n = BigInt(mant64)
     let exp16: number
     let mant16: number
 
@@ -99,16 +102,40 @@ export function useCborSimpleEncoder(_globalOptions?: Partial<EncodeOptions>) {
       // Subnormal float16: shift the implicit 1.mantissa into the fraction bits
       exp16 = 0
       const shift = -14 - exp64
-      mant16 = (((1 << 10) | (mant64 >> 42)) + ((1 << (shift - 1)) - 1)) >> shift
+      // Build the full subnormal mantissa: implicit 1 bit + top 10 mantissa bits,
+      // then apply IEEE 754 round-half-to-even before shifting into subnormal position.
+      // The 11-bit value (1.mant10) needs to be right-shifted by 'shift' to get the
+      // subnormal mantissa. We apply rounding at the shift boundary.
+      const fullMant = (1n << 10n) | (mant64n >> 42n)
+      // Bits lost from the float64 mantissa during the >> 42 extraction
+      const lostFromExtract = mant64n & ((1n << 42n) - 1n)
+      // The 'shift' additional bits lost when converting to subnormal
+      const shiftN = BigInt(shift)
+      const guardBit = Number((fullMant >> (shiftN - 1n)) & 1n)
+      // Sticky includes bits below guard in fullMant plus any bits lost from extraction
+      const stickyBitsBelow = shiftN > 1n ? (fullMant & ((1n << (shiftN - 1n)) - 1n)) : 0n
+      const sticky = (stickyBitsBelow !== 0n || lostFromExtract !== 0n) ? 1 : 0
+      const truncated = Number(fullMant >> shiftN)
+      const lsb = truncated & 1
+      mant16 = truncated + (guardBit & (sticky | lsb))
     } else if (exp64 > 15) {
       // Overflow to infinity
       exp16 = 31
       mant16 = 0
     } else {
-      // Normal number
+      // Normal number: IEEE 754 round-half-to-even (guard/round/sticky)
       exp16 = exp64 + 15
-      // Take top 10 bits of mantissa
-      mant16 = mant64 >> 42
+      const truncated = Number(mant64n >> 42n)
+      const guardBit = Number((mant64n >> 41n) & 1n)
+      const stickyBits = (mant64n & ((1n << 41n) - 1n)) !== 0n ? 1 : 0
+      const lsb = truncated & 1  // least significant bit of truncated result
+      mant16 = truncated + (guardBit & (stickyBits | lsb))
+      // Handle mantissa overflow from rounding (0x3FF + 1 = 0x400 bumps exponent)
+      if (mant16 > 0x3ff) {
+        mant16 = 0
+        exp16 += 1
+        // If exp16 overflows to 31 (0x1f), it becomes infinity -- correct IEEE 754 behavior
+      }
     }
 
     const float16 = (sign << 15) | (exp16 << 10) | mant16

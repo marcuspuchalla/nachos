@@ -75,6 +75,24 @@ export function useCborEncoder(globalOptions?: Partial<EncodeOptions>) {
    * @throws Error if value type is unsupported
    */
   const encode = (value: EncodableValue): EncodeResult => {
+    const result = encodeValue(value)
+
+    // Enforce maxOutputSize at the root level.
+    // This is the single authoritative check — collection/string encoders no longer
+    // track bytesWritten individually, which was broken for nested structures.
+    if (options.maxOutputSize && result.bytes.length > options.maxOutputSize) {
+      throw new Error(
+        `Encoded output size ${result.bytes.length} bytes exceeds limit of ${options.maxOutputSize} bytes`
+      )
+    }
+
+    return result
+  }
+
+  /**
+   * Encode any JavaScript value to CBOR (internal, no size check)
+   */
+  const encodeValue = (value: EncodableValue): EncodeResult => {
     // Handle null/undefined/boolean
     if (value === null || value === undefined || typeof value === 'boolean') {
       return encodeSimple(value)

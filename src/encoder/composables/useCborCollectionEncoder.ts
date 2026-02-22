@@ -222,12 +222,6 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
 
     const result = concatenateUint8Arrays(parts)
 
-    // Check output size
-    ctx.bytesWritten += result.length
-    if (ctx.bytesWritten > ctx.options.maxOutputSize) {
-      throw new Error('Encoded output exceeds maximum size')
-    }
-
     return {
       bytes: result,
       hex: bytesToHex(result)
@@ -262,7 +256,6 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
     // Definite-length encoding
     const ctx: EncodeContext = {
       depth: 0,
-      bytesWritten: 0,
       options
     }
 
@@ -287,7 +280,6 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
 
     const ctx: EncodeContext = {
       depth: 0,
-      bytesWritten: 0,
       options
     }
 
@@ -327,19 +319,27 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
         : Object.entries(map)
     }
 
-    // In canonical mode, sort entries by encoded key (unless using allEntries for byte-perfect)
+    // Pre-encode keys once for canonical sorting and/or duplicate detection
+    // This avoids re-encoding keys O(N log N) times inside the sort comparator
+    let preEncodedKeys: Uint8Array[] | null = null
+
     if (ctx.options.canonical && !(map as any)[ALL_ENTRIES_SYMBOL]) {
-      entries.sort((a, b) => {
-        const keyA = encodeValue(a[0], { ...ctx, depth: ctx.depth + 1 })
-        const keyB = encodeValue(b[0], { ...ctx, depth: ctx.depth + 1 })
-        return compareBytes(keyA, keyB)
-      })
+      const childCtx = { ...ctx, depth: ctx.depth + 1 }
+      const withEncodedKeys = entries.map(entry => ({
+        encodedKey: encodeValue(entry[0], childCtx),
+        entry
+      }))
+      withEncodedKeys.sort((a, b) => compareBytes(a.encodedKey, b.encodedKey))
+      entries = withEncodedKeys.map(t => t.entry)
+      preEncodedKeys = withEncodedKeys.map(t => t.encodedKey)
     }
 
     if (ctx.options.rejectDuplicateKeys) {
       const seen = new Set<string>()
-      for (const [key] of entries) {
-        const keyBytes = encodeValue(key, { ...ctx, depth: ctx.depth + 1, bytesWritten: 0 })
+      // Reuse pre-encoded keys if available (from canonical sort above)
+      const keysForDupCheck = preEncodedKeys
+        ?? entries.map(e => encodeValue(e[0], { ...ctx, depth: ctx.depth + 1 }))
+      for (const keyBytes of keysForDupCheck) {
         const keyHex = bytesToHex(keyBytes)
         if (seen.has(keyHex)) {
           throw new Error('Duplicate map key detected')
@@ -360,12 +360,6 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
     }
 
     const result = concatenateUint8Arrays(parts)
-
-    // Check output size
-    ctx.bytesWritten += result.length
-    if (ctx.bytesWritten > ctx.options.maxOutputSize) {
-      throw new Error('Encoded output exceeds maximum size')
-    }
 
     return {
       bytes: result,
@@ -401,7 +395,6 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
     // Definite-length encoding
     const ctx: EncodeContext = {
       depth: 0,
-      bytesWritten: 0,
       options
     }
 
@@ -433,7 +426,6 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
 
     const ctx: EncodeContext = {
       depth: 0,
-      bytesWritten: 0,
       options
     }
 

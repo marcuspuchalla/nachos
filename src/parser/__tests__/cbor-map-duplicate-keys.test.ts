@@ -14,6 +14,7 @@
 import { describe, it, expect } from 'vitest'
 import { useCborParser } from '../composables/useCborParser'
 import { useCborCollection } from '../composables/useCborCollection'
+import type { CborMap } from '../types'
 
 describe('CBOR Map Duplicate Key Detection', () => {
   describe('String Keys - Duplicate Detection', () => {
@@ -154,7 +155,7 @@ describe('CBOR Map Duplicate Key Detection', () => {
 
       const result = parseMap(uniqueBytes, { dupMapKeyMode: 'reject' })
       // Byte strings as keys become comma-separated strings in JS
-      expect(result.value.size).toBe(3)
+      expect((result.value as CborMap).size).toBe(3)
     })
 
     it('should reject duplicate empty byte strings', () => {
@@ -178,7 +179,7 @@ describe('CBOR Map Duplicate Key Detection', () => {
       const mixedTypes = 'a2010a613114'
 
       const result = parseMap(mixedTypes, { dupMapKeyMode: 'reject' })
-      expect(result.value.size).toBe(2)
+      expect((result.value as CborMap).size).toBe(2)
     })
 
     it('should detect duplicates when both are strings', () => {
@@ -332,7 +333,7 @@ describe('CBOR Map Duplicate Key Detection', () => {
         limits: { maxMapSize: 100 }
       })
 
-      expect(result.value.size).toBe(30)
+      expect((result.value as CborMap).size).toBe(30)
     })
   })
 
@@ -373,6 +374,96 @@ describe('CBOR Map Duplicate Key Detection', () => {
 
       expect(() => parseMap(duplicateNull, { dupMapKeyMode: 'reject' }))
         .toThrow(/duplicate/i)
+    })
+  })
+
+  describe('Semantic Duplicate Detection (RFC 8949 Section 5.6)', () => {
+    it('should reject integer 1 encoded as 0x01 and 0x1801 as duplicate keys', () => {
+      const { parseMap } = useCborCollection()
+
+      // Map with 2 entries, key 1 (0x01) -> value 10 (0x0a), key 1 (0x1801) -> value 20 (0x14)
+      // 0x01 encodes integer 1 directly (AI=1)
+      // 0x1801 encodes integer 1 with 1-byte payload (AI=24, payload=0x01)
+      // Both represent semantic value 1 -- must be detected as duplicate
+      // a2 = map(2), 01 = int(1), 0a = int(10), 1801 = int(1), 14 = int(20)
+      const duplicateHex = 'a2010a180114'
+
+      expect(() => parseMap(duplicateHex, { dupMapKeyMode: 'reject' }))
+        .toThrow(/duplicate/i)
+    })
+
+    it('should reject integer 1 encoded as 0x01 and 0x190001 as duplicate keys', () => {
+      const { parseMap } = useCborCollection()
+
+      // 0x01 encodes integer 1 directly (AI=1)
+      // 0x190001 encodes integer 1 with 2-byte payload (AI=25, payload=0x0001)
+      // Both represent semantic value 1
+      // a2 = map(2), 01 = int(1), 0a = int(10), 190001 = int(1), 14 = int(20)
+      const duplicateHex = 'a2010a19000114'
+
+      expect(() => parseMap(duplicateHex, { dupMapKeyMode: 'reject' }))
+        .toThrow(/duplicate/i)
+    })
+
+    it('should reject integer 1 encoded as 0x1801 and 0x190001 as duplicate keys', () => {
+      const { parseMap } = useCborCollection()
+
+      // 0x1801 encodes integer 1 with 1-byte payload (AI=24, payload=0x01)
+      // 0x190001 encodes integer 1 with 2-byte payload (AI=25, payload=0x0001)
+      // Both represent semantic value 1
+      // a2 = map(2), 1801 = int(1), 0a = int(10), 190001 = int(1), 14 = int(20)
+      const duplicateHex = 'a218010a19000114'
+
+      expect(() => parseMap(duplicateHex, { dupMapKeyMode: 'reject' }))
+        .toThrow(/duplicate/i)
+    })
+
+    it('should reject integer 0 encoded with different byte widths as duplicate keys', () => {
+      const { parseMap } = useCborCollection()
+
+      // 0x00 encodes integer 0 directly (AI=0)
+      // 0x1800 encodes integer 0 with 1-byte payload (AI=24, payload=0x00)
+      // Both represent semantic value 0
+      // a2 = map(2), 00 = int(0), 01 = int(1), 1800 = int(0), 02 = int(2)
+      const duplicateHex = 'a200011800 02'
+
+      expect(() => parseMap(duplicateHex, { dupMapKeyMode: 'reject' }))
+        .toThrow(/duplicate/i)
+    })
+
+    it('should still allow semantically different integer keys', () => {
+      const { parseMap } = useCborCollection()
+
+      // Map: {1: 10, 2: 20} - different semantic values, even if both use non-canonical encoding
+      // a2 = map(2), 1801 = int(1), 0a = int(10), 1802 = int(2), 14 = int(20)
+      const uniqueHex = 'a218010a180214'
+
+      const result = parseMap(uniqueHex, { dupMapKeyMode: 'reject' })
+      expect((result.value as CborMap).size).toBe(2)
+    })
+
+    it('should detect semantic duplicates via parseWithSourceMap path', () => {
+      const { parseWithSourceMap } = useCborParser()
+
+      // Map with key 1 (0x01) and key 1 (0x1801) -- semantic duplicate
+      // a2 = map(2), 01 = int(1), 0a = int(10), 1801 = int(1), 14 = int(20)
+      const duplicateHex = 'a2010a180114'
+
+      expect(() => parseWithSourceMap(duplicateHex, { dupMapKeyMode: 'reject' }))
+        .toThrow(/duplicate/i)
+    })
+
+    it('should detect semantic duplicates in indefinite-length maps', () => {
+      const { parseMap } = useCborCollection()
+
+      // Indefinite map: {_ 1: 10, 1(non-canonical): 20 }
+      // bf = map(indefinite), 01 = int(1), 0a = int(10), 1801 = int(1), 14 = int(20), ff = break
+      const duplicateHex = 'bf010a180114ff'
+
+      expect(() => parseMap(duplicateHex, {
+        dupMapKeyMode: 'reject',
+        allowIndefinite: true
+      })).toThrow(/duplicate/i)
     })
   })
 

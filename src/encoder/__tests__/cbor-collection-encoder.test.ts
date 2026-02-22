@@ -285,6 +285,100 @@ describe('CBOR Collection Encoder', () => {
           .toThrow('Duplicate map key detected')
       })
     })
+
+    describe('Canonical sort pre-encoding optimization', () => {
+      it('should produce identical output for canonical sort with many keys', () => {
+        const { encodeMap } = useCborCollectionEncoder({ canonical: true })
+
+        // Use many keys to exercise sorting — result must be deterministic
+        const map = new Map<EncodableValue, EncodableValue>([
+          ['zebra', 1],
+          ['apple', 2],
+          ['mango', 3],
+          ['banana', 4],
+          ['kiwi', 5],
+          ['cherry', 6],
+          ['date', 7],
+          ['fig', 8],
+          ['grape', 9],
+          ['lemon', 10],
+        ])
+        const result1 = encodeMap(map)
+        const result2 = encodeMap(map)
+
+        // Must be deterministic
+        expect(result1.hex).toBe(result2.hex)
+
+        // Verify canonical order: sorted by encoded key length first, then bytewise
+        // 3-char keys: fig, 4-char keys: date, kiwi, 5-char keys: apple, grape, lemon, mango
+        // 6-char keys: banana, cherry, zebra
+        const hex = result1.hex
+        const figPos = hex.indexOf('6366696703')   // "fig" + integer 8 (but let's just check key order)
+        const datePos = hex.indexOf('6464617465')   // "date"
+        const bananaPos = hex.indexOf('6662616e616e61') // "banana"
+
+        // fig (3 chars) should come before date (4 chars) should come before banana (6 chars)
+        expect(figPos).toBeLessThan(datePos)
+        expect(datePos).toBeLessThan(bananaPos)
+      })
+
+      it('should produce correct canonical order with mixed-type Map keys', () => {
+        const { encodeMap } = useCborCollectionEncoder({ canonical: true })
+
+        // Integer keys encode shorter than string keys
+        const map = new Map<EncodableValue, EncodableValue>([
+          ['z', 3],
+          [1, 1],
+          ['a', 2],
+        ])
+        const result = encodeMap(map)
+
+        // Integer 1 encodes as 0x01 (1 byte), "a" as 0x6161 (2 bytes), "z" as 0x617a (2 bytes)
+        // Canonical order: 1 (shortest), then "a" < "z" (same length, bytewise)
+        const hex = result.hex
+        // After map header (0xa3), first key should be integer 1 (0x01)
+        expect(hex.startsWith('a3')).toBe(true)
+        expect(hex.substring(2, 4)).toBe('01')  // integer key 1
+      })
+
+      it('should reject duplicates when both canonical and rejectDuplicateKeys are on', () => {
+        const { encodeMap } = useCborCollectionEncoder({
+          canonical: true,
+          rejectDuplicateKeys: true
+        })
+
+        const map = new Map<EncodableValue, EncodableValue>([['x', 1]])
+        ;(map as any)[ALL_ENTRIES_SYMBOL] = [['x', 1], ['x', 2]]
+
+        expect(() => encodeMap(map))
+          .toThrow('Duplicate map key detected')
+      })
+
+      it('should not reject unique keys when both canonical and rejectDuplicateKeys are on', () => {
+        const { encodeMap } = useCborCollectionEncoder({
+          canonical: true,
+          rejectDuplicateKeys: true
+        })
+
+        const map = new Map<EncodableValue, EncodableValue>([
+          ['b', 2],
+          ['a', 1],
+          ['c', 3],
+        ])
+        const result = encodeMap(map)
+
+        // Should succeed and produce canonical order
+        expect(result.bytes[0]).toBe(0xa3)  // 3 entries
+
+        // Keys in canonical order: a, b, c
+        const hex = result.hex
+        const aPos = hex.indexOf('6161')  // "a"
+        const bPos = hex.indexOf('6162')  // "b"
+        const cPos = hex.indexOf('6163')  // "c"
+        expect(aPos).toBeLessThan(bPos)
+        expect(bPos).toBeLessThan(cPos)
+      })
+    })
   })
 
   describe('Depth limits', () => {
@@ -320,18 +414,22 @@ describe('CBOR Collection Encoder', () => {
   })
 
   describe('Output size limits', () => {
-    it('should respect maxOutputSize option', () => {
+    it('should not enforce maxOutputSize at the collection level (enforced at root encoder)', () => {
+      // maxOutputSize is now checked at the root level in useCborEncoder,
+      // not inside the collection encoder. The collection encoder should
+      // encode without throwing, and the root encoder applies the check.
       const { encodeArray } = useCborCollectionEncoder({ maxOutputSize: 10 })
-      const largeArray = Array(100).fill(1)
+      const smallArray = Array(20).fill(1)
 
-      expect(() => encodeArray(largeArray))
-        .toThrow('Encoded output exceeds maximum size')
+      // Collection encoder no longer throws on size - it just encodes
+      const result = encodeArray(smallArray)
+      expect(result.bytes.length).toBeGreaterThan(10)
     })
   })
 
   describe('Real-world Cardano examples', () => {
     it('should encode Cardano transaction structure', () => {
-      const { encodeMap, encodeArray } = useCborCollectionEncoder()
+      const { encodeMap } = useCborCollectionEncoder()
 
       // Simplified Cardano transaction
       const tx = {

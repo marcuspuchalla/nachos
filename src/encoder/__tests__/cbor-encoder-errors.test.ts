@@ -185,7 +185,7 @@ describe('CBOR Encoder Error Handling', () => {
 
       const largeArray = Array(100).fill(1)
 
-      expect(() => encode(largeArray)).toThrow('Encoded output exceeds maximum size')
+      expect(() => encode(largeArray)).toThrow(/[Ee]ncoded output.*exceeds/)
     })
 
     it('should succeed when output is within maxOutputSize', () => {
@@ -204,6 +204,40 @@ describe('CBOR Encoder Error Handling', () => {
       }
 
       expect(() => encode(largeMap)).toThrow('Encoded output exceeds maximum size')
+    })
+
+    it('should enforce maxOutputSize on deeply nested structures whose total exceeds limit', () => {
+      // Total encoded size is 25 bytes, limit is 20.
+      const { encode } = useCborEncoder({ maxOutputSize: 20 })
+
+      const nested = [
+        [1, 2, 3, 4, 5],
+        [6, 7, 8, 9, 10],
+        [11, 12, 13, 14, 15],
+        [16, 17, 18, 19, 20],
+      ]
+
+      expect(() => encode(nested)).toThrow(/[Ee]ncoded output.*exceeds/)
+    })
+
+    it('should enforce maxOutputSize on nested maps whose total exceeds limit', () => {
+      // Total encoded size is 19 bytes, limit is 15.
+      const { encode } = useCborEncoder({ maxOutputSize: 15 })
+
+      const bigger = {
+        a: { x: 1, y: 2 },
+        b: { x: 3, y: 4 },
+      }
+
+      expect(() => encode(bigger)).toThrow(/[Ee]ncoded output.*exceeds/)
+    })
+
+    it('should include byte counts in the maxOutputSize error message', () => {
+      // After the fix, the root-level check should report actual size and limit.
+      // [1,2,3,4,5] encodes to 6 bytes; limit is 5.
+      const { encode } = useCborEncoder({ maxOutputSize: 5 })
+
+      expect(() => encode([1, 2, 3, 4, 5])).toThrow(/6 bytes exceeds limit of 5 bytes/)
     })
   })
 
@@ -540,13 +574,14 @@ describe('CBOR Canonical Encoding Validation', () => {
       expect(result.bytes.length).toBe(3)
     })
 
-    it('should encode 1.5 as float32 (not float16)', () => {
+    it('should encode 1.5 as float16 (exact float16 representation)', () => {
       const { encode } = useCborEncoder()
       const result = encode(1.5)
 
-      // 1.5 encodes as float32 due to float16 round-trip precision: 0xfa + 4 bytes
-      expect(result.bytes[0]).toBe(0xfa)
-      expect(result.bytes.length).toBe(5)
+      // 1.5 is exactly representable in float16: 0xf9 + 2 bytes
+      // float16 = 0 01111 1000000000 = 0x3e00
+      expect(result.bytes[0]).toBe(0xf9)
+      expect(result.bytes.length).toBe(3)
     })
 
     it('should encode 1.1 as float64 (no exact float16/32 representation)', () => {

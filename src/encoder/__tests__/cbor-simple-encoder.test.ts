@@ -96,6 +96,132 @@ describe('CBOR Simple Values and Floats Encoder', () => {
         expect(result.bytes).toEqual(new Uint8Array([0xf9, 0x7e, 0x00]))
         expect(result.hex).toBe('f97e00')
       })
+
+      it('should encode 1.5 as float16', () => {
+        const { encodeFloat } = useCborSimpleEncoder()
+        const result = encodeFloat(1.5, 16)
+
+        // 1.5 = 0 01111 1000000000 = 0x3e00
+        expect(result.bytes).toEqual(new Uint8Array([0xf9, 0x3e, 0x00]))
+        expect(result.hex).toBe('f93e00')
+      })
+
+      it('should encode -2.0 as float16', () => {
+        const { encodeFloat } = useCborSimpleEncoder()
+        const result = encodeFloat(-2.0, 16)
+
+        // -2.0 = 1 10000 0000000000 = 0xc000
+        expect(result.bytes).toEqual(new Uint8Array([0xf9, 0xc0, 0x00]))
+        expect(result.hex).toBe('f9c000')
+      })
+
+      it('should encode 0.5 as float16', () => {
+        const { encodeFloat } = useCborSimpleEncoder()
+        const result = encodeFloat(0.5, 16)
+
+        // 0.5 = 0 01110 0000000000 = 0x3800
+        expect(result.bytes).toEqual(new Uint8Array([0xf9, 0x38, 0x00]))
+        expect(result.hex).toBe('f93800')
+      })
+
+      it('should encode 65504 (max finite float16) as float16', () => {
+        const { encodeFloat } = useCborSimpleEncoder()
+        const result = encodeFloat(65504, 16)
+
+        // 65504 = 0 11110 1111111111 = 0x7bff
+        expect(result.bytes).toEqual(new Uint8Array([0xf9, 0x7b, 0xff]))
+        expect(result.hex).toBe('f97bff')
+      })
+    })
+
+    describe('Float16 IEEE 754 round-half-to-even', () => {
+      // Helper to construct a float64 value from raw mantissa bits
+      // exp64=0 means biased exponent=1023, so the value is 1.mantissa
+      function makeFloat64(exp64: number, mant64: number, sign = 0): number {
+        const biasedExp = BigInt(exp64 + 1023)
+        const bits = (BigInt(sign) << 63n) | (biasedExp << 52n) | BigInt(mant64)
+        const buf = new ArrayBuffer(8)
+        const view = new DataView(buf)
+        view.setBigUint64(0, bits, false)
+        return view.getFloat64(0, false)
+      }
+
+      it('should round down at midpoint when truncated mantissa is even (round-half-to-even)', () => {
+        const { encodeFloat } = useCborSimpleEncoder()
+        // Construct: mant16_truncated=256 (even), guard=1, round=0, sticky=0
+        // mant64 = (256 << 42) | (1 << 41)
+        const mant64 = 256 * Math.pow(2, 42) + Math.pow(2, 41)
+        const value = makeFloat64(0, mant64)
+        const result = encodeFloat(value, 16)
+
+        // Should round DOWN to mant16=256 (even), exp16=15
+        // float16 = 0 01111 0100000000 = 0x3d00
+        expect(result.bytes).toEqual(new Uint8Array([0xf9, 0x3d, 0x00]))
+      })
+
+      it('should round up at midpoint when truncated mantissa is odd (round-half-to-even)', () => {
+        const { encodeFloat } = useCborSimpleEncoder()
+        // Construct: mant16_truncated=257 (odd), guard=1, round=0, sticky=0
+        const mant64 = 257 * Math.pow(2, 42) + Math.pow(2, 41)
+        const value = makeFloat64(0, mant64)
+        const result = encodeFloat(value, 16)
+
+        // Should round UP to mant16=258 (even), exp16=15
+        // float16 = 0 01111 0100000010 = 0x3d02
+        expect(result.bytes).toEqual(new Uint8Array([0xf9, 0x3d, 0x02]))
+      })
+
+      it('should round up when above midpoint (guard=1, sticky bits set)', () => {
+        const { encodeFloat } = useCborSimpleEncoder()
+        // Construct: mant16_truncated=256 (even), guard=1, sticky=1 -> above midpoint
+        const mant64 = 256 * Math.pow(2, 42) + Math.pow(2, 41) + 1
+        const value = makeFloat64(0, mant64)
+        const result = encodeFloat(value, 16)
+
+        // Should round UP to mant16=257, exp16=15
+        // float16 = 0 01111 0100000001 = 0x3d01
+        expect(result.bytes).toEqual(new Uint8Array([0xf9, 0x3d, 0x01]))
+      })
+
+      it('should truncate when below midpoint (guard=0)', () => {
+        const { encodeFloat } = useCborSimpleEncoder()
+        // Construct: mant16_truncated=256, guard=0, some lower bits set
+        // mant64 = (256 << 42) | (1 << 40) -- only round bit, no guard
+        const mant64 = 256 * Math.pow(2, 42) + Math.pow(2, 40)
+        const value = makeFloat64(0, mant64)
+        const result = encodeFloat(value, 16)
+
+        // Should truncate to mant16=256, exp16=15
+        // float16 = 0 01111 0100000000 = 0x3d00
+        expect(result.bytes).toEqual(new Uint8Array([0xf9, 0x3d, 0x00]))
+      })
+
+      it('should handle mantissa overflow from rounding (bump exponent)', () => {
+        const { encodeFloat } = useCborSimpleEncoder()
+        // Construct: mant16_truncated=0x3FF (1023, odd), guard=1, sticky=1
+        // Rounding up gives 0x400, which overflows 10-bit mantissa
+        // Should become mant16=0, exp16+1
+        const mant64 = 0x3FF * Math.pow(2, 42) + Math.pow(2, 41) + 1
+        const value = makeFloat64(0, mant64)
+        const result = encodeFloat(value, 16)
+
+        // Mantissa overflows: exp16 bumps from 15 to 16, mant16=0
+        // float16 = 0 10000 0000000000 = 0x4000 = 2.0
+        expect(result.bytes).toEqual(new Uint8Array([0xf9, 0x40, 0x00]))
+      })
+
+      it('should handle mantissa overflow to infinity at max exponent', () => {
+        const { encodeFloat } = useCborSimpleEncoder()
+        // Construct: exp64=15 (exp16=30, max normal), mant16_truncated=0x3FF, guard=1, sticky=1
+        // Rounding overflows mantissa, bumps exp16 to 31 = infinity
+        const mant64 = 0x3FF * Math.pow(2, 42) + Math.pow(2, 41) + 1
+        const value = makeFloat64(15, mant64)
+        const result = encodeFloat(value, 16)
+
+        // exp16=30 + overflow = 31 (infinity), mant16=0
+        // float16 = 0 11111 0000000000 = 0x7c00 = +Infinity
+        expect(result.bytes).toEqual(new Uint8Array([0xf9, 0x7c, 0x00]))
+      })
     })
 
     describe('Float32 (single precision)', () => {
