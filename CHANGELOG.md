@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-02-22
+
+### Fixed
+
+#### Security
+- **Duplicate map key bypass** - Semantic comparison now used for duplicate detection; different encodings of the same integer key (e.g. `0x01`, `0x1801`, `0x190001`) are correctly identified as duplicates (RFC 8949 Section 5.6)
+- **maxParseTime bypass** - Timeout is now enforced in standard `decode()`/`parse()` path, not only in `decodeWithSourceMap()`
+- **bytesWritten double-counting** - Removed broken value-copy tracking from `EncodeContext`; `maxOutputSize` is now checked once at root level after encoding completes
+
+#### Correctness
+- **Tag 4/5 integer validation** - `Number.isInteger()` check added to reject floats in exponent/mantissa positions (RFC 8949 requirement)
+- **Float16 IEEE 754 rounding** - Replaced truncating `>> 42` shift with guard/round/sticky round-half-to-even; also fixed 32-bit truncation bug that corrupted most float16 mantissas
+- **Exponential source-map re-parsing** - `validateTagSemantics` and `decodePlutusConstructor` now called directly on already-parsed values instead of re-parsing the entire tag subtree (O(D²) → O(D))
+
+### Performance
+- **Eliminated O(N²) parsing** - `parseItem` and `parseSequence` no longer slice and hex-encode the full remaining buffer on each element; all types now use buffer+offset native dispatch
+- **Map canonical sort** - Keys pre-encoded once before sort instead of re-encoded O(N log N) times inside comparator
+
+### Added
+- **Uint8Array input support** - `decode()`, `decodeWithSourceMap()`, `parseSequence()`, and `CborDecoder` class methods now accept `Uint8Array` directly, skipping hex conversion entirely
+- **Buffer-native parser exports** - `parseIntegerFromBuffer`, `parseFromBuffer` (float), `parseTagFromBuffer`, `validateTagSemantics`, `decodePlutusConstructor` exported for advanced use
+- 115 new tests
+
 ## [0.1.3] - 2026-02-09
 
 ### Fixed
