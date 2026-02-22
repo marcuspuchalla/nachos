@@ -20,15 +20,15 @@ import { hexToBytes, readByte, readUint, readBigUint, extractCborHeader, validat
  */
 export function useCborInteger() {
   /**
-   * Parses CBOR integer (Major Type 0 or 1)
+   * Parses CBOR integer (Major Type 0 or 1) from a buffer at a given offset
    *
-   * @param hexString - CBOR hex string
+   * @param buffer - Data buffer
+   * @param offset - Current offset into the buffer
    * @param options - Parser options (optional)
    * @returns Parsed integer value and bytes read
    */
-  const parseInteger = (hexString: string, options?: ParseOptions): ParseResult => {
-    const buffer = hexToBytes(hexString)
-    const initialByte = readByte(buffer, 0)
+  const parseIntegerFromBuffer = (buffer: Uint8Array, offset: number, options?: ParseOptions): ParseResult => {
+    const initialByte = readByte(buffer, offset)
 
     const { majorType, additionalInfo } = extractCborHeader(initialByte)
 
@@ -42,19 +42,19 @@ export function useCborInteger() {
       bytesRead = 1
     } else if (additionalInfo === 24) {
       // 1 byte follows
-      rawValue = readByte(buffer, 1)
+      rawValue = readByte(buffer, offset + 1)
       bytesRead = 2
     } else if (additionalInfo === 25) {
       // 2 bytes follow
-      rawValue = readUint(buffer, 1, 2)
+      rawValue = readUint(buffer, offset + 1, 2)
       bytesRead = 3
     } else if (additionalInfo === 26) {
       // 4 bytes follow
-      rawValue = readUint(buffer, 1, 4)
+      rawValue = readUint(buffer, offset + 1, 4)
       bytesRead = 5
     } else if (additionalInfo === 27) {
       // 8 bytes follow - use BigInt for large values
-      const bigValue = readBigUint(buffer, 1, 8)
+      const bigValue = readBigUint(buffer, offset + 1, 8)
 
       // Check if value fits in Number.MAX_SAFE_INTEGER
       if (bigValue <= BigInt(Number.MAX_SAFE_INTEGER)) {
@@ -108,7 +108,21 @@ export function useCborInteger() {
     }
   }
 
+  /**
+   * Parses CBOR integer (Major Type 0 or 1) from hex string
+   * Thin wrapper around parseIntegerFromBuffer
+   *
+   * @param hexString - CBOR hex string
+   * @param options - Parser options (optional)
+   * @returns Parsed integer value and bytes read
+   */
+  const parseInteger = (hexString: string, options?: ParseOptions): ParseResult => {
+    const buffer = hexToBytes(hexString)
+    return parseIntegerFromBuffer(buffer, 0, options)
+  }
+
   return {
-    parseInteger
+    parseInteger,
+    parseIntegerFromBuffer
   }
 }

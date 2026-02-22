@@ -4,9 +4,9 @@
  * Auto-detects major type and dispatches to appropriate parser
  */
 
-import type { ParseResult, ParseResultWithMap, SourceMapEntry, ParseOptions, CborContext, CborValue } from '../types'
+import type { ParseResult, ParseResultWithMap, SourceMapEntry, ParseOptions, CborContext, CborValue, TaggedValue } from '../types'
 import { DEFAULT_OPTIONS, DEFAULT_LIMITS } from '../types'
-import { hexToBytes, readByte, readUint, readBigUint, extractCborHeader } from '../utils'
+import { hexToBytes, readByte, readUint, readBigUint, extractCborHeader, serializeValueForComparison } from '../utils'
 import { useCborInteger } from './useCborInteger'
 import { useCborString } from './useCborString'
 import { useCborCollection } from './useCborCollection'
@@ -73,11 +73,11 @@ export function useCborParser() {
     }
   }
 
-  const { parseInteger } = useCborInteger()
-  const { parseString } = useCborString()
+  const { parseInteger, parseIntegerFromBuffer: integerFromBuffer } = useCborInteger()
+  const { parseString, parseByteString: byteStringFromBuffer, parseTextString: textStringFromBuffer } = useCborString()
   const { parseArray, parseMap } = useCborCollection()
-  const { parseTag } = useCborTag()
-  const { parse: parseFloatOrSimple } = useCborFloat()
+  const { parseTag, validateTagSemantics, decodePlutusConstructor } = useCborTag()
+  const { parse: parseFloatOrSimple, parseFromBuffer: floatOrSimpleFromBuffer } = useCborFloat()
 
   /**
    * Parses a CBOR hex string, auto-detecting the type
@@ -100,9 +100,26 @@ export function useCborParser() {
    * parse('6449455446', { strict: true })
    * ```
    */
-  const parse = (hexString: string, options?: ParseOptions): ParseResult => {
-    // Remove spaces from hex string
-    const cleanHex = hexString.replace(/\s+/g, '')
+  const parse = (input: string | Uint8Array, options?: ParseOptions): ParseResult => {
+    // Merge options with defaults
+    const mergedOptions = mergeOptions(options)
+
+    // Uint8Array fast path: skip hex conversion entirely
+    if (input instanceof Uint8Array) {
+      if (input.length === 0) {
+        throw new Error('Empty input')
+      }
+
+      // Check input size limit
+      if (mergedOptions.limits?.maxInputSize && input.length > mergedOptions.limits.maxInputSize) {
+        throw new Error(`Input size ${input.length} bytes exceeds limit of ${mergedOptions.limits.maxInputSize} bytes`)
+      }
+
+      return dispatchFromBuffer(input, 0, mergedOptions)
+    }
+
+    // Hex string path
+    const cleanHex = input.replace(/\s+/g, '')
 
     // Validate hex string
     if (!cleanHex || cleanHex.length === 0) {
@@ -116,9 +133,6 @@ export function useCborParser() {
     if (!/^[0-9a-fA-F]+$/.test(cleanHex)) {
       throw new Error(`Invalid hex character in: ${cleanHex}`)
     }
-
-    // Merge options with defaults
-    const mergedOptions = mergeOptions(options)
 
     // Check input size limit
     const inputSize = cleanHex.length / 2 // Convert hex chars to bytes
@@ -165,30 +179,46 @@ export function useCborParser() {
    * @param options - Parser options (optional)
    * @returns Parsed value, bytes read, and source map
    */
-  const parseWithSourceMap = (hexString: string, options?: ParseOptions): ParseResultWithMap => {
-    const cleanHex = hexString.replace(/\s+/g, '')
-
-    // Validate hex string
-    if (!cleanHex || cleanHex.length === 0) {
-      throw new Error('Empty hex string')
-    }
-    if (cleanHex.length % 2 !== 0) {
-      throw new Error('Hex string must have even length')
-    }
-    if (!/^[0-9a-fA-F]+$/.test(cleanHex)) {
-      throw new Error(`Invalid hex character in: ${cleanHex}`)
-    }
-
+  const parseWithSourceMap = (input: string | Uint8Array, options?: ParseOptions): ParseResultWithMap => {
     // Merge options with defaults
     const mergedOptions = mergeOptions(options)
 
-    // Check input size limit
-    const inputSize = cleanHex.length / 2
-    if (mergedOptions.limits?.maxInputSize && inputSize > mergedOptions.limits.maxInputSize) {
-      throw new Error(`Input size ${inputSize} bytes exceeds limit of ${mergedOptions.limits.maxInputSize} bytes`)
+    let buffer: Uint8Array
+
+    if (input instanceof Uint8Array) {
+      if (input.length === 0) {
+        throw new Error('Empty input')
+      }
+
+      // Check input size limit
+      if (mergedOptions.limits?.maxInputSize && input.length > mergedOptions.limits.maxInputSize) {
+        throw new Error(`Input size ${input.length} bytes exceeds limit of ${mergedOptions.limits.maxInputSize} bytes`)
+      }
+
+      buffer = input
+    } else {
+      const cleanHex = input.replace(/\s+/g, '')
+
+      // Validate hex string
+      if (!cleanHex || cleanHex.length === 0) {
+        throw new Error('Empty hex string')
+      }
+      if (cleanHex.length % 2 !== 0) {
+        throw new Error('Hex string must have even length')
+      }
+      if (!/^[0-9a-fA-F]+$/.test(cleanHex)) {
+        throw new Error(`Invalid hex character in: ${cleanHex}`)
+      }
+
+      // Check input size limit
+      const inputSize = cleanHex.length / 2
+      if (mergedOptions.limits?.maxInputSize && inputSize > mergedOptions.limits.maxInputSize) {
+        throw new Error(`Input size ${inputSize} bytes exceeds limit of ${mergedOptions.limits.maxInputSize} bytes`)
+      }
+
+      buffer = hexToBytes(cleanHex)
     }
 
-    const buffer = hexToBytes(cleanHex)
     const sourceMap: SourceMapEntry[] = []
 
     // Create context with tracking
@@ -391,33 +421,87 @@ export function useCborParser() {
   }
 
   /**
-   * Helper to parse integer from buffer
+   * Dispatches CBOR parsing from buffer by major type
+   * Used by parseSequence and parseValueWithMap helpers
+   *
+   * @param buffer - Data buffer
+   * @param offset - Current offset
+   * @param options - Parser options
+   * @returns Parsed value and bytes read
+   */
+  const dispatchFromBuffer = (buffer: Uint8Array, offset: number, options?: ParseOptions): ParseResult => {
+    const initialByte = readByte(buffer, offset)
+    const { majorType } = extractCborHeader(initialByte)
+
+    switch (majorType) {
+      case 0: // Unsigned integer
+      case 1: // Negative integer
+        return integerFromBuffer(buffer, offset, options)
+
+      case 2: // Byte string
+        return byteStringFromBuffer(buffer, offset, options)
+
+      case 3: // Text string
+        return textStringFromBuffer(buffer, offset, options)
+
+      case 4: // Array
+        {
+          // Use parseArray via hex for now - arrays/maps already use buffer internally
+          const hexString = Array.from(buffer.slice(offset))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('')
+          return parseArray(hexString, options)
+        }
+
+      case 5: // Map
+        {
+          const hexString = Array.from(buffer.slice(offset))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('')
+          return parseMap(hexString, options)
+        }
+
+      case 6: // Tag
+        {
+          const hexString = Array.from(buffer.slice(offset))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('')
+          return parseTag(hexString, options)
+        }
+
+      case 7: // Float/Simple
+        return floatOrSimpleFromBuffer(buffer, offset, options)
+
+      default:
+        throw new Error(`Unknown major type: ${majorType}`)
+    }
+  }
+
+  /**
+   * Helper to parse integer from buffer (delegates to buffer-native implementation)
    */
   const parseIntegerFromBuffer = (buffer: Uint8Array, offset: number, options?: ParseOptions): ParseResult => {
-    const hexString = Array.from(buffer.slice(offset))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('')
-    return parseInteger(hexString, options)
+    return integerFromBuffer(buffer, offset, options)
   }
 
   /**
    * Helper to parse string from buffer
+   * Dispatches to byte string or text string based on major type
    */
   const parseStringFromBuffer = (buffer: Uint8Array, offset: number, options?: ParseOptions): ParseResult => {
-    const hexString = Array.from(buffer.slice(offset))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('')
-    return parseString(hexString, options)
+    const initialByte = readByte(buffer, offset)
+    const { majorType } = extractCborHeader(initialByte)
+    if (majorType === 2) {
+      return byteStringFromBuffer(buffer, offset, options)
+    }
+    return textStringFromBuffer(buffer, offset, options)
   }
 
   /**
-   * Helper to parse float from buffer
+   * Helper to parse float/simple from buffer (delegates to buffer-native implementation)
    */
   const parseFloatFromBuffer = (buffer: Uint8Array, offset: number, options?: ParseOptions): ParseResult => {
-    const hexString = Array.from(buffer.slice(offset))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('')
-    return parseFloatOrSimple(hexString, options)
+    return floatOrSimpleFromBuffer(buffer, offset, options)
   }
 
   /**
@@ -654,13 +738,15 @@ export function useCborParser() {
           const keyResult = parseValueWithMap(ctx, currentOffset, keyPath, sourceMap)
           currentOffset += keyResult.bytesRead
 
-          // For duplicate detection and path generation, stringify the key
+          // For duplicate detection, use semantic comparison (RFC 8949 Section 5.6)
+          const keyForDupCheck = serializeValueForComparison(keyResult.value)
+          // For path generation, use display-friendly stringification
           const keyString = keyResult.value instanceof Uint8Array
             ? Array.from(keyResult.value).map(b => b.toString(16).padStart(2, '0')).join('')
             : String(keyResult.value)
 
           // Check for duplicate keys based on dupMapKeyMode
-          if (seenKeys.has(keyString)) {
+          if (seenKeys.has(keyForDupCheck)) {
             const mode = ctx.options?.dupMapKeyMode || 'allow'
             if (mode === 'reject') {
               throw new Error(`Duplicate map key detected: ${keyString} at offset ${currentOffset}`)
@@ -668,7 +754,7 @@ export function useCborParser() {
               logger.warn(`Duplicate map key detected: ${keyString} at offset ${currentOffset}`)
             }
           }
-          seenKeys.add(keyString)
+          seenKeys.add(keyForDupCheck)
 
           // Parse value
           const valuePath = path ? `${path}.${keyString}` : `.${keyString}`
@@ -698,13 +784,15 @@ export function useCborParser() {
           const keyResult = parseValueWithMap(ctx, currentOffset, keyPath, sourceMap)
           currentOffset += keyResult.bytesRead
 
-          // For duplicate detection and path generation, stringify the key
+          // For duplicate detection, use semantic comparison (RFC 8949 Section 5.6)
+          const keyForDupCheck = serializeValueForComparison(keyResult.value)
+          // For path generation, use display-friendly stringification
           const keyString = keyResult.value instanceof Uint8Array
             ? Array.from(keyResult.value).map(b => b.toString(16).padStart(2, '0')).join('')
             : String(keyResult.value)
 
           // Check for duplicate keys based on dupMapKeyMode
-          if (seenKeys.has(keyString)) {
+          if (seenKeys.has(keyForDupCheck)) {
             const mode = ctx.options?.dupMapKeyMode || 'allow'
             if (mode === 'reject') {
               throw new Error(`Duplicate map key detected: ${keyString} at offset ${currentOffset}`)
@@ -712,7 +800,7 @@ export function useCborParser() {
               logger.warn(`Duplicate map key detected: ${keyString} at offset ${currentOffset}`)
             }
           }
-          seenKeys.add(keyString)
+          seenKeys.add(keyForDupCheck)
 
           // Parse value
           const valuePath = path ? `${path}.${keyString}` : `.${keyString}`
@@ -836,14 +924,43 @@ export function useCborParser() {
       valueEntry.parent = path
     }
 
-    // Build TaggedValue object (call parseTag to get validation and plutus decoding)
-    const hexString = Array.from(ctx.buffer.slice(startOffset, currentOffset))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('')
-    const tagResult = parseTag(hexString, ctx.options)
+    // Build TaggedValue directly from already-parsed value (no re-parsing)
+    // This avoids O(D^2) complexity for nested tags (Task 2-B fix)
+    let finalValue = valueResult.value
+
+    // Handle bignum conversion (tags 2 and 3) - mirrors parseTagFromBuffer logic
+    if ((tagNumber === 2 || tagNumber === 3) && finalValue instanceof Uint8Array) {
+      const maxBignumBytes = ctx.options?.limits?.maxBignumBytes ?? DEFAULT_LIMITS.maxBignumBytes
+      if (finalValue.length > maxBignumBytes) {
+        throw new Error(
+          `Bignum (tag ${tagNumber}) size ${finalValue.length} bytes exceeds limit of ${maxBignumBytes} bytes`
+        )
+      }
+
+      // Convert bytes to BigInt (big-endian)
+      let bigintValue = 0n
+      for (let i = 0; i < finalValue.length; i++) {
+        bigintValue = (bigintValue << 8n) | BigInt(finalValue[i]!)
+      }
+
+      // Tag 2: Positive bignum, Tag 3: Negative bignum (-1 - n)
+      finalValue = tagNumber === 2 ? bigintValue : -1n - bigintValue
+    }
+
+    // Validate semantic constraints for specific tags
+    validateTagSemantics(tagNumber, finalValue, ctx.options)
+
+    // Decode Plutus constructor if applicable
+    const plutusConstr = decodePlutusConstructor(tagNumber, finalValue)
+
+    const taggedValue: TaggedValue = {
+      tag: tagNumber,
+      value: finalValue,
+      ...(plutusConstr && { plutus: plutusConstr })
+    }
 
     return {
-      value: tagResult.value,
+      value: taggedValue,
       bytesRead: currentOffset - startOffset
     }
   }
@@ -879,40 +996,58 @@ export function useCborParser() {
    * parseSequence('')              // [] - empty sequence
    * ```
    */
-  const parseSequence = (hexString: string, options?: ParseOptions): CborValue[] => {
-    const cleanHex = hexString.replace(/\s+/g, '')
-
-    // Empty sequence is valid
-    if (!cleanHex || cleanHex.length === 0) {
-      return []
-    }
-
-    if (cleanHex.length % 2 !== 0) {
-      throw new Error('Hex string must have even length')
-    }
-
-    if (!/^[0-9a-fA-F]+$/.test(cleanHex)) {
-      throw new Error(`Invalid hex character in: ${cleanHex}`)
-    }
-
+  const parseSequence = (input: string | Uint8Array, options?: ParseOptions): CborValue[] => {
     const mergedOptions = mergeOptions(options)
-    const buffer = hexToBytes(cleanHex)
+    let buffer: Uint8Array
+
+    if (input instanceof Uint8Array) {
+      // Empty sequence is valid
+      if (input.length === 0) {
+        return []
+      }
+      buffer = input
+    } else {
+      const cleanHex = input.replace(/\s+/g, '')
+
+      // Empty sequence is valid
+      if (!cleanHex || cleanHex.length === 0) {
+        return []
+      }
+
+      if (cleanHex.length % 2 !== 0) {
+        throw new Error('Hex string must have even length')
+      }
+
+      if (!/^[0-9a-fA-F]+$/.test(cleanHex)) {
+        throw new Error(`Invalid hex character in: ${cleanHex}`)
+      }
+
+      buffer = hexToBytes(cleanHex)
+    }
+
     const results: CborValue[] = []
     let offset = 0
 
+    // Track start time for timeout enforcement across the entire sequence
+    const sequenceStartTime = mergedOptions.limits?.maxParseTime ? Date.now() : 0
+
     while (offset < buffer.length) {
+      // Check timeout on each sequence item
+      if (sequenceStartTime > 0 && mergedOptions.limits?.maxParseTime) {
+        const elapsed = Date.now() - sequenceStartTime
+        if (elapsed > mergedOptions.limits.maxParseTime) {
+          throw new Error(`Parse timeout: exceeded ${mergedOptions.limits.maxParseTime}ms limit`)
+        }
+      }
+
       // Check for break code outside indefinite context (invalid in sequence)
       const byte = readByte(buffer, offset)
       if (byte === 0xff) {
         throw new Error(`Unexpected break code (0xff) at offset ${offset} - not inside indefinite-length item`)
       }
 
-      // Parse next item from remaining hex
-      const remainingHex = Array.from(buffer.slice(offset))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('')
-
-      const result = parse(remainingHex, mergedOptions)
+      // Parse next item directly from buffer (no hex conversion)
+      const result = dispatchFromBuffer(buffer, offset, mergedOptions)
       results.push(result.value)
       offset += result.bytesRead
     }

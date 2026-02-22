@@ -285,6 +285,151 @@ describe('Public API - Utilities', () => {
   })
 })
 
+describe('Public API - Uint8Array Decode', () => {
+  it('decode() should accept Uint8Array input for integers', () => {
+    const result = decode(new Uint8Array([0x18, 0x64]))
+    expect(result.value).toBe(100)
+    expect(result.bytesRead).toBe(2)
+  })
+
+  it('decode() should accept Uint8Array for small integers', () => {
+    const result = decode(new Uint8Array([0x01]))
+    expect(result.value).toBe(1)
+    expect(result.bytesRead).toBe(1)
+  })
+
+  it('decode(Uint8Array) should produce identical results to decode(hexString)', () => {
+    // Integer 100
+    const hexResult = decode('1864')
+    const bytesResult = decode(new Uint8Array([0x18, 0x64]))
+    expect(bytesResult.value).toEqual(hexResult.value)
+    expect(bytesResult.bytesRead).toEqual(hexResult.bytesRead)
+
+    // String "IETF"
+    const hexStr = decode('6449455446')
+    const bytesStr = decode(new Uint8Array([0x64, 0x49, 0x45, 0x54, 0x46]))
+    expect(bytesStr.value).toEqual(hexStr.value)
+    expect(bytesStr.bytesRead).toEqual(hexStr.bytesRead)
+
+    // Array [1, 2, 3]
+    const hexArr = decode('83010203')
+    const bytesArr = decode(new Uint8Array([0x83, 0x01, 0x02, 0x03]))
+    expect(bytesArr.value).toEqual(hexArr.value)
+    expect(bytesArr.bytesRead).toEqual(hexArr.bytesRead)
+  })
+
+  it('decode(Uint8Array) should enforce maxInputSize limit', () => {
+    const bytes = new Uint8Array([0x01])
+    // Should succeed with a large enough limit
+    expect(() => decode(bytes, { limits: { maxInputSize: 100 } })).not.toThrow()
+
+    // Should throw when bytes exceed the limit
+    const largeBytes = new Uint8Array(200)
+    largeBytes[0] = 0x01 // valid CBOR integer 1
+    expect(() => decode(largeBytes, { limits: { maxInputSize: 10 } })).toThrow(/exceeds limit/)
+  })
+
+  it('decode(Uint8Array) should handle tagged values', () => {
+    // d87980 = tag 121, empty array
+    const result = decode(new Uint8Array([0xd8, 0x79, 0x80]))
+    expect(result.value).toMatchObject({ tag: 121, value: [] })
+  })
+
+  it('decode(Uint8Array) should handle maps', () => {
+    // a16161 01 = {"a": 1}
+    const result = decode(new Uint8Array([0xa1, 0x61, 0x61, 0x01]))
+    expect(result.bytesRead).toBe(4)
+    // Map with string key "a" -> 1
+    expect(result.value).toBeInstanceOf(Map)
+    expect((result.value as Map<string, number>).get('a')).toBe(1)
+  })
+
+  it('decode(Uint8Array) should handle boolean and null', () => {
+    expect(decode(new Uint8Array([0xf5])).value).toBe(true)
+    expect(decode(new Uint8Array([0xf4])).value).toBe(false)
+    expect(decode(new Uint8Array([0xf6])).value).toBe(null)
+  })
+
+  it('decode(Uint8Array) should reject empty Uint8Array', () => {
+    expect(() => decode(new Uint8Array([]))).toThrow()
+  })
+
+  it('decode(Uint8Array) should accept options', () => {
+    const result = decode(new Uint8Array([0x18, 0x64]), { strict: true })
+    expect(result.value).toBe(100)
+  })
+})
+
+describe('Public API - Uint8Array DecodeWithSourceMap', () => {
+  it('decodeWithSourceMap() should accept Uint8Array input', () => {
+    // d87980 = tag 121, empty array
+    const result = decodeWithSourceMap(new Uint8Array([0xd8, 0x79, 0x80]))
+    expect(result.value).toMatchObject({ tag: 121, value: [] })
+    expect(result.sourceMap).toBeDefined()
+    expect(Array.isArray(result.sourceMap)).toBe(true)
+    expect(result.sourceMap.length).toBeGreaterThan(0)
+  })
+
+  it('decodeWithSourceMap(Uint8Array) should match hex string results', () => {
+    const hexResult = decodeWithSourceMap('d87980')
+    const bytesResult = decodeWithSourceMap(new Uint8Array([0xd8, 0x79, 0x80]))
+    expect(bytesResult.value).toEqual(hexResult.value)
+    expect(bytesResult.sourceMap.length).toBe(hexResult.sourceMap.length)
+  })
+})
+
+describe('Public API - Uint8Array CborDecoder Class', () => {
+  it('CborDecoder.decode() should accept Uint8Array', () => {
+    const decoder = new CborDecoder()
+    const result = decoder.decode(new Uint8Array([0x18, 0x64]))
+    expect(result.value).toBe(100)
+    expect(result.bytesRead).toBe(2)
+  })
+
+  it('CborDecoder.decodeWithSourceMap() should accept Uint8Array', () => {
+    const decoder = new CborDecoder()
+    const result = decoder.decodeWithSourceMap(new Uint8Array([0xd8, 0x79, 0x80]))
+    expect(result.value).toMatchObject({ tag: 121, value: [] })
+    expect(result.sourceMap).toBeDefined()
+  })
+
+  it('CborDecoder with options should work with Uint8Array', () => {
+    const decoder = new CborDecoder({ strict: true })
+    const result = decoder.decode(new Uint8Array([0x18, 0x64]))
+    expect(result.value).toBe(100)
+  })
+})
+
+describe('Public API - Uint8Array useCborParser', () => {
+  it('parse() should accept Uint8Array', () => {
+    const { parse } = useCborParser()
+    const result = parse(new Uint8Array([0x18, 0x64]))
+    expect(result.value).toBe(100)
+    expect(result.bytesRead).toBe(2)
+  })
+
+  it('parseWithSourceMap() should accept Uint8Array', () => {
+    const { parseWithSourceMap } = useCborParser()
+    const result = parseWithSourceMap(new Uint8Array([0xd8, 0x79, 0x80]))
+    expect(result.value).toMatchObject({ tag: 121, value: [] })
+    expect(result.sourceMap).toBeDefined()
+  })
+
+  it('parseSequence() should accept Uint8Array', () => {
+    const { parseSequence } = useCborParser()
+    // Three separate integers: 1, 2, 3
+    const result = parseSequence(new Uint8Array([0x01, 0x02, 0x03]))
+    expect(result).toEqual([1, 2, 3])
+  })
+
+  it('parseSequence(Uint8Array) should match hex string results', () => {
+    const { parseSequence } = useCborParser()
+    const hexResult = parseSequence('010203')
+    const bytesResult = parseSequence(new Uint8Array([0x01, 0x02, 0x03]))
+    expect(bytesResult).toEqual(hexResult)
+  })
+})
+
 describe('Public API - Constants and Enums', () => {
   it('DEFAULT_OPTIONS should be exported', () => {
     expect(DEFAULT_OPTIONS).toBeDefined()

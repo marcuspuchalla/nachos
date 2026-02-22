@@ -6,7 +6,7 @@
 
 import type { ParseResult, CborValue, CborMap, ParseOptions } from '../types'
 import { INDEFINITE_SYMBOL, ALL_ENTRIES_SYMBOL } from '../types'
-import { hexToBytes, readByte, readUint, readBigUint, extractCborHeader, compareBytes, bytesToHex } from '../utils'
+import { hexToBytes, readByte, readUint, readBigUint, extractCborHeader, compareBytes, serializeValueForComparison } from '../utils'
 import { useCborInteger } from './useCborInteger'
 import { useCborString } from './useCborString'
 import { useCborFloat } from './useCborFloat'
@@ -25,10 +25,13 @@ import { logger } from '../../utils/logger'
  * ```
  */
 export function useCborCollection() {
-  const { parseInteger } = useCborInteger()
+  const { parseIntegerFromBuffer } = useCborInteger()
   const { parseByteString, parseTextString } = useCborString()
-  const { parse: parseFloatOrSimple } = useCborFloat()
-  const { parseTag } = useCborTag()
+  const { parseFromBuffer: parseFloatOrSimpleFromBuffer } = useCborFloat()
+  const { parseTagFromBuffer } = useCborTag()
+
+  /** Tracks when parsing started for timeout enforcement */
+  let parseStartTime = 0
 
   /**
    * Internal parser dispatcher for CBOR items
@@ -41,6 +44,14 @@ export function useCborCollection() {
    * @returns Parsed value and bytes consumed
    */
   const parseItem = (buffer: Uint8Array, offset: number, options?: ParseOptions, depth: number = 0): ParseResult => {
+    // Check timeout on every recursive call
+    if (parseStartTime > 0 && options?.limits?.maxParseTime) {
+      const elapsed = Date.now() - parseStartTime
+      if (elapsed > options.limits.maxParseTime) {
+        throw new Error(`Parse timeout: exceeded ${options.limits.maxParseTime}ms limit`)
+      }
+    }
+
     if (offset >= buffer.length) {
       throw new Error(`Unexpected end of buffer at offset ${offset}`)
     }
@@ -51,14 +62,7 @@ export function useCborCollection() {
     switch (majorType) {
       case 0: // Unsigned integer
       case 1: // Negative integer
-        {
-          // Create a hex string from the buffer starting at offset
-          const intHex = Array.from(buffer.slice(offset))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('')
-          const result = parseInteger(intHex, options)
-          return { value: result.value, bytesRead: result.bytesRead }
-        }
+        return parseIntegerFromBuffer(buffer, offset, options)
 
       case 2: // Byte string
         return parseByteString(buffer, offset, options)
@@ -73,22 +77,10 @@ export function useCborCollection() {
         return parseMapFromBuffer(buffer, offset, options, depth)
 
       case 6: // Tag
-        {
-          const tagHex = Array.from(buffer.slice(offset))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('')
-          const result = parseTag(tagHex, options)
-          return { value: result.value, bytesRead: result.bytesRead }
-        }
+        return parseTagFromBuffer(buffer, offset, options)
 
       case 7: // Simple/Float
-        {
-          const floatHex = Array.from(buffer.slice(offset))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('')
-          const result = parseFloatOrSimple(floatHex, options)
-          return { value: result.value, bytesRead: result.bytesRead }
-        }
+        return parseFloatOrSimpleFromBuffer(buffer, offset, options)
 
       default:
         throw new Error(`Unknown major type: ${majorType}`)
@@ -345,8 +337,10 @@ export function useCborCollection() {
         const valueResult = parseItem(buffer, currentOffset, options, depth + 1)
         currentOffset += valueResult.bytesRead
 
-        // For duplicate key detection, serialize the key
-        const keyString = bytesToHex(buffer.slice(keyStart, keyEnd))
+        // For duplicate key detection, serialize the parsed value semantically
+        // RFC 8949 Section 5.6: comparison must be on semantic values, not raw bytes
+        // (raw bytes differ when same value uses different byte widths)
+        const keyString = serializeValueForComparison(keyResult.value)
 
         // Check for duplicate keys based on dupMapKeyMode
         // RFC 8949: Deterministic encoding SHOULD reject duplicate keys
@@ -409,8 +403,10 @@ export function useCborCollection() {
         const valueResult = parseItem(buffer, currentOffset, options, depth + 1)
         currentOffset += valueResult.bytesRead
 
-        // For duplicate key detection, serialize the key
-        const keyString = bytesToHex(buffer.slice(keyStart, keyEnd))
+        // For duplicate key detection, serialize the parsed value semantically
+        // RFC 8949 Section 5.6: comparison must be on semantic values, not raw bytes
+        // (raw bytes differ when same value uses different byte widths)
+        const keyString = serializeValueForComparison(keyResult.value)
 
         // Check for duplicate keys based on dupMapKeyMode
         // RFC 8949: Deterministic encoding SHOULD reject duplicate keys
@@ -474,7 +470,16 @@ export function useCborCollection() {
     // Remove spaces from hex string
     const cleanHex = hexString.replace(/\s+/g, '')
     const buffer = hexToBytes(cleanHex)
-    return parseArrayFromBuffer(buffer, 0, options, 0)
+
+    // Set parse start time for timeout enforcement
+    if (options?.limits?.maxParseTime) {
+      parseStartTime = Date.now()
+    }
+    try {
+      return parseArrayFromBuffer(buffer, 0, options, 0)
+    } finally {
+      parseStartTime = 0
+    }
   }
 
   /**
@@ -488,7 +493,16 @@ export function useCborCollection() {
     // Remove spaces from hex string
     const cleanHex = hexString.replace(/\s+/g, '')
     const buffer = hexToBytes(cleanHex)
-    return parseMapFromBuffer(buffer, 0, options, 0)
+
+    // Set parse start time for timeout enforcement
+    if (options?.limits?.maxParseTime) {
+      parseStartTime = Date.now()
+    }
+    try {
+      return parseMapFromBuffer(buffer, 0, options, 0)
+    } finally {
+      parseStartTime = 0
+    }
   }
 
   return {

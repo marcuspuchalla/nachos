@@ -336,6 +336,7 @@ export function useCborFloat() {
   return {
     parse,
     parseFloat,
-    parseSimple
+    parseSimple,
+    parseFromBuffer
   }
 }

@@ -96,9 +96,14 @@ import type { ParseResult, ParseResultWithMap, ParseOptions } from './parser/typ
 import type { EncodeResult, EncodeOptions, EncodableValue } from './encoder/types'
 
 /**
- * Decode CBOR hex string to JavaScript value
+ * Decode CBOR data to JavaScript value
  *
- * @param hexString - CBOR data as hex string (e.g., "1864" for integer 100)
+ * Accepts either a hex string or a Uint8Array of raw CBOR bytes.
+ * When passing a Uint8Array, the bytes are used directly without
+ * hex conversion, which is more efficient for binary sources
+ * (WebSocket, fetch, file I/O, etc.).
+ *
+ * @param input - CBOR data as hex string (e.g., "1864") or Uint8Array
  * @param options - Optional parser configuration
  * @returns Decoded value and number of bytes consumed
  *
@@ -106,8 +111,11 @@ import type { EncodeResult, EncodeOptions, EncodableValue } from './encoder/type
  *
  * @example
  * ```typescript
- * // Decode integer
+ * // Decode from hex string
  * decode('1864')  // { value: 100, bytesRead: 2 }
+ *
+ * // Decode from Uint8Array (zero-copy, no hex conversion)
+ * decode(new Uint8Array([0x18, 0x64]))  // { value: 100, bytesRead: 2 }
  *
  * // Decode string
  * decode('6449455446')  // { value: "IETF", bytesRead: 5 }
@@ -124,18 +132,20 @@ import type { EncodeResult, EncodeOptions, EncodableValue } from './encoder/type
  *
  * @see {@link https://datatracker.ietf.org/doc/html/rfc8949 | RFC 8949}
  */
-export function decode(hexString: string, options?: ParseOptions): ParseResult {
+export function decode(input: string | Uint8Array, options?: ParseOptions): ParseResult {
   const { parse } = useCborParser()
-  return parse(hexString, options)
+  return parse(input, options)
 }
 
 /**
- * Decode CBOR hex string with source map generation
+ * Decode CBOR data with source map generation
  *
  * Source maps provide bidirectional linking between hex bytes and decoded values,
  * enabling interactive debugging visualizations.
  *
- * @param hexString - CBOR data as hex string
+ * Accepts either a hex string or a Uint8Array of raw CBOR bytes.
+ *
+ * @param input - CBOR data as hex string or Uint8Array
  * @param options - Optional parser configuration
  * @returns Decoded value, byte count, and source map
  *
@@ -148,14 +158,13 @@ export function decode(hexString: string, options?: ParseOptions): ParseResult {
  * //   { path: '.value', start: 2, end: 3, majorType: 4, type: 'Array', parent: '' }
  * // ]
  *
- * // Use source map for hex-to-JSON linking
- * const entry = sourceMap.find(e => e.path === '.value')
- * console.log(`Value is at bytes ${entry.start}-${entry.end}`)
+ * // From Uint8Array
+ * const { value, sourceMap } = decodeWithSourceMap(new Uint8Array([0xd8, 0x79, 0x80]))
  * ```
  */
-export function decodeWithSourceMap(hexString: string, options?: ParseOptions): ParseResultWithMap {
+export function decodeWithSourceMap(input: string | Uint8Array, options?: ParseOptions): ParseResultWithMap {
   const { parseWithSourceMap } = useCborParser()
-  return parseWithSourceMap(hexString, options)
+  return parseWithSourceMap(input, options)
 }
 
 /**
@@ -287,23 +296,23 @@ export class CborDecoder {
   }
 
   /**
-   * Decode CBOR hex string
+   * Decode CBOR data
    *
-   * @param hexString - CBOR data as hex string
+   * @param input - CBOR data as hex string or Uint8Array
    * @returns Decoded value and byte count
    */
-  decode(hexString: string): ParseResult {
-    return decode(hexString, this.options)
+  decode(input: string | Uint8Array): ParseResult {
+    return decode(input, this.options)
   }
 
   /**
-   * Decode CBOR hex string with source map
+   * Decode CBOR data with source map
    *
-   * @param hexString - CBOR data as hex string
+   * @param input - CBOR data as hex string or Uint8Array
    * @returns Decoded value, byte count, and source map
    */
-  decodeWithSourceMap(hexString: string): ParseResultWithMap {
-    return decodeWithSourceMap(hexString, this.options)
+  decodeWithSourceMap(input: string | Uint8Array): ParseResultWithMap {
+    return decodeWithSourceMap(input, this.options)
   }
 }
 
