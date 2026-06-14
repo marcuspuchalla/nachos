@@ -179,6 +179,16 @@ export function decodeWithSourceMap(input: string | Uint8Array, options?: ParseO
  *
  * @throws {Error} If value type is unsupported or encoding fails
  *
+ * @remarks
+ * Plain objects use `Object.entries()`, so all keys become **text strings** and
+ * integer-like keys (`"0"`, `"1"`, …) are reordered by the JS engine's
+ * integer-index property rule. For integer keys or guaranteed ordering (e.g.
+ * Cardano transaction bodies), pass a `Map` instead of a plain object.
+ *
+ * Canonical mode (`{ canonical: true }`) sorts map keys **length-first** by
+ * default (Cardano CIP-21 / RFC 7049 §3.9). Pass `{ mapKeyOrder: 'bytewise' }`
+ * for RFC 8949 §4.2.1 core deterministic ordering.
+ *
  * @example
  * ```typescript
  * // Encode number

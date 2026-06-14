@@ -28,7 +28,8 @@ export function concatenateUint8Arrays(arrays: Uint8Array[]): Uint8Array {
 }
 
 /**
- * Compare two Uint8Arrays bytewise (for canonical map sorting)
+ * Compare two Uint8Arrays length-first (RFC 7049 §3.9 / Cardano CIP-21 ordering).
+ * Shorter keys sort first; equal-length keys are compared bytewise.
  */
 export function compareBytes(a: Uint8Array, b: Uint8Array): number {
   // First, compare lengths
@@ -49,6 +50,37 @@ export function compareBytes(a: Uint8Array, b: Uint8Array): number {
   }
 
   return 0
+}
+
+/**
+ * Compare two Uint8Arrays in pure bytewise lexicographic order
+ * (RFC 8949 §4.2.1 core deterministic encoding). If one is a prefix of the
+ * other, the shorter sorts first.
+ */
+export function compareBytesLexicographic(a: Uint8Array, b: Uint8Array): number {
+  const min = Math.min(a.length, b.length)
+  for (let i = 0; i < min; i++) {
+    const byteA = a[i]!
+    const byteB = b[i]!
+    if (byteA !== byteB) {
+      return byteA - byteB
+    }
+  }
+  return a.length - b.length
+}
+
+/**
+ * Compare two encoded map keys according to the requested ordering.
+ *
+ * @param order - 'length-first' (CIP-21 / RFC 7049 §3.9, default) or
+ *                'bytewise' (RFC 8949 §4.2.1 core deterministic)
+ */
+export function compareMapKeys(
+  a: Uint8Array,
+  b: Uint8Array,
+  order: 'length-first' | 'bytewise' = 'length-first'
+): number {
+  return order === 'bytewise' ? compareBytesLexicographic(a, b) : compareBytes(a, b)
 }
 
 /**

@@ -75,6 +75,12 @@ export const readUint = (buffer: Uint8Array, offset: number, length: number): nu
   for (let i = 0; i < length; i++) {
     result = result * 256 + readByte(buffer, offset + i)
   }
+  // Guard against silent precision loss: values above 2^53 cannot be represented
+  // exactly as a JS number. Callers needing the full 64-bit range must use
+  // readBigUint instead (this helper is only invoked for <= 4-byte fields).
+  if (result > Number.MAX_SAFE_INTEGER) {
+    throw new Error(`Value at offset ${offset} (${length} bytes) exceeds MAX_SAFE_INTEGER; use readBigUint`)
+  }
   return result
 }
 
@@ -342,6 +348,41 @@ export function compareBytes(a: Uint8Array, b: Uint8Array): number {
   }
 
   return 0 // Equal
+}
+
+/**
+ * Compare two byte arrays in pure bytewise lexicographic order.
+ * This is RFC 8949 Section 4.2.1 "Core Deterministic Encoding" ordering:
+ * compare byte-by-byte; if one is a prefix of the other, the shorter sorts first.
+ * (Contrast with compareBytes above, which sorts length-first per RFC 7049 §3.9.)
+ */
+export function compareBytesLexicographic(a: Uint8Array, b: Uint8Array): number {
+  if (!a || !b) {
+    throw new Error('compareBytesLexicographic: arguments cannot be null or undefined')
+  }
+  const min = Math.min(a.length, b.length)
+  for (let i = 0; i < min; i++) {
+    const byteA = a[i]!
+    const byteB = b[i]!
+    if (byteA !== byteB) {
+      return byteA - byteB
+    }
+  }
+  return a.length - b.length
+}
+
+/**
+ * Compare two encoded map keys according to the requested ordering.
+ *
+ * @param order - 'length-first' (CIP-21 / RFC 7049 §3.9, default) or
+ *                'bytewise' (RFC 8949 §4.2.1 core deterministic)
+ */
+export function compareMapKeys(
+  a: Uint8Array,
+  b: Uint8Array,
+  order: 'length-first' | 'bytewise' = 'length-first'
+): number {
+  return order === 'bytewise' ? compareBytesLexicographic(a, b) : compareBytes(a, b)
 }
 
 /**

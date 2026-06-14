@@ -6,7 +6,7 @@
 
 import type { EncodeResult, EncodeOptions, EncodeContext, EncodableValue } from '../types'
 import { DEFAULT_ENCODE_OPTIONS, INDEFINITE_SYMBOL, ALL_ENTRIES_SYMBOL } from '../types'
-import { bytesToHex, concatenateUint8Arrays, compareBytes } from '../utils'
+import { bytesToHex, concatenateUint8Arrays, compareMapKeys } from '../utils'
 import { useCborIntegerEncoder } from './useCborIntegerEncoder'
 import { useCborStringEncoder } from './useCborStringEncoder'
 import { useCborSimpleEncoder } from './useCborSimpleEncoder'
@@ -329,7 +329,8 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
         encodedKey: encodeValue(entry[0], childCtx),
         entry
       }))
-      withEncodedKeys.sort((a, b) => compareBytes(a.encodedKey, b.encodedKey))
+      const keyOrder = ctx.options.mapKeyOrder ?? 'length-first'
+      withEncodedKeys.sort((a, b) => compareMapKeys(a.encodedKey, b.encodedKey, keyOrder))
       entries = withEncodedKeys.map(t => t.entry)
       preEncodedKeys = withEncodedKeys.map(t => t.encodedKey)
     }

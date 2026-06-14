@@ -6,7 +6,7 @@
 
 import type { ParseResult, CborValue, TaggedValue, CborMap, ParseOptions, PlutusConstr, CborByteString } from '../types'
 import { INDEFINITE_SYMBOL, DEFAULT_LIMITS } from '../types'
-import { hexToBytes, readByte, readUint, readBigUint, extractCborHeader, hasDuplicates } from '../utils'
+import { hexToBytes, readByte, readUint, readBigUint, extractCborHeader, hasDuplicates, validateCanonicalInteger } from '../utils'
 import { useCborInteger } from './useCborInteger'
 import { useCborString } from './useCborString'
 import { useCborFloat } from './useCborFloat'
@@ -738,6 +738,13 @@ export function useCborTag() {
 
     // Parse the tag number
     const { tagNumber, bytesConsumed } = parseTagNumber(buffer, offset + 1, additionalInfo)
+
+    // Enforce canonical (shortest-form) tag number encoding when requested.
+    // RFC 8949 §4.2.1 preferred serialization applies to the tag number too.
+    if (options?.validateCanonical) {
+      validateCanonicalInteger(tagNumber, additionalInfo)
+    }
+
     let currentOffset = offset + 1 + bytesConsumed
 
     // Parse the tagged value (recursively)

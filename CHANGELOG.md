@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-06-14 - RFC 8949 audit remediation
+
+Resolves the findings of the June 2026 RFC 8949 conformance & security audit.
+All fixes verified empirically against the build and locked in by
+`src/__tests__/audit-fixes.test.ts`.
+
+### Fixed
+
+#### Security
+- **(H1) Source-map parse path stack overflow** - `decodeWithSourceMap()` now
+  enforces `maxTagDepth` (RUSTSEC-2019-0025). Deeply nested tags previously
+  overflowed the call stack with an uncatchable `RangeError`; they now raise a
+  clean `Error`, matching `decode()`.
+- **(M2) Encoder depth bypass via tags** - `maxDepth` is now tracked across the
+  tagged-value boundary, so deeply nested `{tag,value}` chains can no longer
+  bypass the limit and overflow the stack.
+- **(L3) `readUint` precision** - refuses values above `MAX_SAFE_INTEGER`
+  instead of silently losing precision; callers must use `readBigUint`.
+
+#### Correctness / Conformance
+- **(H2) Map key ordering is now explicit** - canonical mode defaults to
+  **length-first** ordering (Cardano CIP-21 / RFC 7049 §3.9) and accepts a new
+  `mapKeyOrder: 'length-first' | 'bytewise'` option. `'bytewise'` selects
+  RFC 8949 §4.2.1 core deterministic ordering. Applies to both encoding and
+  `validateCanonical` decoding.
+- **(M1) Trailing-data well-formedness** - new `allowTrailingData` option
+  (default `true`; auto-`false` in `strict` mode) makes `decode()` reject
+  bytes left over after the top-level item. Use `parseSequence` for multiple items.
+- **(M4) Shortest-form tag numbers** - `validateCanonical` now rejects
+  non-shortest tag number encodings (e.g. `d80100` instead of `c100`).
+- **(M5) Float16 subnormal encoding** - `canBeFloat16` lower bound corrected
+  from 2⁻¹⁴ (min normal) to 2⁻²⁴ (min subnormal). The encoder no longer emits
+  float32 for representable subnormals, so its output again passes its own
+  canonical validator.
+
+#### Behavior
+- **(M3) Duplicate map keys** - default `dupMapKeyMode` changed from `'allow'`
+  to `'warn'` so duplicates are never silently collapsed in the `Map` view.
+  Byte-perfect round-trips are still preserved via `ALL_ENTRIES_SYMBOL`.
+
+### Performance
+- **(L1) Source-map sequences** - `parseSequenceWithSourceMap` uses a zero-copy
+  `subarray` view per item instead of re-hex-encoding the buffer tail (O(N²) → O(N)).
+
+### Added
+- `MapKeyOrder` type, `mapKeyOrder` option (parser + encoder), `allowTrailingData`
+  option, and `compareBytesLexicographic` / `compareMapKeys` utilities.
+- Diagnostic notation (L5) now renders `CborByteString`/`CborTextString` wrappers,
+  unassigned simple values (`simple(N)`), and auto-detects indefinite-length
+  arrays/maps/strings.
+- 24 new audit-regression tests.
+
 ## [0.1.4] - 2026-02-22
 
 ### Fixed

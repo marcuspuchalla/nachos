@@ -6,7 +6,7 @@
 
 import type { ParseResult, ParseResultWithMap, SourceMapEntry, ParseOptions, CborContext, CborValue, TaggedValue } from '../types'
 import { DEFAULT_OPTIONS, DEFAULT_LIMITS } from '../types'
-import { hexToBytes, readByte, readUint, readBigUint, extractCborHeader, serializeValueForComparison } from '../utils'
+import { hexToBytes, readByte, readUint, readBigUint, extractCborHeader, serializeValueForComparison, validateCanonicalInteger } from '../utils'
 import { useCborInteger } from './useCborInteger'
 import { useCborString } from './useCborString'
 import { useCborCollection } from './useCborCollection'
@@ -47,6 +47,9 @@ export function useCborParser() {
       validateSetUniqueness: options.validateSetUniqueness ?? (options.strict ? true : DEFAULT_OPTIONS.validateSetUniqueness),
       validateTagSemantics: options.validateTagSemantics ?? (options.strict ? true : DEFAULT_OPTIONS.validateTagSemantics),
       validatePlutusSemantics: options.validatePlutusSemantics ?? (options.strict ? true : DEFAULT_OPTIONS.validatePlutusSemantics),
+      mapKeyOrder: options.mapKeyOrder ?? DEFAULT_OPTIONS.mapKeyOrder,
+      // Strict mode rejects trailing data after the top-level item (well-formedness).
+      allowTrailingData: options.allowTrailingData ?? (options.strict ? false : DEFAULT_OPTIONS.allowTrailingData),
       limits: {
         maxInputSize: options.limits?.maxInputSize ?? DEFAULT_LIMITS.maxInputSize,
         maxOutputSize: options.limits?.maxOutputSize ?? DEFAULT_LIMITS.maxOutputSize,
@@ -115,7 +118,9 @@ export function useCborParser() {
         throw new Error(`Input size ${input.length} bytes exceeds limit of ${mergedOptions.limits.maxInputSize} bytes`)
       }
 
-      return dispatchFromBuffer(input, 0, mergedOptions)
+      const bufResult = dispatchFromBuffer(input, 0, mergedOptions)
+      checkTrailingData(bufResult.bytesRead, input.length, mergedOptions)
+      return bufResult
     }
 
     // Hex string path
@@ -146,29 +151,56 @@ export function useCborParser() {
     const { majorType } = extractCborHeader(initialByte)
 
     // Dispatch to appropriate parser based on major type
+    let result: ParseResult
     switch (majorType) {
       case 0: // Unsigned integer
       case 1: // Negative integer
-        return parseInteger(cleanHex, mergedOptions)
+        result = parseInteger(cleanHex, mergedOptions)
+        break
 
       case 2: // Byte string
       case 3: // Text string
-        return parseString(cleanHex, mergedOptions)
+        result = parseString(cleanHex, mergedOptions)
+        break
 
       case 4: // Array
-        return parseArray(cleanHex, mergedOptions)
+        result = parseArray(cleanHex, mergedOptions)
+        break
 
       case 5: // Map
-        return parseMap(cleanHex, mergedOptions)
+        result = parseMap(cleanHex, mergedOptions)
+        break
 
       case 6: // Tagged value
-        return parseTag(cleanHex, mergedOptions)
+        result = parseTag(cleanHex, mergedOptions)
+        break
 
       case 7: // Floating-point or simple value
-        return parseFloatOrSimple(cleanHex, mergedOptions)
+        result = parseFloatOrSimple(cleanHex, mergedOptions)
+        break
 
       default:
         throw new Error(`Unknown major type: ${majorType}`)
+    }
+
+    checkTrailingData(result.bytesRead, buffer.length, mergedOptions)
+    return result
+  }
+
+  /**
+   * Rejects trailing bytes after the top-level data item when
+   * allowTrailingData is false (RFC 8949 well-formedness for a single item).
+   */
+  const checkTrailingData = (
+    bytesRead: number,
+    totalLength: number,
+    opts: Required<ParseOptions>
+  ): void => {
+    if (!opts.allowTrailingData && bytesRead < totalLength) {
+      throw new Error(
+        `Trailing data: ${totalLength - bytesRead} byte(s) remain after the top-level CBOR item ` +
+        `(bytesRead=${bytesRead}, length=${totalLength}). Use parseSequence to decode multiple items.`
+      )
     }
   }
 
@@ -881,6 +913,17 @@ export function useCborParser() {
     path: string,
     sourceMap: SourceMapEntry[]
   ): ParseResult => {
+    // Enforce tag nesting depth (RUSTSEC-2019-0025). The source-map path
+    // previously lacked this guard, allowing a deeply nested tag chain to
+    // overflow the call stack with an uncatchable RangeError instead of a
+    // clean error — matching the decode() path's behaviour here.
+    const previousTagDepth = ctx.currentTagDepth ?? 0
+    const maxTagDepth = ctx.options?.limits?.maxTagDepth ?? DEFAULT_LIMITS.maxTagDepth
+    if (previousTagDepth >= maxTagDepth) {
+      throw new Error(`Tag nesting depth ${previousTagDepth} exceeds limit of ${maxTagDepth}`)
+    }
+    ctx.currentTagDepth = previousTagDepth + 1
+
     const startOffset = offset
     const initialByte = readByte(ctx.buffer, offset)
     const { additionalInfo } = extractCborHeader(initialByte)
@@ -891,6 +934,11 @@ export function useCborParser() {
       offset + 1,
       additionalInfo
     )
+
+    // Enforce canonical (shortest-form) tag number encoding when requested.
+    if (ctx.options?.validateCanonical) {
+      validateCanonicalInteger(tagNumber, additionalInfo)
+    }
 
     let currentOffset = offset + 1 + bytesConsumed
     const headerEnd = currentOffset
@@ -958,6 +1006,9 @@ export function useCborParser() {
       value: finalValue,
       ...(plutusConstr && { plutus: plutusConstr })
     }
+
+    // Restore tag depth so sibling tags don't accumulate against the limit.
+    ctx.currentTagDepth = previousTagDepth
 
     return {
       value: taggedValue,
@@ -1092,11 +1143,10 @@ export function useCborParser() {
         throw new Error(`Unexpected break code (0xff) at offset ${offset}`)
       }
 
-      const remainingHex = Array.from(buffer.slice(offset))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('')
-
-      const result = parseWithSourceMap(remainingHex, mergedOptions)
+      // Zero-copy view of the remaining bytes (parseWithSourceMap accepts
+      // Uint8Array). Avoids the previous O(N^2) per-item hex re-encode that
+      // re-stringified the whole tail of the buffer on every sequence item.
+      const result = parseWithSourceMap(buffer.subarray(offset), mergedOptions)
 
       // Adjust source map offsets to account for sequence position
       const adjustedSourceMap = result.sourceMap.map(entry => ({

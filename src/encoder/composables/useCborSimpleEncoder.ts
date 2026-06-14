@@ -186,9 +186,13 @@ export function useCborSimpleEncoder(_globalOptions?: Partial<EncodeOptions>) {
       return true
     }
 
-    // Check range
+    // Check range. The lower bound is the smallest positive float16 SUBNORMAL
+    // (2^-24 ≈ 5.96e-8), NOT the smallest normal (2^-14). Using 2^-14 here
+    // previously made the encoder emit float32 for representable subnormals,
+    // producing output its own canonical decoder (fitsInFloat16) then rejected.
+    // The round-trip equality check below is the real precision gate.
     const absValue = Math.abs(value)
-    if (absValue < 0.00006103515625 || absValue > 65504) {
+    if (absValue < 5.960464477539063e-8 || absValue > 65504) {
       return false
     }
 

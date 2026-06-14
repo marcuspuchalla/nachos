@@ -3,12 +3,12 @@
  * Following RFC 8949 specification
  */
 
-import type { PlutusConstr, CborByteString, CborTextString } from '../parser/types'
+import type { PlutusConstr, CborByteString, CborTextString, MapKeyOrder } from '../parser/types'
 import { INDEFINITE_SYMBOL, ALL_ENTRIES_SYMBOL } from '../parser/types'
 
 // Re-export symbols and types for use in encoder
 export { INDEFINITE_SYMBOL, ALL_ENTRIES_SYMBOL }
-export type { CborByteString, CborTextString }
+export type { CborByteString, CborTextString, MapKeyOrder }
 
 /**
  * Encoder options for controlling behavior
@@ -20,6 +20,12 @@ export interface EncodeOptions {
   allowIndefinite?: boolean
   /** Reject duplicate map keys */
   rejectDuplicateKeys?: boolean
+  /**
+   * Map key ordering used in canonical mode.
+   * Defaults to 'length-first' (Cardano CIP-21 / RFC 7049 §3.9).
+   * Use 'bytewise' for RFC 8949 §4.2.1 core deterministic order.
+   */
+  mapKeyOrder?: MapKeyOrder
   /** Maximum nesting depth */
   maxDepth?: number
   /** Maximum output size in bytes */
@@ -33,6 +39,7 @@ export const DEFAULT_ENCODE_OPTIONS: Required<EncodeOptions> = {
   canonical: false,
   allowIndefinite: true,
   rejectDuplicateKeys: false,
+  mapKeyOrder: 'length-first',
   maxDepth: 64,
   maxOutputSize: 100 * 1024 * 1024  // 100 MB
 }

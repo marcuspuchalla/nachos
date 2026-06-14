@@ -6,7 +6,7 @@
 
 import type { ParseResult, CborValue, CborMap, ParseOptions } from '../types'
 import { INDEFINITE_SYMBOL, ALL_ENTRIES_SYMBOL } from '../types'
-import { hexToBytes, readByte, readUint, readBigUint, extractCborHeader, compareBytes, serializeValueForComparison } from '../utils'
+import { hexToBytes, readByte, readUint, readBigUint, extractCborHeader, compareMapKeys, serializeValueForComparison } from '../utils'
 import { useCborInteger } from './useCborInteger'
 import { useCborString } from './useCborString'
 import { useCborFloat } from './useCborFloat'
@@ -434,16 +434,19 @@ export function useCborCollection() {
     // Attach allEntries to map for byte-perfect round-trips with duplicates
     ;(map as any)[ALL_ENTRIES_SYMBOL] = allEntries
 
-    // Validate canonical key ordering (keys must be sorted by byte representation)
+    // Validate canonical key ordering (keys must be sorted by byte representation).
+    // Ordering follows options.mapKeyOrder: 'length-first' (CIP-21 / RFC 7049 §3.9,
+    // default) or 'bytewise' (RFC 8949 §4.2.1 core deterministic).
     if (options?.validateCanonical && keyBytes.length > 1) {
+      const keyOrder = options?.mapKeyOrder ?? 'length-first'
       for (let i = 1; i < keyBytes.length; i++) {
         const prevKey = keyBytes[i - 1]
         const currKey = keyBytes[i]
         if (prevKey && currKey) {
-          const cmp = compareBytes(prevKey, currKey)
+          const cmp = compareMapKeys(prevKey, currKey, keyOrder)
           if (cmp > 0) {
             throw new Error(
-              `Map keys are not in canonical order: key at index ${i} should come before key at index ${i - 1}`
+              `Map keys are not in canonical order (${keyOrder}): key at index ${i} should come before key at index ${i - 1}`
             )
           }
           if (cmp === 0) {

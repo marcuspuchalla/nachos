@@ -34,6 +34,20 @@ export interface ParserLimits {
 export type DupMapKeyMode = 'allow' | 'warn' | 'reject'
 
 /**
+ * Map key ordering for canonical/deterministic encoding and validation.
+ *
+ * - 'length-first': RFC 7049 Section 3.9 "Old Canonical CBOR" — shorter encoded
+ *   keys sort first, ties broken bytewise. This is what Cardano CIP-21 mandates
+ *   for transaction serialization, and is the default in this library.
+ * - 'bytewise': RFC 8949 Section 4.2.1 "Core Deterministic Encoding" — pure
+ *   bytewise lexicographic order of the encoded keys (the modern generic default).
+ *
+ * @see https://cips.cardano.org/cip/CIP-21
+ * @see https://www.rfc-editor.org/rfc/rfc8949.html#section-4.2.1
+ */
+export type MapKeyOrder = 'length-first' | 'bytewise'
+
+/**
  * Parser options for controlling behavior
  */
 export interface ParseOptions {
@@ -58,6 +72,19 @@ export interface ParseOptions {
   validateTagSemantics?: boolean
   /** Validate Plutus constructor semantics (Tags 102, 121-127, 1280-1400) */
   validatePlutusSemantics?: boolean
+  /**
+   * Map key ordering enforced when validateCanonical is set.
+   * Defaults to 'length-first' (Cardano CIP-21 / RFC 7049 Section 3.9).
+   * Use 'bytewise' for RFC 8949 Section 4.2.1 core deterministic order.
+   */
+  mapKeyOrder?: MapKeyOrder
+  /**
+   * Reject trailing bytes after the top-level data item (well-formedness).
+   * Defaults to true for backward compatibility (decode returns bytesRead so
+   * callers can detect leftover data); automatically false-tightened, i.e. set
+   * to reject, in strict mode. Set explicitly to override.
+   */
+  allowTrailingData?: boolean
   /** Resource limits */
   limits?: ParserLimits
 }
@@ -84,11 +111,15 @@ export const DEFAULT_OPTIONS: Required<ParseOptions> = {
   strict: false,
   validateCanonical: false,
   allowIndefinite: true,
-  dupMapKeyMode: 'allow',
+  // Default to 'warn' so duplicate keys are never silently collapsed in the Map
+  // view. Duplicates remain byte-perfect for round-trips via ALL_ENTRIES_SYMBOL.
+  dupMapKeyMode: 'warn',
   validateUtf8Strict: false,
   validateSetUniqueness: false,
   validateTagSemantics: false,
   validatePlutusSemantics: false,
+  mapKeyOrder: 'length-first',
+  allowTrailingData: true,
   limits: DEFAULT_LIMITS
 }
 

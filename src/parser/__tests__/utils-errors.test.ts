@@ -42,10 +42,10 @@ describe('Utils - Error Handling', () => {
   })
 
   describe('readUint - Valid Lengths', () => {
-    it('should read 1-8 bytes successfully', () => {
+    it('should read 1-7 bytes (within safe-integer range) successfully', () => {
       const buffer = new Uint8Array([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08])
 
-      // Test all valid lengths (1-8)
+      // Lengths 1-7 stay within Number.MAX_SAFE_INTEGER (2^53 - 1)
       expect(readUint(buffer, 0, 1)).toBe(0x01)
       expect(readUint(buffer, 0, 2)).toBe(0x0102)
       expect(readUint(buffer, 0, 3)).toBe(0x010203)
@@ -53,7 +53,15 @@ describe('Utils - Error Handling', () => {
       expect(readUint(buffer, 0, 5)).toBe(0x0102030405)
       expect(readUint(buffer, 0, 6)).toBe(0x010203040506)
       expect(readUint(buffer, 0, 7)).toBe(0x01020304050607)
-      expect(readUint(buffer, 0, 8)).toBe(0x0102030405060708)
+    })
+
+    it('should throw rather than silently lose precision above MAX_SAFE_INTEGER', () => {
+      // 0x0102030405060708 ≈ 7.26e16 > 2^53, so readUint refuses it and
+      // directs callers to readBigUint (L3 precision-safety fix).
+      const buffer = new Uint8Array([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08])
+      expect(() => readUint(buffer, 0, 8)).toThrow('exceeds MAX_SAFE_INTEGER')
+      // The exact value is available without loss via readBigUint:
+      expect(readBigUint(buffer, 0, 8)).toBe(0x0102030405060708n)
     })
   })
 

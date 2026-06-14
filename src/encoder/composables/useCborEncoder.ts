@@ -89,10 +89,29 @@ export function useCborEncoder(globalOptions?: Partial<EncodeOptions>) {
     return result
   }
 
+  // Recursion depth tracked across ALL value types — including the tag boundary.
+  // Tagged values re-enter through this same encode()/encodeValue() pair, so
+  // counting here (rather than only inside the collection encoder) prevents a
+  // deeply nested {tag,value} chain from silently bypassing maxDepth and
+  // overflowing the call stack.
+  let currentDepth = 0
+
   /**
    * Encode any JavaScript value to CBOR (internal, no size check)
    */
   const encodeValue = (value: EncodableValue): EncodeResult => {
+    if (currentDepth > options.maxDepth) {
+      throw new Error(`Maximum nesting depth ${options.maxDepth} exceeded`)
+    }
+    currentDepth++
+    try {
+      return encodeValueInner(value)
+    } finally {
+      currentDepth--
+    }
+  }
+
+  const encodeValueInner = (value: EncodableValue): EncodeResult => {
     // Handle null/undefined/boolean
     if (value === null || value === undefined || typeof value === 'boolean') {
       return encodeSimple(value)

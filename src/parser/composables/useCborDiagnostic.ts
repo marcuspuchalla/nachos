@@ -15,6 +15,13 @@
  * ```
  */
 
+import { INDEFINITE_SYMBOL } from '../types'
+
+/** Detect the indefinite-length marker attached by the parser to a value. */
+function isIndefiniteValue(value: unknown): boolean {
+  return typeof value === 'object' && value !== null && (value as any)[INDEFINITE_SYMBOL] === true
+}
+
 /**
  * Options for diagnostic notation output
  */
@@ -186,6 +193,25 @@ export function useCborDiagnostic() {
       return `h'${bytesToHex(value)}'`
     }
 
+    // Handle parser wrapper types for indefinite-length strings
+    if (typeof value === 'object' && value !== null && 'type' in value) {
+      const t = (value as { type?: string }).type
+      if (t === 'cbor-byte-string') {
+        const bs = value as unknown as { bytes: Uint8Array }
+        return isIndefiniteValue(value) ? `(_ h'${bytesToHex(bs.bytes)}')` : `h'${bytesToHex(bs.bytes)}'`
+      }
+      if (t === 'cbor-text-string') {
+        const ts = value as unknown as { text: string }
+        return isIndefiniteValue(value) ? `(_ "${escapeString(ts.text)}")` : `"${escapeString(ts.text)}"`
+      }
+    }
+
+    // Handle unassigned simple values (Major Type 7): simple(N)
+    if (typeof value === 'object' && value !== null && 'simpleValue' in value &&
+        typeof (value as { simpleValue?: unknown }).simpleValue === 'number') {
+      return `simple(${(value as { simpleValue: number }).simpleValue})`
+    }
+
     // Handle tagged values
     if (isTaggedValue(value)) {
       const taggedContent = formatValue(
@@ -201,6 +227,7 @@ export function useCborDiagnostic() {
 
     // Handle arrays
     if (Array.isArray(value)) {
+      indefinite = indefinite || isIndefiniteValue(value)
       if (value.length === 0) {
         return indefinite ? '[_ ]' : '[]'
       }
@@ -222,6 +249,7 @@ export function useCborDiagnostic() {
 
     // Handle Maps
     if (value instanceof Map) {
+      indefinite = indefinite || isIndefiniteValue(value)
       if (value.size === 0) {
         return indefinite ? '{_ }' : '{}'
       }
