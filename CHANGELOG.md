@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-07-01 - Cardano application layer
+
+### Added
+
+- Added Cardano application layer (era detection, Cardano CBOR decoder with
+  source maps, CIP-25 NFT metadata parser, Cardano helpers) consolidated from
+  the cbor.app fork. The layer lives under `src/cardano/` and is built on top of
+  the existing RFC 8949 base parser/encoder rather than duplicating it.
+  - `useCardanoEraDetector` - detects the Cardano era (Byron → Conway) from
+    transaction structure, certificates, scripts, and addresses.
+  - `useCardanoCborDecoder` - decodes CBOR with enhanced, human-readable source
+    maps and Cardano-specific interpretations (lovelace amounts, key hashes,
+    addresses, sets, Plutus tags).
+  - `useCip25Parser` - parses and validates CIP-25 NFT metadata (label 721).
+  - `useCardanoHelpers` - parses Cardano addresses, transactions, witness sets,
+    and Plutus data.
+  - Era types and tables (`CardanoEra`, `ERA_INFO`, `TRANSACTION_BODY_FIELDS`,
+    `CERTIFICATE_TYPE_INDICES`, `compareEras`, `getMinimumEra`, …) exported from
+    the package entry point.
+
 ## [0.2.0] - 2026-06-14 - RFC 8949 audit remediation
 
 Resolves the findings of the June 2026 RFC 8949 conformance & security audit.

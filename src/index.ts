@@ -89,6 +89,54 @@ export {
   DEFAULT_ENCODE_OPTIONS
 } from './encoder/types'
 
+// Re-export the Cardano application layer (era detection, Cardano CBOR decoder
+// with source maps, CIP-25 NFT metadata parser, Cardano helpers). Built on top
+// of the RFC 8949 base above and consolidated from the cbor.app fork.
+export {
+  useCardanoCborDecoder,
+  useCardanoEraDetector,
+  useCardanoHelpers,
+  useCip25Parser,
+  // Era detection tables / helpers
+  TRANSACTION_BODY_FIELDS,
+  CERTIFICATE_TYPE_INDICES,
+  ERA_INFO,
+  ERA_REQUIRED_FIELDS,
+  ERA_ORDER,
+  compareEras,
+  getMinimumEra
+} from './cardano'
+
+export type {
+  // Cardano CBOR decoder types
+  CardanoSourceMapEntry,
+  CardanoParseResult,
+  // Cardano helper types
+  CardanoAddress,
+  CardanoTransaction,
+  CardanoTransactionBody,
+  CardanoTransactionOutput,
+  CardanoWitnessSet,
+  CardanoHelperPlutusData,
+  // CIP-25 types
+  Cip25File,
+  Cip25AssetMetadata,
+  Cip25Asset,
+  Cip25ParseResult,
+  Cip25ValidationResult,
+  // Era detection types
+  CardanoEra,
+  EraInfo,
+  CipReference,
+  EraDetectionResult,
+  EraMarker,
+  MarkerType,
+  EraReference,
+  TransactionInfo,
+  CertificateType,
+  ScriptType
+} from './cardano'
+
 // Convenience exports with cleaner names for library users
 import { useCborParser } from './parser/composables/useCborParser'
 import { useCborEncoder } from './encoder/composables/useCborEncoder'
