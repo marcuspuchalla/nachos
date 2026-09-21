@@ -1,5 +1,7 @@
 # September roadmap completion — unpublished 0.4.0 candidate
 
+This is the pre-release audit snapshot. The subsequent [rollout observation](rollout/README.md) records pushed commits, successful CI and the live app deployment, plus the remaining npm authentication requirement.
+
 All six items from the September 11 roadmap now have implementations and positive/negative regression coverage. TACO and cbor.app install the same local Nachos candidate. Publication and deployment remain pending release acknowledgment.
 
 | Roadmap item | Implemented behavior and checks |

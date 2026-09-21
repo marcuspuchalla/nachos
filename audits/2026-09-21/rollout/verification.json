@@ -1,0 +1,48 @@
+{
+  "observedAt": "2026-09-21T19:32:26.285473+00:00",
+  "status": "app-and-repositories-online; npm-publication-awaiting-authentication",
+  "repositories": {
+    "nachos": {
+      "commit": "4386852953ef0703e5ff4382e18de75a7c64141a",
+      "ci": "https://github.com/marcuspuchalla/nachos/actions/runs/35641366452",
+      "conclusion": "success"
+    },
+    "taco": {
+      "commit": "ca497dafb2c1b64f58fcb5847cf80b037906fc67",
+      "ci": "https://github.com/marcuspuchalla/taco/actions/runs/35642895356",
+      "conclusion": "success"
+    },
+    "cbor.app": {
+      "commit": "7a7a9f99d18355b4d3fe3982d13d3eb905fdb36b",
+      "ci": "https://github.com/marcuspuchalla/cbor.app/actions/runs/35642891743",
+      "conclusion": "success"
+    }
+  },
+  "production": {
+    "url": "https://cbor.app",
+    "identityUrl": "https://cbor.app/build-info.json",
+    "identity": {
+      "appVersion": "0.4.0",
+      "nachosVersion": "0.4.0",
+      "nachosIntegrity": "sha512-Ng5/kMWhASRZKh/mQvfDYITogQCwjKt7lK9pZVKhg2vGZZ8X5/ZtS5PJ6MFOx0OcCrYGPiWlDstH2ghLqA/VrQ==",
+      "codecSha256": "3cf362717c84cba67fddba494ca705ea1533d71ae7b0b0a1f881eee23cf78b62"
+    },
+    "deploymentStatus": "finished",
+    "containerHealth": "healthy",
+    "browserTests": {
+      "passed": 4,
+      "failed": 0,
+      "log": "live-browser-tests.log"
+    }
+  },
+  "npm": {
+    "package": "@marcuspuchalla/nachos",
+    "latestVersion": "0.3.0",
+    "publicationBlocker": "npm whoami returned E401; interactive npm login required",
+    "preparedVersion": "0.4.0",
+    "preparedArtifact": "../../../artifacts/release/marcuspuchalla-nachos-0.4.0.tgz",
+    "sha256": "7ac40cd1c57c1662111e5d60a980b78e7c9b24bfbcb98381108c8a9f596ea872",
+    "integrity": "sha512-Qpq1967ETDG/L7XeHR9UNq3zvhdTb0SBjlPykIh1pSRRnIgrCbNhH3Ut9BD14kWcVJu5Ob0J6WaYEFRb07n1Wg=="
+  },
+  "consumerDependency": "Both consumers use the audited vendored 0.4.0 archive. The prepared registry archive differs only in README.md and CHANGELOG.md; all other packaged files are byte-identical."
+}
