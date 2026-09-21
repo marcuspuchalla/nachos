@@ -1,0 +1,13 @@
+
+> cardano-cbor-decoder@0.4.0 test:browser
+> playwright test
+
+
+Running 4 tests using 1 worker
+
+  ✓  1 browser-tests/cardano.spec.ts:11:1 › real Cardano examples show provenance, governance and working WASM validation (5.8s)
+  ✓  2 browser-tests/cardano.spec.ts:49:1 › real redeemer and inline datum examples can be inspected without losing bytes (3.9s)
+  ✓  3 browser-tests/decoder.spec.ts:3:1 › production worker decodes, validates, cancels, exports typed JSON and registers the PWA (5.5s)
+  ✓  4 browser-tests/hosting.spec.ts:3:1 › deployed hosting serves deep links, real WASM and fresh update metadata (1.5s)
+
+  4 passed (17.4s)
