@@ -15,9 +15,9 @@
 
 A production-ready, zero-dependency CBOR (Concise Binary Object Representation) codec implementation in TypeScript. Works in Node.js and browsers.
 
-## 0.4.0 release candidate
+## 0.4.0
 
-The September audit repairs are staged locally. Publication and the production app rollout await review. The full resolution record and reproducible evidence are in [audits/2026-09-09](audits/2026-09-09).
+This release includes the July and September audit repairs, incremental CBOR sequences, extended time and IP-address semantics, CDDL and CIP-21 validation, and COSE signature verification. The implementation summary, coverage boundaries and reproducible verification evidence are in [audits/2026-09-21](audits/2026-09-21).
 
 ```ts
 import { decodeLossless, encodeLossless, nodeToCborJson, nodeToDiagnostic } from '@marcuspuchalla/nachos'

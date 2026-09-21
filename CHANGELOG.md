@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.4.0] - Unreleased - July and September audit repairs
+## [0.4.0] - 2026-09-21 - July and September audit repairs
 
 Repairs the audited core parsing, encoding and Cardano-helper defects. Optional application protocols remain separately scoped. July regressions are recorded in
 `src/__tests__/audit-2026-07.test.ts` and
