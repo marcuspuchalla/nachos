@@ -1,0 +1,430 @@
+{
+  "verifiedAt": "2026-09-11T11:57:47.586210+00:00",
+  "releaseStatus": "local candidate; not published or deployed",
+  "package": {
+    "name": "@marcuspuchalla/nachos",
+    "version": "0.4.0",
+    "filename": "marcuspuchalla-nachos-0.4.0.tgz",
+    "size": 628775,
+    "shasum": "d167648f14ed68276ae6292a85aac1738c40b22b",
+    "integrity": "sha512-yZRpr1bNpROW8wR89COzvs8ePl5poUoMPAVQCY/quHaOKMdDgv38hPtZlNX9NgBgYFi45YHHlzL2GWMyGS7YxA=="
+  },
+  "packageSha256": "396fa589c580840b0a2a77c9ed1a150b8240a26a61f8141eea05919c7280efb6",
+  "installedPackageFilesMatch": {
+    "taco": 120,
+    "cbor_decoder": 120
+  },
+  "registryAtReview": {
+    "version": "0.3.0",
+    "dist-tags": {
+      "latest": "0.3.0"
+    }
+  },
+  "nachosTests": {
+    "numTotalTests": 1603,
+    "numPassedTests": 1603,
+    "numFailedTests": 0,
+    "numFailedTestSuites": 0,
+    "success": true
+  },
+  "coreAudit": {
+    "checks": 141,
+    "met": 141,
+    "unmet": 0
+  },
+  "nachosChecks": [
+    "npm run type-check",
+    "npm run build",
+    "ESM/CommonJS export and lossless smoke checks"
+  ],
+  "taco": {
+    "exitCode": 0,
+    "status": "completed",
+    "adapters": 26,
+    "scheduledPerAdapter": 2846,
+    "totalScheduled": 73996,
+    "harnessTests": 10,
+    "fixtureLintErrors": 0,
+    "reproducedFixtureFiles": 23,
+    "provenance": {
+      "runnerVersion": "3.0.0",
+      "gitSha": "81ea7ba45c8fe7bcd02ddf362a42c981429fcba5",
+      "sourceDiffSha256": "b075f57d2e1f41c5a942aa66577220dad50866ff787f38c963f90ea69639361b",
+      "runtime": "v24.13.1",
+      "corpusSha256": "874715740944377f774883946f0a8141934448325e5a6a1b00d73f591c83b823",
+      "runnerSha256": "67c2a8e565da6ac2e2e36bd8eddee9a6e29801b89c39f5e24259a4d5c7acb19f",
+      "protocolSha256": "e36fc96dead0fdfb4850dbac63de6170dcf1d0d4881ecb4490f4e55611033c6d",
+      "referenceSha256": "a5405b49d901a3b00aa72fcf4cde5ba1c0f41a925a48b67b630c4895e18e442c",
+      "requirementsSha256": "367bc9ef9740b1016fc9ade11cf433724cd0aa601c467c5073ff97046f7c5fe5",
+      "expectedContainers": [
+        "node-nachos",
+        "node-cbor2",
+        "node-borc",
+        "node-cbor-x",
+        "node-cbor",
+        "node-cbor-js",
+        "node-cbor-redux",
+        "node-tiny-cbor",
+        "node-cbor-sync",
+        "node-cborg",
+        "node-dag-cbor",
+        "node-harmonic-cbor",
+        "node-stablelib-cbor",
+        "node-oslo-cbor",
+        "node-strica-cbors",
+        "node-cardano-csl",
+        "node-cardano-cml",
+        "python-cbor2",
+        "rust-ciborium",
+        "go-cbor",
+        "c-libcbor",
+        "java-cbor",
+        "csharp-cbor",
+        "php-cbor",
+        "ruby-cbor",
+        "perl-cbor"
+      ],
+      "imageManifest": "runtime-images.json (captured by host runner)"
+    },
+    "summarySha256": "7d57f91ec199dc2f65c5600d5cbf7c21edd2871f13f6bb2d135dfca00f62e349",
+    "runtimeImagesSha256": "999ade23a64e3a66ba0dad81414e788e4de0aab6f0bc9bc16b8961540e3a4cb5",
+    "rows": [
+      {
+        "adapter": "node-nachos",
+        "library": "@marcuspuchalla/nachos",
+        "version": "0.4.0",
+        "runtime": "v24.13.1",
+        "passed": 2846,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 0,
+        "completeRequirements": 40,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "node-cbor2",
+        "library": "cbor2",
+        "version": "2.0.1",
+        "runtime": "v24.13.1",
+        "passed": 2771,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 0,
+        "completeRequirements": 26,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "node-borc",
+        "library": "borc",
+        "version": "3.0.0",
+        "runtime": "v24.13.1",
+        "passed": 2661,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 23,
+        "completeRequirements": 14,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "node-cbor-x",
+        "library": "cbor-x",
+        "version": "1.6.0",
+        "runtime": "v24.13.1",
+        "passed": 2359,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 96,
+        "completeRequirements": 1,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "node-cbor",
+        "library": "cbor",
+        "version": "10.0.11",
+        "runtime": "v24.13.1",
+        "passed": 2530,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 1,
+        "completeRequirements": 7,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "node-cbor-js",
+        "library": "cbor-js",
+        "version": "0.1.0",
+        "runtime": "v24.13.1",
+        "passed": 2311,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 0,
+        "completeRequirements": 6,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "node-cbor-redux",
+        "library": "cbor-redux",
+        "version": "1.0.0",
+        "runtime": "v24.13.1",
+        "passed": 2351,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 0,
+        "completeRequirements": 3,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "node-tiny-cbor",
+        "library": "@levischuck/tiny-cbor",
+        "version": "0.3.2",
+        "runtime": "v24.13.1",
+        "passed": 1502,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 0,
+        "completeRequirements": 7,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "node-cbor-sync",
+        "library": "cbor-sync",
+        "version": "1.0.4",
+        "runtime": "v24.13.1",
+        "passed": 752,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 28,
+        "completeRequirements": 2,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "node-cborg",
+        "library": "cborg",
+        "version": "4.2.18",
+        "runtime": "v24.13.1",
+        "passed": 2416,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 0,
+        "completeRequirements": 8,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "node-dag-cbor",
+        "library": "@ipld/dag-cbor",
+        "version": "9.2.5",
+        "runtime": "v24.13.1",
+        "passed": 1661,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 0,
+        "completeRequirements": 2,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "node-harmonic-cbor",
+        "library": "@harmoniclabs/cbor",
+        "version": "1.6.6",
+        "runtime": "v24.13.1",
+        "passed": 2634,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 39,
+        "completeRequirements": 15,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "node-stablelib-cbor",
+        "library": "@stablelib/cbor",
+        "version": "2.0.1",
+        "runtime": "v24.13.1",
+        "passed": 2461,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 0,
+        "completeRequirements": 9,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "node-oslo-cbor",
+        "library": "@oslojs/cbor",
+        "version": "1.0.0",
+        "runtime": "v24.13.1",
+        "passed": 2249,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 7,
+        "completeRequirements": 2,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "node-strica-cbors",
+        "library": "@stricahq/cbors",
+        "version": "1.0.3",
+        "runtime": "v24.13.1",
+        "passed": 2577,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 18,
+        "completeRequirements": 11,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "node-cardano-csl",
+        "library": "@emurgo/cardano-serialization-lib-nodejs",
+        "version": "15.0.1",
+        "runtime": "v24.13.1",
+        "passed": 2034,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 0,
+        "completeRequirements": 2,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "node-cardano-cml",
+        "library": "@dcspark/cardano-multiplatform-lib-nodejs",
+        "version": "6.2.0",
+        "runtime": "v24.13.1",
+        "passed": 2031,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 0,
+        "completeRequirements": 2,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "python-cbor2",
+        "library": "cbor2",
+        "version": "5.6.5",
+        "runtime": "3.12.14",
+        "passed": 2646,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 94,
+        "completeRequirements": 16,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "rust-ciborium",
+        "library": "ciborium",
+        "version": "0.2.2",
+        "runtime": "rustc 1.83.0 (90b35a623 2024-11-26)",
+        "passed": 2751,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 0,
+        "completeRequirements": 25,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "go-cbor",
+        "library": "fxamacker-cbor",
+        "version": "v2.7.0",
+        "runtime": "go1.21.13",
+        "passed": 2695,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 14,
+        "completeRequirements": 18,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "c-libcbor",
+        "library": "libcbor",
+        "version": "0.11.0",
+        "runtime": null,
+        "passed": 2710,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 0,
+        "completeRequirements": 24,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "java-cbor",
+        "library": "com.upokecenter:cbor",
+        "version": "4.5.5",
+        "runtime": "17.0.20+8",
+        "passed": 2782,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 0,
+        "completeRequirements": 27,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "csharp-cbor",
+        "library": "PeterO.Cbor",
+        "version": "4.5.5",
+        "runtime": "8.0.31",
+        "passed": 2782,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 0,
+        "completeRequirements": 27,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "php-cbor",
+        "library": "spomky-labs/cbor-php",
+        "version": "3.1.0",
+        "runtime": "8.2.33",
+        "passed": 2695,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 0,
+        "completeRequirements": 15,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "ruby-cbor",
+        "library": "cbor-ruby",
+        "version": "0.5.9.0",
+        "runtime": "3.1.6",
+        "passed": 2730,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 9,
+        "completeRequirements": 20,
+        "requirementDenominator": 46
+      },
+      {
+        "adapter": "perl-cbor",
+        "library": "CBOR::XS",
+        "version": 1.87,
+        "runtime": "v5.38.5",
+        "passed": 2420,
+        "scheduled": 2846,
+        "bridgeErrors": 0,
+        "adapterLimitations": 282,
+        "completeRequirements": 7,
+        "requirementDenominator": 46
+      }
+    ]
+  },
+  "appTests": {
+    "numTotalTests": 3195,
+    "numPassedTests": 3195,
+    "numFailedTests": 0,
+    "numFailedTestSuites": 0,
+    "success": true
+  },
+  "appChecks": [
+    "npm run type-check",
+    "npm run build",
+    "production browser checks: 2 passed"
+  ],
+  "appBuild": {
+    "appVersion": "0.4.0",
+    "nachosVersion": "0.4.0",
+    "nachosIntegrity": "sha512-yZRpr1bNpROW8wR89COzvs8ePl5poUoMPAVQCY/quHaOKMdDgv38hPtZlNX9NgBgYFi45YHHlzL2GWMyGS7YxA==",
+    "codecSha256": "d96066246c3a498ad7b09a10e7ec78123d54801f23105ba3a3d1082a6b1cdb7d"
+  },
+  "commandsLogSha256": {
+    "taco": "cb7cb528ae3b9c47230776f1bc7441ce6205842f23ff7c5a39a9a09361b2b717",
+    "appBrowser": "c2c2ebbd66a4b2eb833d9cee610899bad49a04b4247b3394db5c3047b2806477",
+    "nachosTypecheck": "b11973773a2e462ee41993e8ab4875003d6d5399bb03cfb08d1e779fd2fe2c98",
+    "appTypecheck": "7056364107f5d3ea9eed9a796f1a8464ef8c5cfa1e1ad71f0ccf2d7dd22208a4"
+  }
+}

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NACHOS · RFC 8949 Conformance Audit</title>
+<style>
+  :root{
+    --bg:#0c0f14; --bg2:#11161f; --panel:#161d28; --panel2:#1b2433;
+    --ink:#e8edf4; --mut:#8c9bb0; --line:#26303f;
+    --acc:#ffc24a; --acc2:#ff8c42;
+    --hi:#ff5e6c; --med:#ffb84d; --low:#5ec9ff; --ok:#54d99f; --info:#9d8cff;
+    --mono:'SF Mono',ui-monospace,'Cascadia Code',Menlo,Consolas,monospace;
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased}
+  .deck{height:100vh;width:100vw;position:relative}
+  .slide{position:absolute;inset:0;padding:5.5vh 7vw;opacity:0;visibility:hidden;
+    transition:opacity .45s ease,transform .45s ease;transform:translateY(18px);
+    overflow-y:auto;display:flex;flex-direction:column}
+  .slide.active{opacity:1;visibility:visible;transform:none}
+  .slide::-webkit-scrollbar{width:8px}
+  .slide::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+
+  .eyebrow{font-family:var(--mono);font-size:.78rem;letter-spacing:.28em;text-transform:uppercase;color:var(--acc);margin-bottom:1.1rem}
+  h1{font-size:clamp(2.2rem,5vw,4.2rem);line-height:1.04;letter-spacing:-.02em;font-weight:800}
+  h2{font-size:clamp(1.5rem,3vw,2.4rem);line-height:1.1;letter-spacing:-.01em;font-weight:750;margin-bottom:.3rem}
+  h2 .n{font-family:var(--mono);color:var(--acc);font-weight:600;margin-right:.6rem}
+  .sub{color:var(--mut);font-size:1.02rem;max-width:62ch;line-height:1.55}
+  p{line-height:1.55}
+  .grad{background:linear-gradient(100deg,var(--acc),var(--acc2) 60%,var(--hi));-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  .meta{margin-top:auto;display:flex;gap:2.4rem;flex-wrap:wrap;font-family:var(--mono);font-size:.82rem;color:var(--mut)}
+  .meta b{color:var(--ink);font-weight:600}
+
+  .grid{display:grid;gap:1rem;margin-top:1.6rem}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1.15rem 1.25rem}
+  .card h3{font-size:.95rem;letter-spacing:.02em;margin-bottom:.45rem;display:flex;align-items:center;gap:.5rem}
+  .card p{font-size:.9rem;color:var(--mut)}
+  .stat{font-size:2.6rem;font-weight:800;font-family:var(--mono);letter-spacing:-.02em}
+  .stat.s-hi{color:var(--hi)} .stat.s-med{color:var(--med)} .stat.s-low{color:var(--low)} .stat.s-ok{color:var(--ok)}
+  .lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.16em;color:var(--mut);margin-top:.2rem}
+
+  .pill{display:inline-flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:.66rem;font-weight:700;
+    letter-spacing:.08em;padding:.2rem .5rem;border-radius:6px;text-transform:uppercase}
+  .p-hi{background:rgba(255,94,108,.14);color:var(--hi);border:1px solid rgba(255,94,108,.35)}
+  .p-med{background:rgba(255,184,77,.13);color:var(--med);border:1px solid rgba(255,184,77,.32)}
+  .p-low{background:rgba(94,201,255,.12);color:var(--low);border:1px solid rgba(94,201,255,.3)}
+  .p-ok{background:rgba(84,217,159,.12);color:var(--ok);border:1px solid rgba(84,217,159,.3)}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+
+  table{width:100%;border-collapse:collapse;margin-top:1.2rem;font-size:.86rem}
+  th,td{text-align:left;padding:.62rem .7rem;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);font-weight:600}
+  tbody tr:hover{background:var(--bg2)}
+  td code,.code{font-family:var(--mono);font-size:.84em;background:var(--bg2);border:1px solid var(--line);border-radius:5px;padding:.06rem .35rem;color:var(--acc)}
+
+  .finding{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:12px;padding:1rem 1.2rem;margin-top:.85rem}
+  .finding.hi{border-left-color:var(--hi)} .finding.med{border-left-color:var(--med)} .finding.low{border-left-color:var(--low)}
+  .finding .ttl{display:flex;align-items:center;gap:.6rem;font-weight:700;font-size:1rem;margin-bottom:.3rem;flex-wrap:wrap}
+  .finding .id{font-family:var(--mono);color:var(--mut);font-size:.8rem}
+  .finding .body{font-size:.9rem;color:var(--mut);line-height:1.5}
+  .finding .body b{color:var(--ink);font-weight:600}
+  .ev{font-family:var(--mono);font-size:.78rem;background:#080b10;border:1px solid var(--line);border-radius:8px;
+    padding:.6rem .8rem;margin-top:.6rem;color:#b9c6d8;white-space:pre-wrap;overflow-x:auto}
+  .ev .out{color:var(--ok)} .ev .cmd{color:var(--acc)} .ev .bad{color:var(--hi)}
+
+  ul.clean{list-style:none;margin-top:.8rem}
+  ul.clean li{padding:.45rem 0 .45rem 1.5rem;position:relative;font-size:.92rem;color:var(--mut);border-bottom:1px solid rgba(38,48,63,.5)}
+  ul.clean li::before{content:'';position:absolute;left:0;top:.95rem;width:7px;height:7px;border-radius:2px;background:var(--acc)}
+  ul.clean li b{color:var(--ink);font-weight:600}
+
+  .roadmap{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;margin-top:1.4rem}
+  .phase{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1.2rem;display:flex;flex-direction:column}
+  .phase .tag{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;font-weight:700;padding:.25rem .55rem;border-radius:6px;align-self:flex-start;margin-bottom:.8rem}
+  .phase.p0 .tag{background:rgba(255,94,108,.16);color:var(--hi)}
+  .phase.p1 .tag{background:rgba(255,184,77,.16);color:var(--med)}
+  .phase.p2 .tag{background:rgba(94,201,255,.14);color:var(--low)}
+  .phase h4{font-size:1rem;margin-bottom:.7rem}
+  .phase ol{list-style:none;counter-reset:s}
+  .phase li{counter-increment:s;font-size:.85rem;color:var(--mut);padding:.4rem 0 .4rem 1.7rem;position:relative;line-height:1.4}
+  .phase li::before{content:counter(s);position:absolute;left:0;top:.35rem;width:1.1rem;height:1.1rem;border-radius:50%;
+    background:var(--bg2);border:1px solid var(--line);font-family:var(--mono);font-size:.66rem;display:flex;align-items:center;justify-content:center;color:var(--ink)}
+  .phase li b{color:var(--ink)}
+
+  .matrix{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem 1.4rem;margin-top:1.2rem}
+  .mrow{display:flex;align-items:center;gap:.7rem;padding:.5rem .2rem;border-bottom:1px solid rgba(38,48,63,.55);font-size:.9rem}
+  .mrow .name{flex:1}.mrow .name small{color:var(--mut);font-family:var(--mono);font-size:.74rem}
+  .mark{font-family:var(--mono);font-size:.74rem;font-weight:700;padding:.12rem .5rem;border-radius:5px}
+  .m-full{background:rgba(84,217,159,.14);color:var(--ok)}
+  .m-part{background:rgba(255,184,77,.14);color:var(--med)}
+  .m-gap{background:rgba(255,94,108,.14);color:var(--hi)}
+
+  /* nav */
+  .nav{position:fixed;bottom:1.4rem;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:1rem;
+    background:rgba(17,22,31,.85);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:40px;padding:.5rem .9rem;z-index:50}
+  .nav button{background:none;border:none;color:var(--mut);cursor:pointer;font-size:1.1rem;padding:.1rem .4rem;border-radius:6px;transition:.2s}
+  .nav button:hover{color:var(--ink)}
+  .dots{display:flex;gap:.45rem}
+  .dots i{width:7px;height:7px;border-radius:50%;background:var(--line);cursor:pointer;transition:.2s}
+  .dots i.on{background:var(--acc);transform:scale(1.3)}
+  .count{position:fixed;top:1.3rem;right:1.7rem;font-family:var(--mono);font-size:.8rem;color:var(--mut);z-index:50}
+  .count b{color:var(--acc)}
+  .brand{position:fixed;top:1.3rem;left:1.7rem;font-family:var(--mono);font-size:.8rem;color:var(--mut);z-index:50;letter-spacing:.1em}
+  .brand b{color:var(--ink)}
+  .progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--acc),var(--acc2));z-index:60;transition:width .45s ease}
+  .hint{color:var(--mut);font-size:.7rem;font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="progress" id="bar"></div>
+<div class="brand"><b>NACHOS</b> · audit</div>
+<div class="count"><b id="cur">01</b> / <span id="tot">12</span></div>
+<div class="deck" id="deck">
+
+  <!-- 1 TITLE -->
+  <section class="slide active">
+    <div class="eyebrow">Independent Conformance &amp; Security Review</div>
+    <h1>The <span class="grad">NACHOS</span> CBOR library,<br>measured against RFC&nbsp;8949.</h1>
+    <p class="sub" style="margin-top:1.5rem">A three-round professional audit of the encoder, decoder, tag engine and
+    diagnostic layer — every claim verified empirically against the shipped <code>dist/</code> build,
+    not inferred from a read-through.</p>
+    <div class="meta">
+      <div><b>Target</b><br>@marcuspuchalla/nachos v0.1.4</div>
+      <div><b>Spec</b><br>RFC 8949 (+ 8742, 7049 §3.9)</div>
+      <div><b>Date</b><br>2026-06-14</div>
+      <div><b>Method</b><br>Read · trace · execute · re-verify</div>
+    </div>
+  </section>
+
+  <!-- 2 METHOD -->
+  <section class="slide">
+    <div class="eyebrow">How we ran it</div>
+    <h2>A professional team works in rounds — and checks its own claims.</h2>
+    <p class="sub">Each finding passed two gates: a hypothesis from reading the source, then an executable proof against the
+    compiled library. Two early hypotheses <em>failed</em> that second gate and were discarded — that discipline is the point.</p>
+    <div class="grid g3">
+      <div class="card"><h3><span class="dot" style="background:var(--info)"></span>Round 1 · Conformance</h3>
+        <p>Map every RFC 8949 major type, additional-info path, tag and deterministic-encoding rule to code. Build the coverage matrix.</p></div>
+      <div class="card"><h3><span class="dot" style="background:var(--med)"></span>Round 2 · Correctness</h3>
+        <p>Edge cases: float16 subnormals, bignums, integer boundaries, shortest-form, duplicate keys, indefinite chunks.</p></div>
+      <div class="card"><h3><span class="dot" style="background:var(--hi)"></span>Round 3 · Security</h3>
+        <p>Adversarial inputs: deep nesting, recursion limits, trailing data, resource exhaustion — across <em>both</em> parse paths.</p></div>
+    </div>
+    <div class="card" style="margin-top:1rem;border-color:rgba(84,217,159,.3)">
+      <h3><span class="dot" style="background:var(--ok)"></span>Self-correction (the two-pass rule in action)</h3>
+      <p>The packed <code>nachos-audit.txt</code> snapshot was <b>stale</b>. It suggested an O(N²) per-element hex-slice in array decoding.
+      Reading the <em>current</em> <code>useCborCollection.ts</code> and timing the real build showed flat <b>~0.4&nbsp;µs/element</b> (linear) —
+      the O(N²) was already fixed in commit <code>ed4373f</code>. Claim retracted before it reached this deck.</p>
+    </div>
+  </section>
+
+  <!-- 3 SCOREBOARD -->
+  <section class="slide">
+    <div class="eyebrow">Executive summary</div>
+    <h2>Solid, security-conscious core — with a handful of conformance edges to close.</h2>
+    <div class="grid g4" style="margin-top:1.3rem">
+      <div class="card"><div class="stat s-hi">2</div><div class="lbl">High</div></div>
+      <div class="card"><div class="stat s-med">5</div><div class="lbl">Medium</div></div>
+      <div class="card"><div class="stat s-low">5</div><div class="lbl">Low</div></div>
+      <div class="card"><div class="stat s-ok">12+</div><div class="lbl">Strengths credited</div></div>
+    </div>
+    <div class="grid g2" style="margin-top:1rem">
+      <div class="card">
+        <h3>The headline</h3>
+        <p style="color:var(--ink);font-size:.95rem;line-height:1.55">NACHOS decodes the RFC 8949 data model correctly and linearly, with
+        an unusually thorough DoS-limit story and strict UTF-8 handling. The gaps are at the <b>determinism &amp; well-formedness boundary</b>:
+        the canonical ordering follows the older length-first rule, one parse path skips a depth guard, and a float16 gate is mis-bounded.</p>
+      </div>
+      <div class="card" style="border-color:rgba(84,217,159,.35)">
+        <h3><span class="pill p-ok">Update</span> All findings remediated</h3>
+        <p style="font-size:.95rem;line-height:1.55">Every finding (H1–L5) is now fixed, verified empirically, and locked in by
+        <b>24 regression tests</b> — full suite <b style="color:var(--ok)">1339/1339 green</b>. H2 was reframed after research:
+        length-first is the correct Cardano CIP-21 default; a <code>mapKeyOrder</code> option now also offers RFC 8949 §4.2.1.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 COVERAGE MATRIX -->
+  <section class="slide">
+    <div class="eyebrow">Round 1 · Conformance map</div>
+    <h2><span class="n">01</span>RFC 8949 feature coverage</h2>
+    <p class="sub">Verified by decoding/encoding representative vectors against the live build.</p>
+    <div class="matrix">
+      <div class="mrow"><span class="name">MT 0/1 — integers <small>incl. 64-bit BigInt</small></span><span class="mark m-full">FULL</span></div>
+      <div class="mrow"><span class="name">MT 2/3 — byte / text strings</span><span class="mark m-full">FULL</span></div>
+      <div class="mrow"><span class="name">MT 4/5 — arrays / maps <small>def + indef</small></span><span class="mark m-full">FULL</span></div>
+      <div class="mrow"><span class="name">MT 6 — tags <small>0-5,21-36,258,Plutus,55799</small></span><span class="mark m-full">FULL</span></div>
+      <div class="mrow"><span class="name">MT 7 — float16/32/64, simple</span><span class="mark m-full">FULL</span></div>
+      <div class="mrow"><span class="name">Reserved AI 28-30 → rejected</span><span class="mark m-full">FULL</span></div>
+      <div class="mrow"><span class="name">Indefinite chunk type-checking <small>§3.2.3</small></span><span class="mark m-full">FULL</span></div>
+      <div class="mrow"><span class="name">Strict UTF-8 <small>overlong/surrogate</small></span><span class="mark m-full">FULL</span></div>
+      <div class="mrow"><span class="name">Bignum tag 2/3 → BigInt</span><span class="mark m-full">FULL</span></div>
+      <div class="mrow"><span class="name">CBOR sequences <small>RFC 8742</small></span><span class="mark m-full">FULL</span></div>
+      <div class="mrow"><span class="name">Preferred shortest-form: ints, lengths, floats</span><span class="mark m-full">FULL</span></div>
+      <div class="mrow"><span class="name">Preferred shortest-form: <b>tag numbers</b></span><span class="mark m-gap">GAP · M4</span></div>
+      <div class="mrow"><span class="name">Deterministic map order <small>§4.2.1 bytewise</small></span><span class="mark m-part">§4.2.3 · H2</span></div>
+      <div class="mrow"><span class="name">Well-formedness: trailing-data rejection</span><span class="mark m-gap">GAP · M1</span></div>
+      <div class="mrow"><span class="name">Dup-key handling <small>§5.6</small></span><span class="mark m-part">COLLAPSE · M3</span></div>
+      <div class="mrow"><span class="name">Diagnostic notation <small>App. B</small></span><span class="mark m-part">PARTIAL · L5</span></div>
+    </div>
+  </section>
+
+  <!-- 5 HIGH H1 -->
+  <section class="slide">
+    <div class="eyebrow">Round 3 · Security</div>
+    <h2><span class="n">02</span>Two parse paths, two security postures</h2>
+    <div class="finding hi">
+      <div class="ttl"><span class="pill p-hi">High</span><span class="id">H1</span> Stack-overflow DoS in <code>decodeWithSourceMap()</code></div>
+      <div class="body"><code>parseTagFromBuffer</code> (the <code>decode()</code> path) enforces <b>maxTagDepth</b> via RUSTSEC-2019-0025
+      mitigation. But <code>parseTagWithMap</code> (the source-map path) recurses with <b>no tag-depth or recursion guard</b> —
+      only a wall-clock timeout that a stack overflow beats. A hostile <code>c2 c2 c2 …</code> stream crashes the process with an
+      uncatchable-by-default <code>RangeError</code> instead of a clean error.</div>
+      <div class="ev"><span class="cmd">$ node — decode vs decodeWithSourceMap, input = 0xc2 ×60000 + 0x00</span>
+decode(…, {maxTagDepth:100})            → <span class="out">Error: Tag nesting depth 100 exceeds limit of 100</span>   ✓ clean
+decodeWithSourceMap(…, {maxTagDepth:100}) → <span class="bad">RangeError: Maximum call stack size exceeded</span>     ✗ crash</div>
+    </div>
+    <p class="sub" style="margin-top:1rem"><b>Fix:</b> thread the same depth counter + limit checks through <code>parseValueWithMap</code> /
+    <code>parseTagWithMap</code>. Both paths should share one well-formedness guard.</p>
+  </section>
+
+  <!-- 6 HIGH H2 -->
+  <section class="slide">
+    <div class="eyebrow">Round 1 · Determinism · RESOLVED</div>
+    <h2><span class="n">03</span>"Canonical" ordering — the research changed the verdict</h2>
+    <div class="finding" style="border-left-color:var(--ok)">
+      <div class="ttl"><span class="pill p-ok">Resolved</span><span class="id">H2</span> Length-first is <em>correct</em> for Cardano — the gap was a missing option</div>
+      <div class="body"><b>Cardano CIP-21</b> (transaction serialization) mandates <b>RFC 7049 §3.9 "Old Canonical CBOR" — length-first</b>
+      ordering: "keys sorted from lowest value to highest," shorter first, ties bytewise. So NACHOS's existing length-first order is
+      <b>right for its flagship use case</b> — not a bug. The real defect was narrower: an RFC 8949-branded library with no way to get
+      §4.2.1 bytewise order, and an ambiguous "canonical".</div>
+      <div class="ev"><span class="cmd">$ FIX — explicit mapKeyOrder option, both encoder & decoder</span>
+encodeToHex(m,{canonical:true})                        = <span class="out">a2 626161 01 1a000f4240 02</span>  (length-first, CIP-21 default)
+encodeToHex(m,{canonical:true,mapKeyOrder:'bytewise'}) = <span class="out">a2 1a000f4240 02 626161 01</span>  (RFC 8949 §4.2.1)
+decode(…,{validateCanonical:true,mapKeyOrder:'bytewise'}) ⇄ enforces matching order on both sides</div>
+    </div>
+    <p class="sub" style="margin-top:.9rem"><b>Shipped:</b> default stays <code>length-first</code> (CIP-21, backward-compatible);
+    new <code>mapKeyOrder: 'length-first' | 'bytewise'</code> exposes RFC 8949 §4.2.1. Plutus <code>Data</code> maps preserve order —
+    use non-canonical mode. <span class="hint">Sources: CIP-21 · RFC 7049 §3.9 · RFC 8949 §4.2.1</span></p>
+  </section>
+
+  <!-- 7 MEDIUM cluster A -->
+  <section class="slide">
+    <div class="eyebrow">Round 2 · Correctness</div>
+    <h2><span class="n">04</span>The float16 gate the encoder fails against itself</h2>
+    <div class="finding med">
+      <div class="ttl"><span class="pill p-med">Medium</span><span class="id">M5</span> <code>canBeFloat16</code> uses the wrong lower bound (min-normal, not min-subnormal)</div>
+      <div class="body">The encoder's float16 gate rejects anything below <code>0.00006103515625</code> = 2⁻¹⁴ (smallest <em>normal</em> half),
+      but float16 subnormals reach down to 2⁻²⁴. So <code>encode(2⁻²⁴)</code> emits a <b>float32</b> — which the decoder's own
+      <code>fitsInFloat16</code> (correctly bounded at 2⁻²⁴) then <b>rejects as non-canonical</b>. The encoder produces output its own
+      canonical validator won't accept. <code>encodeFloat16Bytes</code> itself handles subnormals — only the gate is mis-bounded.</div>
+      <div class="ev"><span class="cmd">$ v = 5.960464477539063e-8  (= 2^-24, smallest float16 subnormal)</span>
+encodeToHex(v)                       = <span class="out">fa 33800000</span>   (float32 — should be float16)
+decode("fa33800000",{validateCanonical:true}) → <span class="bad">REJECTED: "value fits in float16, use shortest"</span></div>
+    </div>
+    <p class="sub" style="margin-top:.9rem"><b>Fix:</b> drop the lower-bound short-circuit and rely on the encode→decode equality check already present,
+    or set the bound to 2⁻²⁴. Add a round-trip property test: every encoder float output must pass <code>validateCanonical</code>.</p>
+  </section>
+
+  <!-- 8 MEDIUM cluster B -->
+  <section class="slide">
+    <div class="eyebrow">Round 2/3 · Correctness &amp; robustness</div>
+    <h2><span class="n">05</span>Three more medium findings</h2>
+    <div class="finding med">
+      <div class="ttl"><span class="pill p-med">Medium</span><span class="id">M1</span> <code>decode()</code> silently ignores trailing bytes</div>
+      <div class="body">A single <code>decode</code> of <code>000102</code> returns <code>{value:0, bytesRead:1}</code> and drops two bytes.
+      <code>bytesRead</code> lets callers detect it, but there's no strict whole-input mode that rejects extraneous data.</div>
+    </div>
+    <div class="finding med">
+      <div class="ttl"><span class="pill p-med">Medium</span><span class="id">M2</span> Encoder <code>maxDepth</code> not enforced across tag boundaries</div>
+      <div class="body">Tagged-value encoding re-enters via the top-level <code>encode</code>, resetting <code>ctx.depth</code> to 0.
+      300 nested <code>{tag,value}</code> objects encode cleanly despite a default limit of 64 — a stack-overflow vector with no clean error.</div>
+    </div>
+    <div class="finding med">
+      <div class="ttl"><span class="pill p-med">Medium</span><span class="id">M3</span> Duplicate map keys silently collapse</div>
+      <div class="body">Default <code>dupMapKeyMode:'allow'</code> stores into a JS <code>Map</code>, so duplicate keys keep only the last value —
+      silent data loss. <code>'reject'</code>/<code>'warn'</code> exist; default should warn or preserve via <code>ALL_ENTRIES</code>.</div>
+    </div>
+    <div class="finding med">
+      <div class="ttl"><span class="pill p-med">Medium</span><span class="id">M4</span> Canonical mode accepts non-shortest tag numbers</div>
+      <div class="body"><code>decode("d80100",{validateCanonical:true})</code> is accepted — tag 1 in 1-byte form — though the shortest form is
+      <code>c100</code>. Shortest-form is enforced for ints/lengths/floats but not for tag numbers (or simple values).</div>
+    </div>
+  </section>
+
+  <!-- 9 LOW -->
+  <section class="slide">
+    <div class="eyebrow">Lower-priority &amp; hygiene</div>
+    <h2><span class="n">06</span>Low-severity findings</h2>
+    <ul class="clean">
+      <li><b>L1 · </b><code>parseSequenceWithSourceMap</code> re-slices the buffer from each item's offset to the end → O(N²) over long sequences. Debug-only path, but unbounded.</li>
+      <li><b>L2 · </b><code>dispatchFromBuffer</code> converts buffer→hex for array/map/tag dispatch — an extra full-slice allocation (not O(N²), but avoidable now that sub-parsers are buffer-native).</li>
+      <li><b>L3 · </b><code>readUint</code> accepts up to 8 bytes using <code>*256</code> float math (precision loss &gt; 2⁵³). Latent only — callers cap it at ≤4 bytes today.</li>
+      <li><b>L4 · </b>Plain-object map keys are string-coerced and reordered by the JS engine's integer-index rule. By design (docs steer users to <code>Map</code>) — worth a louder warning.</li>
+      <li><b>L5 · </b>Diagnostic notation is partial: <code>fromDiagnostic</code> is a stub, and emitted notation lacks indefinite markers / typed annotations for decoded values.</li>
+    </ul>
+  </section>
+
+  <!-- 10 STRENGTHS -->
+  <section class="slide">
+    <div class="eyebrow">Credit where due</div>
+    <h2><span class="n">07</span>What NACHOS already does well</h2>
+    <div class="grid g2">
+      <div class="card"><h3><span class="pill p-ok">Verified</span> Linear decoding</h3><p>Buffer-native sub-parsers; ~0.4 µs/element flat from 50k→400k. The old O(N²) is gone.</p></div>
+      <div class="card"><h3><span class="pill p-ok">Verified</span> Deep DoS-limit story</h3><p>Input, output, string, array, map, depth, tag-depth, bignum and parse-time limits — all configurable, all enforced on the <code>decode()</code> path.</p></div>
+      <div class="card"><h3><span class="pill p-ok">Verified</span> Strict UTF-8</h3><p>Rejects overlong encodings, surrogate code points, &gt;U+10FFFF and bad continuation bytes.</p></div>
+      <div class="card"><h3><span class="pill p-ok">Verified</span> CVE-aware</h3><p>Bignum byte-cap (CVE-2020-28491) and tag-depth cap (RUSTSEC-2019-0025) baked in.</p></div>
+      <div class="card"><h3><span class="pill p-ok">Verified</span> Round-trip fidelity</h3><p>Indefinite-length + chunk preservation via symbols; shortest-form checks for ints/floats/lengths; canonical NaN enforcement.</p></div>
+      <div class="card"><h3><span class="pill p-ok">Verified</span> Clean packaging</h3><p>Zero dependencies, dual ESM/CJS, full types, source maps, and a broad test suite (40+ spec files).</p></div>
+    </div>
+  </section>
+
+  <!-- 11 ROADMAP -->
+  <section class="slide">
+    <div class="eyebrow">The plan</div>
+    <h2><span class="n">08</span>Remediation roadmap</h2>
+    <div class="roadmap">
+      <div class="phase p0">
+        <span class="tag">P0 · CORRECTNESS &amp; SECURITY</span>
+        <h4>Ship before next release ✓</h4>
+        <ol>
+          <li><b>H1</b> — share the depth/tag-depth guard with the source-map parse path (kill the stack-overflow).</li>
+          <li><b>M5</b> — fix the float16 lower bound; add an "encoder output is self-canonical" property test.</li>
+          <li><b>M2</b> — thread <code>maxDepth</code> through tagged-value encoding.</li>
+        </ol>
+      </div>
+      <div class="phase p1">
+        <span class="tag">P1 · CONFORMANCE</span>
+        <h4>Determinism &amp; well-formedness ✓</h4>
+        <ol>
+          <li><b>H2</b> — add §4.2.1 bytewise ordering as default; expose <code>mapKeyOrder</code> option.</li>
+          <li><b>M1</b> — strict whole-input mode (<code>decodeFirst</code> vs <code>decode</code>) rejecting trailing data.</li>
+          <li><b>M4</b> — enforce shortest-form tag numbers + simple values under <code>validateCanonical</code>.</li>
+          <li><b>M3</b> — default dup-key mode to <code>warn</code>, or preserve all entries on decode.</li>
+        </ol>
+      </div>
+      <div class="phase p2">
+        <span class="tag">P2 · QUALITY</span>
+        <h4>Polish &amp; assurance ✓</h4>
+        <ol>
+          <li><b>L1/L2</b> — drop buffer→hex round-trips; buffer-native sequence source maps.</li>
+          <li><b>L5</b> — complete diagnostic notation + <code>fromDiagnostic</code>.</li>
+          <li>Add RFC 8949 Appendix A vectors as a CI gate + fuzz/round-trip property tests.</li>
+          <li><b>L3/L4</b> — harden <code>readUint</code>; louder plain-object key warning.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 REGISTER / CLOSE -->
+  <section class="slide">
+    <div class="eyebrow">Findings register</div>
+    <h2><span class="n">09</span>Everything, on one page</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Severity</th><th>Finding</th><th>Status</th><th>Fix lands in</th></tr></thead>
+      <tbody>
+        <tr><td><code>H1</code></td><td><span class="pill p-hi">High</span></td><td>source-map path lacks depth guard → stack-overflow DoS</td><td>✓ fixed</td><td>P0</td></tr>
+        <tr><td><code>H2</code></td><td><span class="pill p-hi">High</span></td><td>canonical order is length-first (§4.2.3), not §4.2.1 bytewise</td><td>✓ fixed</td><td>P1</td></tr>
+        <tr><td><code>M1</code></td><td><span class="pill p-med">Med</span></td><td>decode() ignores trailing bytes (no strict whole-input)</td><td>✓ fixed</td><td>P1</td></tr>
+        <tr><td><code>M2</code></td><td><span class="pill p-med">Med</span></td><td>encoder maxDepth bypassed across tag boundary</td><td>✓ fixed</td><td>P0</td></tr>
+        <tr><td><code>M3</code></td><td><span class="pill p-med">Med</span></td><td>duplicate map keys silently collapse (default)</td><td>✓ fixed</td><td>P1</td></tr>
+        <tr><td><code>M4</code></td><td><span class="pill p-med">Med</span></td><td>canonical mode accepts non-shortest tag numbers</td><td>✓ fixed</td><td>P1</td></tr>
+        <tr><td><code>M5</code></td><td><span class="pill p-med">Med</span></td><td>canBeFloat16 mis-bounded → encoder not self-canonical</td><td>✓ fixed</td><td>P0</td></tr>
+        <tr><td><code>L1-L5</code></td><td><span class="pill p-low">Low</span></td><td>seq-sourcemap O(N²), hex round-trips, readUint, object keys, diagnostic gaps</td><td>✓ fixed</td><td>P2</td></tr>
+      </tbody>
+    </table>
+    <div class="meta" style="margin-top:2rem">
+      <div><b>Bottom line</b><br>A careful, security-minded codec. Close the 3 P0 items and pick a deterministic order — then it's a safe deterministic CBOR library.</div>
+      <div><b>Reproduce</b><br>thoughts/audit-verify.mjs · probe.mjs · probe2-4.mjs</div>
+    </div>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button id="prev">‹</button>
+  <div class="dots" id="dots"></div>
+  <button id="next">›</button>
+  <span class="hint">← → / space</span>
+</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  const dots=document.getElementById('dots');
+  const bar=document.getElementById('bar');
+  const cur=document.getElementById('cur');
+  document.getElementById('tot').textContent=String(slides.length).padStart(2,'0');
+  let i=0;
+  slides.forEach((_,k)=>{const d=document.createElement('i');d.onclick=()=>go(k);dots.appendChild(d);});
+  const dotEls=[...dots.children];
+  function go(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    dotEls.forEach((d,k)=>d.classList.toggle('on',k===i));
+    bar.style.width=((i+1)/slides.length*100)+'%';
+    cur.textContent=String(i+1).padStart(2,'0');
+    slides[i].scrollTop=0;
+  }
+  document.getElementById('next').onclick=()=>go(i+1);
+  document.getElementById('prev').onclick=()=>go(i-1);
+  addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();go(i+1);}
+    if(e.key==='ArrowLeft'){go(i-1);}
+    if(e.key==='Home')go(0); if(e.key==='End')go(slides.length-1);
+  });
+  go(0);
+</script>
+</body>
+</html>

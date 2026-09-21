@@ -1,0 +1,128 @@
+{
+  "retrieved": "2026-09-09",
+  "source": "https://www.iana.org/assignments/cbor-tags/cbor-tags.xml",
+  "sourceSha256": "7fdfb10ed848363cbbf1dcef45e68429b0277da86695d3c8ac8c7d77a62761c3",
+  "registryUpdated": "2026-07-20",
+  "registry": "tags",
+  "recordCountIncludingRangesAndUnassigned": 351,
+  "rfcToTagNumbers": {
+    "rfc7049": [
+      "35"
+    ],
+    "rfc8392": [
+      "61"
+    ],
+    "rfc8746": [
+      "40",
+      "41",
+      "64",
+      "65",
+      "66",
+      "67",
+      "68",
+      "69",
+      "70",
+      "71",
+      "72",
+      "73",
+      "74",
+      "75",
+      "76",
+      "77",
+      "78",
+      "79",
+      "80",
+      "81",
+      "82",
+      "83",
+      "84",
+      "85",
+      "86",
+      "87",
+      "1040"
+    ],
+    "rfc8943": [
+      "100",
+      "1004"
+    ],
+    "rfc8949": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "21",
+      "22",
+      "23",
+      "24",
+      "32",
+      "33",
+      "34",
+      "36",
+      "55799"
+    ],
+    "rfc9052": [
+      "16",
+      "17",
+      "18",
+      "96",
+      "97",
+      "98"
+    ],
+    "rfc9090": [
+      "110",
+      "111",
+      "112"
+    ],
+    "rfc9132": [
+      "271"
+    ],
+    "rfc9164": [
+      "52",
+      "54",
+      "260",
+      "261"
+    ],
+    "rfc9254": [
+      "43",
+      "44",
+      "45",
+      "46",
+      "47"
+    ],
+    "rfc9277": [
+      "55800",
+      "55801",
+      "1668546817-1668612095"
+    ],
+    "rfc9290": [
+      "38"
+    ],
+    "rfc9338": [
+      "19"
+    ],
+    "rfc9393": [
+      "1398229316"
+    ],
+    "rfc9485": [
+      "21065"
+    ],
+    "rfc9542": [
+      "48",
+      "1048"
+    ],
+    "rfc9581": [
+      "1001",
+      "1002",
+      "1003"
+    ],
+    "rfc9711": [
+      "602"
+    ],
+    "rfc9781": [
+      "601"
+    ]
+  },
+  "note": "Inventory of references in the main tag registry only. Excludes time-tag map keys and timescales, non-RFC registrations, and RFCs that define CBOR profiles without assigning tags. Not an implementation coverage score."
+}

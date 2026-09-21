@@ -5,6 +5,125 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - Unreleased - July and September audit repairs
+
+Repairs the audited core parsing, encoding and Cardano-helper defects. Optional application protocols remain separately scoped. July regressions are recorded in
+`src/__tests__/audit-2026-07.test.ts` and
+`src/cardano/__tests__/cardano-audit-2026-07.test.ts`.
+
+### Roadmap completion
+
+- Bound temporary hexadecimal-conversion allocations for large wire values and cache successful CDDL schema diagnostics; pinned CIP-21 schemas are checked in the suite before use.
+- Add bounded incremental sequence framing, exact RFC 9581 semantic helpers and RFC 9164 address/prefix/interface validation.
+- Add opt-in CDDL validation with a pinned, reproducible WASM backend; repair upstream integer, map-key, recursion, tag-unwrapping, float and embedded-sequence cases found by regression tests.
+- Validate CIP-21 against pinned Conway ledger CDDL plus serialization, collection, set-tag, certificate, pool, governance and Catalyst restrictions.
+- Verify COSE Sign1 and multi-signer Sign using trusted Web Crypto keys, including protected headers, critical extensions, detached payloads, external AAD and RFC 9864 algorithm identifiers.
+- Stop misclassifying standalone Babbage outputs as transaction bodies; unwrap Conway certificate sets during era detection.
+
+### September repairs
+
+- One bounded scanner now drives normal decode, byte inputs, source maps and sequences. Missing breaks, BOM loss, option divergence, structural duplicate-key collisions and mixed collection/tag depth bypasses are fixed.
+- Correct shortest-float checks, including exhaustive finite binary16 coverage; wire-aware integer/float keys and NaN sign/payload comparisons follow RFC 8949 and verified erratum 8589.
+- Validate tag content before conversion; correct embedded CBOR, calendar/base64, bignum limits, uint64 tag numbers and recursive Plutus data checks.
+- Fix canonical map ordering with preserved entries, decoded simple values, indefinite normalization and encoder allocation/depth budgets.
+- Add lossless wire nodes, typed JSON transport, wire diagnostics, explicit validity profiles and optional registered-tag helpers.
+- Correct Shelley transaction metadata position, Conway witness-set wrappers and Plutus constructor labels/indices.
+- Preserve tag 1 non-finite timestamp values in the core validity policy: RFC 8949 §3.4.2 leaves their application interpretation open. The initial audit assumption requiring rejection was corrected.
+
+### Fixed
+
+#### Correctness (P0)
+- **`undefined` in collections encoded as null** - `encode([undefined])`
+  previously produced `81f6` (null); it now correctly produces `81f7`
+  everywhere (arrays, map values, nested structures). Top-level
+  `encode(undefined)` was already correct.
+- **CIP-25 parser broken against real decoder output** - `useCip25Parser` used
+  bracket access and `for...in` on structures the base decoder returns as
+  `Map` instances, so `extractCip25FromCbor(decode(...))` was always null.
+  The parser is now Map-aware at every level (label 721 as integer or string
+  key, policy/asset maps, files arrays) and supports byte-string keys/values
+  (CIP-25 v2). `useCardanoHelpers.parseCIP25Metadata` now delegates to the
+  single fixed implementation and returns a `Cip25ParseResult` (was: raw map).
+- **Bignum encode asymmetry** - the decoder produced BigInt beyond ±2^64 from
+  tags 2/3, but the encoder threw. Bigints outside the 64-bit range now encode
+  automatically as tag 2/3 with minimal-length big-endian content (no leading
+  zeros); decoded `{ tag: 2|3, value: BigInt }` wrappers re-encode to the
+  original bytes. Bigints that fit in 64 bits still use major type 0/1.
+  New `maxBignumBytes` encoder option (default 1024, mirrors parser limit).
+- **Encoder/parser depth asymmetry** - the encoder's default `maxDepth` was 64
+  while the parser's is 100, so values the parser decoded could fail to
+  re-encode. Encoder default is now 100.
+- **Residual O(N²) in `parseSequence`** - `dispatchFromBuffer` re-hexed the
+  entire remaining buffer for every container item (major types 4/5/6). It now
+  parses arrays, maps, and tags buffer-natively.
+- **Weaker validation for containers nested under tags** - `useCborTag` had
+  internal array/map parser copies that skipped canonical key-order
+  validation, `dupMapKeyMode` handling, and `ALL_ENTRIES_SYMBOL` round-trip
+  preservation. Tagged containers now route through the same
+  `useCborCollection` logic as top-level containers. (Error messages for
+  reserved additional-info values inside tags are now the unified
+  `Invalid additional info: N` form.)
+
+#### Cardano layer
+- **Pointer addresses misclassified** - address header types 4/5 were
+  reported as `enterprise` and their pointer data discarded. They are now
+  `type: 'pointer'` with the CIP-19 variable-length nat pointer parsed and
+  exposed (`stakeCredential: { type: 'pointer', slot, txIndex, certIndex }`).
+  Enterprise is types 6/7; base-address stake handling (0-3) unchanged.
+- **Byron era false-positive** - any `[0|1, x]` two-element array was
+  detected as Byron with high confidence. Byron structural evidence (tag-24
+  CBOR-in-CBOR wrapper, bootstrap-address bytes, header-sized byte strings)
+  is now required for the high-confidence marker; a bare `[0|1, container]`
+  yields only low confidence, and `[0|1, scalar]` is `unknown`.
+- **Missing Alonzo markers** - transaction-body fields 14 (required_signers,
+  incl. tag-258 wrapped) and 15 (network_id) now emit Alonzo era markers.
+- **Tag-258 sets not unwrapped** - `parseTransactionBody` now unwraps
+  tag-258 (set) wrappers for inputs, certificates, collateral, required
+  signers, reference inputs, and proposal procedures (Conway).
+- **Raw base-parser errors** - `useCardanoCborDecoder.decode` now wraps parse
+  failures with Cardano context (input size, byte offset when reported) while
+  preserving the original message and error as `cause`.
+
+### Added
+
+#### RFC 8949 completeness
+- **Tag 55799 self-described CBOR** - `encodeSelfDescribed(value)` /
+  `encode(value, { selfDescribed: true })` prefix the output with `d9d9f7`;
+  `decode(input, { unwrapSelfDescribed: true })` transparently unwraps a
+  top-level tag 55799 (default: false, tag preserved).
+- **Tags 21-23 (expected later encodings)** - decode remains pass-through
+  `{ tag, value }` (documented); new `useCborTag().applyExpectedEncoding()`
+  helper converts byte-string content to the promised base64url / base64 /
+  base16 string form for diagnostic purposes.
+- **Tag 32-36 semantic validation** - under `validateTagSemantics`, tags
+  33/34 now also validate the base64url/base64 alphabet of their content
+  (32/35/36 text+URI checks already existed and are covered by tests).
+- **`fromDiagnostic`** - diagnostic-notation parser for the documented supported forms
+  (integers incl. bigints and 0x hex, floats incl. Infinity/-Infinity/NaN and
+  `_N` width suffixes, strings with escapes, `h'…'`/`b64'…'` byte strings,
+  arrays, maps → `Map`, tagged values `n(…)`, `simple(n)`,
+  true/false/null/undefined, indefinite forms `[_ …]`/`{_ …}`/`(_ …)`,
+  arbitrary nesting, whitespace tolerance). Exported publicly as
+  `fromDiagnostic`.
+- **`DiagnosticOptions.showOffsets` wired** - `decodeToDiagnostic(hex,
+  { showOffsets: true })` decodes with a source map and annotates every value
+  with its byte span (e.g. `[1 /* 1-2 */] /* 0-2 */`) via the new
+  `toDiagnosticWithOffsets`.
+- **CIP-25 `files[].mediaType` validation** - lenient MIME-shape check;
+  issues are reported in the new `warnings` array of `Cip25ParseResult` /
+  `Cip25ValidationResult` (never an error).
+
+### Changed
+- `DEFAULT_ENCODE_OPTIONS.maxDepth`: 64 → 100 (parser parity).
+- `Cip25ParseResult` / `Cip25ValidationResult` gained a `warnings: string[]`
+  field; `useCardanoHelpers.parseCIP25Metadata(hex)` now returns a
+  `Cip25ParseResult` instead of the raw label-721 map.
+- README: ParseOptions/EncodeOptions tables corrected (parser `maxDepth`
+  default is 100; `rejectDuplicateKeys` is encoder-only — the parser uses
+  `dupMapKeyMode`; added the previously undocumented options), map-decode
+  examples now show `Map` output, and canonical ordering is documented as
+  length-first (RFC 7049 §3.9 / CIP-21) with `mapKeyOrder: 'bytewise'` opt-in.
+
 ## [0.3.0] - 2026-07-01 - Cardano application layer
 
 ### Added

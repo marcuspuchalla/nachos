@@ -1,0 +1,173 @@
+[
+  {
+    "requested": "hildjj/cbor2",
+    "repository": "hildjj/cbor2",
+    "url": "https://github.com/hildjj/cbor2",
+    "archived": false,
+    "defaultBranch": "main",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "HarmonicLabs/cbor",
+    "repository": "HarmonicLabs/cbor",
+    "url": "https://github.com/HarmonicLabs/cbor",
+    "archived": false,
+    "defaultBranch": "main",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "StableLib/stablelib",
+    "repository": "StableLib/stablelib",
+    "url": "https://github.com/StableLib/stablelib",
+    "archived": false,
+    "defaultBranch": "master",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "oslo-project/cbor",
+    "repository": "oslo-project/cbor",
+    "url": "https://github.com/oslo-project/cbor",
+    "archived": false,
+    "defaultBranch": "main",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "StricaHQ/cbors",
+    "repository": "StricaHQ/cbors",
+    "url": "https://github.com/StricaHQ/cbors",
+    "archived": false,
+    "defaultBranch": "master",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "laurencelundblade/QCBOR",
+    "repository": "laurencelundblade/QCBOR",
+    "url": "https://github.com/laurencelundblade/QCBOR",
+    "archived": false,
+    "defaultBranch": "master",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "intel/tinycbor",
+    "repository": "intel/tinycbor",
+    "url": "https://github.com/intel/tinycbor",
+    "archived": false,
+    "defaultBranch": "main",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "nordicsemi/zcbor",
+    "repository": "nordicsemi/zcbor",
+    "url": "https://github.com/nordicsemi/zcbor",
+    "archived": false,
+    "defaultBranch": "main",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "bergzand/NanoCBOR",
+    "repository": "bergzand/NanoCBOR",
+    "url": "https://github.com/bergzand/NanoCBOR",
+    "archived": false,
+    "defaultBranch": "master",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "twittner/minicbor",
+    "repository": "twittner/minicbor",
+    "url": "https://github.com/twittner/minicbor",
+    "archived": false,
+    "defaultBranch": "develop",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "quininer/cbor4ii",
+    "repository": "quininer/cbor4ii",
+    "url": "https://github.com/quininer/cbor4ii",
+    "archived": false,
+    "defaultBranch": "master",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "danielaparker/jsoncons",
+    "repository": "danielaparker/jsoncons",
+    "url": "https://github.com/danielaparker/jsoncons",
+    "archived": false,
+    "defaultBranch": "master",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "nlohmann/json",
+    "repository": "nlohmann/json",
+    "url": "https://github.com/nlohmann/json",
+    "archived": false,
+    "defaultBranch": "develop",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "FasterXML/jackson-dataformats-binary",
+    "repository": "FasterXML/jackson-dataformats-binary",
+    "url": "https://github.com/FasterXML/jackson-dataformats-binary",
+    "archived": false,
+    "defaultBranch": "3.x",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "Kotlin/kotlinx.serialization",
+    "repository": "Kotlin/kotlinx.serialization",
+    "url": "https://github.com/Kotlin/kotlinx.serialization",
+    "archived": false,
+    "defaultBranch": "master",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "well-typed/cborg",
+    "repository": "well-typed/cborg",
+    "url": "https://github.com/well-typed/cborg",
+    "archived": false,
+    "defaultBranch": "master",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "Emurgo/cardano-serialization-lib",
+    "repository": "Emurgo/cardano-serialization-lib",
+    "url": "https://github.com/Emurgo/cardano-serialization-lib",
+    "archived": false,
+    "defaultBranch": "master",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "dcSpark/cardano-multiplatform-lib",
+    "repository": "dcSpark/cardano-multiplatform-lib",
+    "url": "https://github.com/dcSpark/cardano-multiplatform-lib",
+    "archived": false,
+    "defaultBranch": "develop",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  },
+  {
+    "requested": "txpipe/pallas",
+    "repository": "txpipe/pallas",
+    "url": "https://github.com/txpipe/pallas",
+    "archived": false,
+    "defaultBranch": "main",
+    "checked": "2026-09-09",
+    "status": "candidate; not benchmarked in this audit"
+  }
+]

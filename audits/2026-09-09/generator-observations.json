@@ -1,0 +1,174 @@
+{
+  "generatedAt": "2026-09-09T11:52:44.971Z",
+  "method": "Copied current TACO tests to a temporary directory; bundled and ran all three source generators there; then ran the existing vector linter. Original tests were not changed.",
+  "changed": [
+    {
+      "file": "cardano/metadata_cip25.json",
+      "currentCount": 3,
+      "generatedCount": 3,
+      "currentAnyOf": 0,
+      "generatedAnyOf": 0,
+      "changedIds": [
+        "cip25-simple-nft"
+      ]
+    },
+    {
+      "file": "cardano/plutus_data.json",
+      "currentCount": 29,
+      "generatedCount": 29,
+      "currentAnyOf": 1,
+      "generatedAnyOf": 0,
+      "changedIds": [
+        "plutus-bytes-over-64-invalid"
+      ]
+    },
+    {
+      "file": "cardano/transactions.json",
+      "currentCount": 21,
+      "generatedCount": 9,
+      "currentAnyOf": 0,
+      "generatedAnyOf": 0,
+      "changedIds": []
+    },
+    {
+      "file": "core/03_byte_strings.json",
+      "currentCount": 14,
+      "generatedCount": 14,
+      "currentAnyOf": 0,
+      "generatedAnyOf": 0,
+      "changedIds": [
+        "bytes-nested-indefinite"
+      ]
+    },
+    {
+      "file": "core/04_text_strings.json",
+      "currentCount": 13,
+      "generatedCount": 16,
+      "currentAnyOf": 0,
+      "generatedAnyOf": 0,
+      "changedIds": [
+        "text-indefinite",
+        "text-invalid-utf8-overlong",
+        "text-invalid-utf8-surrogate",
+        "text-invalid-utf8-truncated"
+      ]
+    },
+    {
+      "file": "core/05_arrays.json",
+      "currentCount": 13,
+      "generatedCount": 13,
+      "currentAnyOf": 0,
+      "generatedAnyOf": 0,
+      "changedIds": [
+        "array-nested-2d",
+        "array-nested-3d"
+      ]
+    },
+    {
+      "file": "core/06_maps.json",
+      "currentCount": 14,
+      "generatedCount": 14,
+      "currentAnyOf": 0,
+      "generatedAnyOf": 0,
+      "changedIds": [
+        "map-simple-text-keys",
+        "map-mixed-key-types",
+        "map-nested",
+        "map-canonical-sorted",
+        "map-non-canonical-unsorted",
+        "map-truncated-odd-elements"
+      ]
+    },
+    {
+      "file": "core/07_tags.json",
+      "currentCount": 13,
+      "generatedCount": 13,
+      "currentAnyOf": 1,
+      "generatedAnyOf": 0,
+      "changedIds": [
+        "tag-102-general-constructor",
+        "tag-258-set",
+        "tag-001-invalid-content"
+      ]
+    },
+    {
+      "file": "core/08_simple_floats.json",
+      "currentCount": 21,
+      "generatedCount": 21,
+      "currentAnyOf": 0,
+      "generatedAnyOf": 0,
+      "changedIds": [
+        "simple-undefined",
+        "float16-infinity",
+        "float16-neg-infinity",
+        "float16-nan",
+        "float32-pi",
+        "float32-infinity",
+        "float32-nan",
+        "float64-infinity",
+        "float64-neg-infinity",
+        "float64-nan",
+        "simple-reserved"
+      ]
+    },
+    {
+      "file": "edge_cases/canonical.json",
+      "currentCount": 17,
+      "generatedCount": 17,
+      "currentAnyOf": 1,
+      "generatedAnyOf": 0,
+      "changedIds": [
+        "canonical-indefinite-text",
+        "canonical-map-unsorted-text",
+        "canonical-map-unsorted-length",
+        "canonical-map-unsorted-lexicographic",
+        "canonical-map-duplicate-text-keys",
+        "canonical-map-duplicate-int-keys",
+        "canonical-map-int-keys-sorted"
+      ]
+    },
+    {
+      "file": "edge_cases/limits.json",
+      "currentCount": 17,
+      "generatedCount": 17,
+      "currentAnyOf": 0,
+      "generatedAnyOf": 0,
+      "changedIds": [
+        "limits-nesting-depth-500",
+        "limits-cardano-max-ada-supply",
+        "limits-plutus-bytes-65-invalid",
+        "limits-asset-name-33-invalid"
+      ]
+    },
+    {
+      "file": "edge_cases/malformed.json",
+      "currentCount": 32,
+      "generatedCount": 32,
+      "currentAnyOf": 7,
+      "generatedAnyOf": 0,
+      "changedIds": [
+        "malformed-utf8-overlong",
+        "malformed-utf8-surrogate-high",
+        "malformed-utf8-surrogate-low",
+        "malformed-utf8-truncated-2byte",
+        "malformed-utf8-truncated-3byte",
+        "malformed-utf8-invalid-continuation",
+        "malformed-utf8-beyond-unicode",
+        "malformed-map-indefinite-odd",
+        "malformed-nested-indefinite-bytes",
+        "malformed-simple-reserved-0-19",
+        "malformed-simple-false-twobyte",
+        "malformed-trailing-bytes-after-int",
+        "malformed-trailing-bytes-after-array",
+        "malformed-tag-0-invalid-content",
+        "malformed-tag-1-invalid-content",
+        "malformed-tag-2-invalid-content"
+      ]
+    }
+  ],
+  "lint": {
+    "exitCode": 1,
+    "stdout": "\nlint-vectors: 41 error(s), 0 warning(s)\n",
+    "stderr": "ERROR core/03_byte_strings.json#bytes-nested-indefinite: inputHex contains whitespace (normalize the vector file)\nERROR core/04_text_strings.json#text-indefinite: inputHex contains whitespace (normalize the vector file)\nERROR core/04_text_strings.json#text-indefinite: shouldSucceed:true but hex is not well-formed CBOR: truncated string chunk\nERROR core/05_arrays.json#array-nested-2d: inputHex contains whitespace (normalize the vector file)\nERROR core/05_arrays.json#array-nested-3d: inputHex contains whitespace (normalize the vector file)\nERROR core/06_maps.json#map-simple-text-keys: inputHex contains whitespace (normalize the vector file)\nERROR core/06_maps.json#map-mixed-key-types: inputHex contains whitespace (normalize the vector file)\nERROR core/06_maps.json#map-nested: inputHex contains whitespace (normalize the vector file)\nERROR core/06_maps.json#map-canonical-sorted: inputHex contains whitespace (normalize the vector file)\nERROR core/06_maps.json#map-non-canonical-unsorted: inputHex contains whitespace (normalize the vector file)\nERROR core/06_maps.json#map-truncated-odd-elements: inputHex contains whitespace (normalize the vector file)\nERROR core/07_tags.json#tag-102-general-constructor: inputHex contains whitespace (normalize the vector file)\nERROR core/07_tags.json#tag-102-general-constructor: shouldSucceed:true but hex is not well-formed CBOR: extraneous bytes after data item (5 of 8 consumed)\nERROR core/07_tags.json#tag-258-set: inputHex contains whitespace (normalize the vector file)\nERROR core/08_simple_floats.json#simple-undefined: shouldSucceed:true vector missing expectedOutput\nERROR core/08_simple_floats.json#float16-infinity: expectedOutput is bare null but input is not CBOR null (use the proper marker)\nERROR core/08_simple_floats.json#float16-infinity: special float input requires a {\"__cbor_float__\": ...} marker as expectedOutput\nERROR core/08_simple_floats.json#float16-neg-infinity: expectedOutput is bare null but input is not CBOR null (use the proper marker)\nERROR core/08_simple_floats.json#float16-neg-infinity: special float input requires a {\"__cbor_float__\": ...} marker as expectedOutput\nERROR core/08_simple_floats.json#float16-nan: expectedOutput is bare null but input is not CBOR null (use the proper marker)\nERROR core/08_simple_floats.json#float16-nan: special float input requires a {\"__cbor_float__\": ...} marker as expectedOutput\nERROR core/08_simple_floats.json#float32-infinity: expectedOutput is bare null but input is not CBOR null (use the proper marker)\nERROR core/08_simple_floats.json#float32-infinity: special float input requires a {\"__cbor_float__\": ...} marker as expectedOutput\nERROR core/08_simple_floats.json#float32-nan: expectedOutput is bare null but input is not CBOR null (use the proper marker)\nERROR core/08_simple_floats.json#float32-nan: special float input requires a {\"__cbor_float__\": ...} marker as expectedOutput\nERROR core/08_simple_floats.json#float64-infinity: expectedOutput is bare null but input is not CBOR null (use the proper marker)\nERROR core/08_simple_floats.json#float64-infinity: special float input requires a {\"__cbor_float__\": ...} marker as expectedOutput\nERROR core/08_simple_floats.json#float64-neg-infinity: expectedOutput is bare null but input is not CBOR null (use the proper marker)\nERROR core/08_simple_floats.json#float64-neg-infinity: special float input requires a {\"__cbor_float__\": ...} marker as expectedOutput\nERROR core/08_simple_floats.json#float64-nan: expectedOutput is bare null but input is not CBOR null (use the proper marker)\nERROR core/08_simple_floats.json#float64-nan: special float input requires a {\"__cbor_float__\": ...} marker as expectedOutput\nERROR core/08_simple_floats.json#simple-reserved: inputHex contains whitespace (normalize the vector file)\nERROR edge_cases/canonical.json#canonical-indefinite-text: inputHex contains whitespace (normalize the vector file)\nERROR edge_cases/canonical.json#canonical-indefinite-text: shouldSucceed:true but hex is not well-formed CBOR: truncated string chunk\nERROR edge_cases/canonical.json#canonical-map-unsorted-text: inputHex contains whitespace (normalize the vector file)\nERROR edge_cases/canonical.json#canonical-map-unsorted-length: inputHex contains whitespace (normalize the vector file)\nERROR edge_cases/canonical.json#canonical-map-unsorted-length: shouldSucceed:true but hex is not well-formed CBOR: extraneous bytes after data item (10 of 16 consumed)\nERROR edge_cases/canonical.json#canonical-map-unsorted-lexicographic: inputHex contains whitespace (normalize the vector file)\nERROR edge_cases/canonical.json#canonical-map-int-keys-sorted: shouldSucceed:true but hex is not well-formed CBOR: truncated: expected data item\nERROR edge_cases/malformed.json#malformed-nested-indefinite-bytes: inputHex contains whitespace (normalize the vector file)\nERROR edge_cases/malformed.json#malformed-tag-1-invalid-content: inputHex contains whitespace (normalize the vector file)\n"
+  }
+}

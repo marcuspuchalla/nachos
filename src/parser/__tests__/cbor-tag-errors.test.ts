@@ -135,21 +135,21 @@ describe('useCborTag - Error Handling', () => {
 
       // Tag 0 with array using reserved AI 28
       // c0 (tag 0) + 9c (array, AI 28 - reserved)
-      expect(() => parseTag('c09c')).toThrow('Invalid additional info for array: 28')
+      expect(() => parseTag('c09c')).toThrow('Invalid additional info: 28')
     })
 
     it('should throw error for reserved AI 29 in array', () => {
       const { parseTag } = useCborTag()
 
       // Tag 0 with array using reserved AI 29
-      expect(() => parseTag('c09d')).toThrow('Invalid additional info for array: 29')
+      expect(() => parseTag('c09d')).toThrow('Invalid additional info: 29')
     })
 
     it('should throw error for reserved AI 30 in array', () => {
       const { parseTag } = useCborTag()
 
       // Tag 0 with array using reserved AI 30
-      expect(() => parseTag('c09e')).toThrow('Invalid additional info for array: 30')
+      expect(() => parseTag('c09e')).toThrow('Invalid additional info: 30')
     })
   })
 
@@ -267,21 +267,21 @@ describe('useCborTag - Error Handling', () => {
 
       // Tag 0 with map using reserved AI 28
       // c0 (tag 0) + bc (map, AI 28 - reserved)
-      expect(() => parseTag('c0bc')).toThrow('Invalid additional info for map: 28')
+      expect(() => parseTag('c0bc')).toThrow('Invalid additional info: 28')
     })
 
     it('should throw error for reserved AI 29 in map', () => {
       const { parseTag } = useCborTag()
 
       // Tag 0 with map using reserved AI 29
-      expect(() => parseTag('c0bd')).toThrow('Invalid additional info for map: 29')
+      expect(() => parseTag('c0bd')).toThrow('Invalid additional info: 29')
     })
 
     it('should throw error for reserved AI 30 in map', () => {
       const { parseTag } = useCborTag()
 
       // Tag 0 with map using reserved AI 30
-      expect(() => parseTag('c0be')).toThrow('Invalid additional info for map: 30')
+      expect(() => parseTag('c0be')).toThrow('Invalid additional info: 30')
     })
   })
 
@@ -351,13 +351,12 @@ describe('useCborTag - Error Handling', () => {
       expect(result.value.tag).toBe(100)
     })
 
-    it('should throw error for tag number exceeding MAX_SAFE_INTEGER', () => {
+    it('preserves tag numbers exceeding MAX_SAFE_INTEGER as bigint', () => {
       const { parseTag } = useCborTag()
 
       // Tag number larger than MAX_SAFE_INTEGER (2^53 - 1)
       // db0020000000000000 (tag 2^53) + 00 (value)
-      expect(() => parseTag('db002000000000000000')).toThrow('Tag number')
-      expect(() => parseTag('db002000000000000000')).toThrow('exceeds maximum safe integer')
+      expect(parseTag('db002000000000000000').value).toEqual({ tag: 9007199254740992n, value: 0 })
     })
 
     it('should throw error for reserved AI 28', () => {

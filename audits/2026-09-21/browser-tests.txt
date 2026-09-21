@@ -1,0 +1,19 @@
+
+> cardano-cbor-decoder@0.4.0 test:browser
+> playwright test
+
+[WebServer] (node:28141) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:28153) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 browser-tests/cardano.spec.ts:11:1 › real Cardano examples show provenance, governance and working WASM validation (6.9s)
+  ✓  2 browser-tests/cardano.spec.ts:49:1 › real redeemer and inline datum examples can be inspected without losing bytes (6.1s)
+  ✓  3 browser-tests/decoder.spec.ts:3:1 › production worker decodes, validates, cancels, exports typed JSON and registers the PWA (4.5s)
+(node:28373) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 browser-tests/upgrade.spec.ts:5:1 › a cached older PWA offers an update and serves the new codec identity after reload (5.6s)
+
+  4 passed (33.2s)

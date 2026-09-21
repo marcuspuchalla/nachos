@@ -92,8 +92,9 @@ export function useCardanoEraDetector() {
     // Check if it's a full transaction array
     if (Array.isArray(parsed) && parsed.length >= 2) {
       const body = parsed[0]
-      if (body instanceof Map || (typeof body === 'object' && body !== null)) {
-        txBody = normalizeToMap(body)
+      const candidate = normalizeToMap(body)
+      if (looksLikeBody(candidate)) {
+        txBody = candidate
         markers.push({
           type: 'structure',
           description: 'Full transaction structure detected',
@@ -121,7 +122,7 @@ export function useCardanoEraDetector() {
       }
     }
 
-    if (!txBody) {
+    if (!txBody || !looksLikeBody(txBody)) {
       // Not a transaction, try other structures
       return undefined
     }
@@ -129,6 +130,9 @@ export function useCardanoEraDetector() {
     // Analyze transaction body fields
     return analyzeTransactionBody(txBody, markers, warnings)
   }
+
+  const looksLikeBody = (body: Map<number, CborValue>): boolean =>
+    Array.isArray(unwrapTaggedValue(body.get(0))) && Array.isArray(body.get(1))
 
   /**
    * Normalize object or Map to Map<number, CborValue>
@@ -187,9 +191,9 @@ export function useCardanoEraDetector() {
 
     // Field 2: fee
     const fee = txBody.get(TRANSACTION_BODY_FIELDS.fee)
-    if (fee !== undefined) {
-      info.fee = typeof fee === 'bigint' ? fee : BigInt(fee as number)
-    }
+    if (typeof fee === 'bigint' || typeof fee === 'number' && Number.isSafeInteger(fee)) {
+      info.fee = BigInt(fee)
+    } else if (fee !== undefined) warnings.push('Transaction fee is not an integer')
 
     // Field 3: ttl (Shelley+)
     const ttl = txBody.get(TRANSACTION_BODY_FIELDS.ttl)
@@ -205,7 +209,7 @@ export function useCardanoEraDetector() {
     }
 
     // Field 4: certificates (Shelley+)
-    const certificates = txBody.get(TRANSACTION_BODY_FIELDS.certificates)
+    const certificates = unwrapTaggedValue(txBody.get(TRANSACTION_BODY_FIELDS.certificates))
     if (certificates && Array.isArray(certificates) && certificates.length > 0) {
       info.hasCertificates = true
       info.certificateTypes = analyzeCertificates(certificates, markers)
@@ -257,6 +261,30 @@ export function useCardanoEraDetector() {
         era: 'alonzo',
         field: 'script_data_hash',
         confidence: 'high',
+      })
+    }
+
+    // Field 14: required_signers (Alonzo+)
+    const requiredSigners = txBody.get(TRANSACTION_BODY_FIELDS.required_signers)
+    const unwrappedSigners = unwrapTaggedValue(requiredSigners)
+    if (unwrappedSigners && Array.isArray(unwrappedSigners) && unwrappedSigners.length > 0) {
+      markers.push({
+        type: 'transaction_field',
+        description: `Required signers present (${unwrappedSigners.length} signer${unwrappedSigners.length > 1 ? 's' : ''}, Plutus)`,
+        era: 'alonzo',
+        field: 'required_signers',
+        confidence: 'high',
+      })
+    }
+
+    // Field 15: network_id (Alonzo+)
+    if (txBody.has(TRANSACTION_BODY_FIELDS.network_id)) {
+      markers.push({
+        type: 'transaction_field',
+        description: 'Network ID field present (Alonzo feature)',
+        era: 'alonzo',
+        field: 'network_id',
+        confidence: 'medium',
       })
     }
 
@@ -882,21 +910,82 @@ export function useCardanoEraDetector() {
       return addressEra
     }
 
-    // Check for block structure
+    // Check for Byron block structure: [0, ebblock] or [1, mainblock].
+    // A bare [0|1, x] 2-element array is far too weak on its own (any CBOR
+    // pair matches), so require actual Byron structural evidence in the
+    // payload before claiming Byron with high confidence.
     if (Array.isArray(parsed) && parsed.length === 2) {
-      const [tag] = parsed
-      if (tag === 0 || tag === 1) {
+      const [tag, payload] = parsed
+      if ((tag === 0 || tag === 1) && isContainer(payload)) {
+        if (hasByronEvidence(payload)) {
+          markers.push({
+            type: 'structure',
+            description: 'Byron block structure detected',
+            era: 'byron',
+            confidence: 'high',
+          })
+          return 'byron'
+        }
+        // Container payload without Byron markers: possible but unproven
         markers.push({
           type: 'structure',
-          description: 'Byron block structure detected',
+          description: 'Possible Byron block framing ([0|1, …]) without Byron markers',
           era: 'byron',
-          confidence: 'high',
+          confidence: 'low',
         })
         return 'byron'
       }
     }
 
     return 'unknown'
+  }
+
+  /** True for values that can hold Byron block content */
+  const isContainer = (value: CborValue): boolean => {
+    return Array.isArray(value) || value instanceof Map ||
+      (typeof value === 'object' && value !== null && !(value instanceof Uint8Array) &&
+        !('tag' in (value as object)))
+  }
+
+  /**
+   * Shallow scan (bounded depth) for Byron-specific structural evidence:
+   * - Tag 24 (CBOR-in-CBOR) wrappers, used by Byron address attributes
+   * - Byron bootstrap address bytes (0x82 prefix, >= 82 bytes)
+   * - Large hash/header byte strings (>= 64 bytes) typical of Byron
+   *   block headers
+   */
+  const hasByronEvidence = (value: CborValue, depth: number = 0): boolean => {
+    if (depth > 3 || value === null || value === undefined) return false
+
+    if (value instanceof Uint8Array) {
+      if (value.length >= 82 && value[0] === 0x82) return true // bootstrap address
+      if (value.length >= 64) return true // header/hash blob
+      return false
+    }
+
+    if (typeof value === 'object' && 'tag' in (value as object)) {
+      const tagged = value as { tag: number; value: CborValue }
+      if (tagged.tag === 24) return true // CBOR-in-CBOR (Byron attributes)
+      return hasByronEvidence(tagged.value, depth + 1)
+    }
+
+    if (Array.isArray(value)) {
+      return value.some(item => hasByronEvidence(item, depth + 1))
+    }
+
+    if (value instanceof Map) {
+      for (const [k, v] of value.entries()) {
+        if (hasByronEvidence(k, depth + 1) || hasByronEvidence(v, depth + 1)) return true
+      }
+      return false
+    }
+
+    if (typeof value === 'object') {
+      return Object.values(value as unknown as Record<string, CborValue>)
+        .some(item => hasByronEvidence(item, depth + 1))
+    }
+
+    return false
   }
 
   /**

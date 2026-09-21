@@ -54,3 +54,20 @@ export {
   extractCborHeader,
   validateUtf8Strict
 } from './utils'
+
+export { decodeLossless, encodeLossless, cborSemanticEqual, nodeToDiagnostic, nodeToCborJson, valueToCborJson, cborJsonToValue } from './lossless'
+export type { CborJson } from './lossless'
+export type { CborNode } from './scanner'
+export type { CborFloat, MapKeyOrder } from './types'
+export { INDEFINITE_SYMBOL, ALL_ENTRIES_SYMBOL } from './types'
+
+export { getTagDefinition, TAG_DEFINITIONS, TAG_REGISTRY_UPDATED } from './registry'
+export type { TagDefinition } from './registry'
+
+export { typedArrayView, decodeObjectIdentifier, validateRegisteredTag } from './extensions'
+export { decodeIpAddress, formatIpAddress } from './ip'
+export type { CborIpAddress } from './ip'
+export { decodeExtendedTime } from './time'
+export type { ExtendedTime, ExtendedPeriod, ExactTimeSeconds } from './time'
+export { createSequenceDecoder, decodeSequenceStream } from './stream'
+export type { SequenceStreamOptions, StreamItem } from './stream'

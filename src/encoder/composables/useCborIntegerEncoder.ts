@@ -4,8 +4,37 @@
  * Following RFC 8949 specification
  */
 
-import type { EncodeResult } from '../types'
+import type { EncodeResult, EncodeOptions } from '../types'
+import { DEFAULT_ENCODE_OPTIONS } from '../types'
 import { bytesToHex, writeUint, writeBigUint } from '../utils'
+
+/** Largest value encodable as CBOR major type 0 (2^64 - 1) */
+const MAX_UINT64 = 18446744073709551615n
+/** Smallest value encodable as CBOR major type 1 (-2^64) */
+const MIN_INT64 = -18446744073709551616n
+
+/**
+ * Convert a non-negative bigint to its minimal-length big-endian byte
+ * representation (no leading zero bytes, per RFC 8949 §4.2.1 deterministic
+ * bignum encoding). Zero encodes as an empty byte string.
+ */
+export function bigintToMinimalBytes(n: bigint): Uint8Array {
+  if (n < 0n) {
+    throw new Error('bigintToMinimalBytes requires a non-negative value')
+  }
+  if (n === 0n) {
+    return new Uint8Array(0)
+  }
+  let hex = n.toString(16)
+  if (hex.length % 2 !== 0) {
+    hex = '0' + hex
+  }
+  const bytes = new Uint8Array(hex.length / 2)
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.substring(i * 2, i * 2 + 2), 16)
+  }
+  return bytes
+}
 
 /**
  * CBOR Integer Encoder Composable
@@ -31,7 +60,9 @@ import { bytesToHex, writeUint, writeBigUint } from '../utils'
  * // result3: { bytes: Uint8Array([0x38, 0x63]), hex: '3863' }
  * ```
  */
-export function useCborIntegerEncoder() {
+export function useCborIntegerEncoder(globalOptions?: Partial<EncodeOptions>) {
+  const maxBignumBytes = globalOptions?.maxBignumBytes ?? DEFAULT_ENCODE_OPTIONS.maxBignumBytes
+
   /**
    * Encode unsigned integer (Major Type 0)
    *
@@ -173,6 +204,14 @@ export function useCborIntegerEncoder() {
   const encodeInteger = (value: number | bigint): EncodeResult => {
     const bigValue = typeof value === 'bigint' ? value : BigInt(value)
 
+    // Bigints outside the 64-bit CBOR integer range are automatically encoded
+    // as bignums (tag 2 for positive, tag 3 for negative, RFC 8949 §3.4.3).
+    // Values that DO fit in 64 bits always use major type 0/1 (preferred
+    // serialization, RFC 8949 §4.2.1) — never tags 2/3.
+    if (bigValue > MAX_UINT64 || bigValue < MIN_INT64) {
+      return encodeBignum(bigValue)
+    }
+
     if (bigValue < 0n) {
       return encodeNegativeInt(bigValue)
     } else {
@@ -180,9 +219,64 @@ export function useCborIntegerEncoder() {
     }
   }
 
+  /**
+   * Encode a bigint as a CBOR bignum (tag 2 = positive, tag 3 = negative).
+   *
+   * Content is a byte string holding the minimal-length big-endian magnitude
+   * (n for tag 2, -1-n for tag 3), with no leading zero bytes per the
+   * deterministic encoding rules (RFC 8949 §4.2.1).
+   *
+   * @param value - Any bigint (typically outside the ±2^64 range)
+   * @returns Encoded CBOR bytes and hex string
+   * @throws Error if the magnitude exceeds maxBignumBytes
+   */
+  const encodeBignum = (value: bigint): EncodeResult => {
+    const isNegative = value < 0n
+    const magnitude = isNegative ? -1n - value : value
+    const content = bigintToMinimalBytes(magnitude)
+
+    if (content.length > maxBignumBytes) {
+      throw new Error(
+        `Bignum size ${content.length} bytes exceeds limit of ${maxBignumBytes} bytes`
+      )
+    }
+
+    // Tag header: 0xc2 (tag 2, positive) or 0xc3 (tag 3, negative)
+    const tagByte = isNegative ? 0xc3 : 0xc2
+
+    // Byte string header (major type 2) for the content length
+    let header: number[]
+    if (content.length <= 23) {
+      header = [0x40 | content.length]
+    } else if (content.length <= 255) {
+      header = [0x58, content.length]
+    } else if (content.length <= 65535) {
+      header = [0x59, (content.length >> 8) & 0xff, content.length & 0xff]
+    } else {
+      header = [
+        0x5a,
+        (content.length >>> 24) & 0xff,
+        (content.length >> 16) & 0xff,
+        (content.length >> 8) & 0xff,
+        content.length & 0xff
+      ]
+    }
+
+    const bytes = new Uint8Array(1 + header.length + content.length)
+    bytes[0] = tagByte
+    bytes.set(header, 1)
+    bytes.set(content, 1 + header.length)
+
+    return {
+      bytes,
+      hex: bytesToHex(bytes)
+    }
+  }
+
   return {
     encodeUnsignedInt,
     encodeNegativeInt,
-    encodeInteger
+    encodeInteger,
+    encodeBignum
   }
 }

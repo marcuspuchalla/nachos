@@ -5,6 +5,8 @@
  */
 
 import type { EncodeResult, EncodeOptions, EncodableValue, TaggedValue } from '../types'
+import { checkEncodingBudget } from '../budget'
+import { bytesToHex } from '../utils'
 import { DEFAULT_ENCODE_OPTIONS } from '../types'
 import { useCborIntegerEncoder } from './useCborIntegerEncoder'
 import { useCborStringEncoder } from './useCborStringEncoder'
@@ -48,7 +50,7 @@ export function useCborEncoder(globalOptions?: Partial<EncodeOptions>) {
   }
 
   // Get all specialized encoders
-  const { encodeInteger } = useCborIntegerEncoder()
+  const { encodeInteger } = useCborIntegerEncoder(options)
   const { encodeTextString, encodeByteString } = useCborStringEncoder(options)
   const { encodeArray, encodeMap, setMainEncode } = useCborCollectionEncoder(options)
   const { encodeSimple, encodeFloat } = useCborSimpleEncoder(options)
@@ -75,12 +77,26 @@ export function useCborEncoder(globalOptions?: Partial<EncodeOptions>) {
    * @throws Error if value type is unsupported
    */
   const encode = (value: EncodableValue): EncodeResult => {
-    const result = encodeValue(value)
+    if (currentDepth === 0) checkEncodingBudget(value, options.maxOutputSize, options.maxDepth)
+    let result = encodeValue(value)
+
+    // Self-described CBOR (RFC 8949 §3.4.6): wrap the output in tag 55799 so
+    // it starts with the magic bytes d9d9f7. Only applied at the true top
+    // level — encode() re-enters recursively for nested tagged values
+    // (currentDepth > 0 there), which must not be wrapped.
+    if (options.selfDescribed && currentDepth === 0) {
+      const wrapped = new Uint8Array(3 + result.bytes.length)
+      wrapped[0] = 0xd9
+      wrapped[1] = 0xd9
+      wrapped[2] = 0xf7
+      wrapped.set(result.bytes, 3)
+      result = { bytes: wrapped, hex: 'd9d9f7' + result.hex }
+    }
 
     // Enforce maxOutputSize at the root level.
     // This is the single authoritative check — collection/string encoders no longer
     // track bytesWritten individually, which was broken for nested structures.
-    if (options.maxOutputSize && result.bytes.length > options.maxOutputSize) {
+    if (result.bytes.length > options.maxOutputSize) {
       throw new Error(
         `Encoded output size ${result.bytes.length} bytes exceeds limit of ${options.maxOutputSize} bytes`
       )
@@ -101,7 +117,7 @@ export function useCborEncoder(globalOptions?: Partial<EncodeOptions>) {
    */
   const encodeValue = (value: EncodableValue): EncodeResult => {
     if (currentDepth > options.maxDepth) {
-      throw new Error(`Maximum nesting depth ${options.maxDepth} exceeded`)
+      throw new Error(`Maximum nesting depth exceeded (limit ${options.maxDepth})`)
     }
     currentDepth++
     try {
@@ -155,6 +171,32 @@ export function useCborEncoder(globalOptions?: Partial<EncodeOptions>) {
       return encodeByteString(value)
     }
 
+    if (typeof value === 'object' && value !== null && 'type' in value && value.type === 'cbor-float') {
+      const f = value as { value: number; bytes?: Uint8Array }
+      if (f.bytes && !options.canonical) return { bytes: f.bytes.slice(), hex: Array.from(f.bytes, b => b.toString(16).padStart(2, '0')).join('') }
+      if (f.bytes && Number.isNaN(f.value)) {
+        const inputWidth = f.bytes.length - 1
+        const precision = inputWidth === 2 ? 10n : inputWidth === 4 ? 23n : 52n
+        let bits = 0n
+        for (const byte of f.bytes.subarray(1)) bits = (bits << 8n) | BigInt(byte)
+        const sign = bits >> BigInt(inputWidth * 8 - 1)
+        const payload = (bits & ((1n << precision) - 1n)) << (64n - precision)
+        const width = (payload & ((1n << 54n) - 1n)) === 0n ? 2 : (payload & ((1n << 41n) - 1n)) === 0n ? 4 : 8
+        const p = width === 2 ? 10n : width === 4 ? 23n : 52n
+        const exponent = width === 2 ? 31n : width === 4 ? 255n : 2047n
+        let output = (sign << BigInt(width * 8 - 1)) | (exponent << p) | (payload >> (64n - p))
+        const bytes = new Uint8Array(width + 1); bytes[0] = width === 2 ? 0xf9 : width === 4 ? 0xfa : 0xfb
+        for (let i = width; i > 0; i--) { bytes[i] = Number(output & 255n); output >>= 8n }
+        return { bytes, hex: Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('') }
+      }
+      for (const precision of [16, 32, 64] as const) {
+        const result = encodeFloat(f.value, precision)
+        const abs = Math.abs(f.value)
+        const fits16 = !Number.isFinite(abs) || abs === 0 || (abs <= 65504 && Number.isInteger(abs / (abs < 2 ** -14 ? 2 ** -24 : 2 ** (Math.floor(Math.log2(abs)) - 10))))
+        if (precision === 64 || (precision === 16 && fits16) || (precision === 32 && Object.is(Math.fround(f.value), f.value))) return result
+      }
+    }
+
     // Handle arrays
     if (Array.isArray(value)) {
       return encodeArray(value)
@@ -167,8 +209,15 @@ export function useCborEncoder(globalOptions?: Partial<EncodeOptions>) {
 
     // Handle tagged values (MUST come before plain objects)
     // Check for {tag: number, value: any} structure
-    if (typeof value === 'object' && value !== null && 'tag' in value && 'value' in value && typeof (value as { tag: unknown }).tag === 'number') {
+    if (typeof value === 'object' && value !== null && 'tag' in value && 'value' in value && (typeof (value as { tag: unknown }).tag === 'number' || typeof (value as { tag: unknown }).tag === 'bigint')) {
       return encodeTaggedValue(value as TaggedValue, encode)
+    }
+
+    if (typeof value === 'object' && value !== null && 'simpleValue' in value) {
+      const simple = value.simpleValue
+      if (typeof simple !== 'number' || !Number.isInteger(simple) || simple < 0 || simple > 255 || (simple >= 24 && simple < 32)) throw new Error('Invalid simple value')
+      const bytes = new Uint8Array(simple < 24 ? [0xe0 + simple] : [0xf8, simple])
+      return { bytes, hex: Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('') }
     }
 
     // Handle plain objects
@@ -221,6 +270,7 @@ export function useCborEncoder(globalOptions?: Partial<EncodeOptions>) {
 
     // Concatenate all encoded values
     const totalLength = allBytes.reduce((sum, arr) => sum + arr.length, 0)
+    if (totalLength > options.maxOutputSize) throw new Error(`Encoded output size ${totalLength} bytes exceeds limit of ${options.maxOutputSize} bytes`)
     const concatenated = new Uint8Array(totalLength)
 
     let offset = 0
@@ -229,9 +279,7 @@ export function useCborEncoder(globalOptions?: Partial<EncodeOptions>) {
       offset += bytes.length
     }
 
-    const hex = Array.from(concatenated)
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('')
+    const hex = bytesToHex(concatenated)
 
     return {
       bytes: concatenated,

@@ -49,12 +49,27 @@ export function useCardanoCborDecoder() {
   /**
    * Decode CBOR with Cardano-specific interpretations
    */
-  const decode = (hexString: string): CardanoParseResult => {
+  const decode = (hexString: string, options?: import('../../parser/types').ParseOptions): CardanoParseResult => {
     // Clean hex string
     const cleanHex = hexString.replace(/\s+/g, '')
 
-    // Parse with source map
-    const result = parseWithSourceMap(cleanHex)
+    // Parse with source map — wrap base-parser failures with Cardano context
+    // while preserving the original message and error as `cause`.
+    let result: ReturnType<typeof parseWithSourceMap>
+    try {
+      result = parseWithSourceMap(cleanHex, options)
+    } catch (e) {
+      const original = e instanceof Error ? e : new Error(String(e))
+      // Surface a byte offset when the base parser reported one
+      const offsetMatch = original.message.match(/offset (\d+)/)
+      const offsetInfo = offsetMatch ? `, at byte offset ${offsetMatch[1]}` : ''
+      const wrapped = new Error(
+        `Cardano CBOR decode failed (input ${cleanHex.length / 2} bytes${offsetInfo}): ${original.message}`
+      )
+      // Preserve the original error (assigned manually — lib target predates ES2022 cause)
+      ;(wrapped as Error & { cause?: Error }).cause = original
+      throw wrapped
+    }
 
     // Enhance source map entries with Cardano context
     const enhancedMap: CardanoSourceMapEntry[] = result.sourceMap.map(entry => {
@@ -252,7 +267,7 @@ export function useCardanoCborDecoder() {
       32: 'URI',
       33: 'base64url (no padding)',
       34: 'base64 (no padding)',
-      121: 'Cardano: address with network tag',
+      121: 'Cardano: Plutus constructor 0',
       122: 'Cardano: witness set',
       258: 'Cardano: set',
       259: 'Cardano: auxiliary data'

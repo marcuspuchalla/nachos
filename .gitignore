@@ -5,8 +5,15 @@ coverage/
 .DS_Store
 .env
 .env.local
+.claude/
+.tldr/
+.tldrignore
+\#*\#
+.\#*
 *.md
 !README.md
 !CHANGELOG.md
 !CODE_OF_CONDUCT.md
 !CONTRIBUTING.md
+!audits/**/*.md
+!specs/**/*.md

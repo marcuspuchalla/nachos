@@ -1,0 +1,4 @@
+
+> @marcuspuchalla/nachos@0.4.0 type-check
+> tsc --noEmit
+

@@ -1,0 +1,62 @@
+
+> @marcuspuchalla/nachos@0.4.0 build
+> tsup
+
+CLI Building entry: {"index":"src/index.ts","parser/index":"src/parser/index.ts","encoder/index":"src/encoder/index.ts","cddl/index":"src/cddl/index.ts"}
+CLI Using tsconfig: tsconfig.json
+CLI tsup v8.5.0
+CLI Using tsup config: /Users/tk/projects/nachos/tsup.config.ts
+CLI Target: es2020
+CLI Cleaning output folder
+ESM Build start
+CJS Build start
+DTS Build start
+CJS dist/index.cjs              93.18 KB
+CJS dist/encoder/index.cjs      1.84 KB
+CJS dist/parser/index.cjs       5.62 KB
+CJS dist/chunk-PIYTT3EN.cjs     96.51 KB
+CJS dist/chunk-EFPJIEZK.cjs     51.52 KB
+CJS dist/cddl/index.cjs         43.63 KB
+CJS dist/chunk-LLEXFPDE.cjs     84.74 KB
+CJS dist/parser/index.cjs.map   70.00 B
+CJS dist/encoder/index.cjs.map  70.00 B
+CJS dist/chunk-EFPJIEZK.cjs.map 153.74 KB
+CJS dist/cddl/index.cjs.map     81.09 KB
+CJS dist/index.cjs.map          229.61 KB
+CJS dist/chunk-LLEXFPDE.cjs.map 163.00 KB
+CJS dist/chunk-PIYTT3EN.cjs.map 230.43 KB
+CJS ⚡️ Build success in 2597ms
+ESM dist/parser/index.js       842.00 B
+ESM dist/encoder/index.js      333.00 B
+ESM dist/cddl/index.js         43.23 KB
+ESM dist/chunk-N7UHU37Z.js     84.35 KB
+ESM dist/chunk-TMWES33W.js     50.69 KB
+ESM dist/chunk-4JARXTNS.js     94.89 KB
+ESM dist/index.js              87.38 KB
+ESM dist/parser/index.js.map   69.00 B
+ESM dist/encoder/index.js.map  69.00 B
+ESM dist/chunk-N7UHU37Z.js.map 162.91 KB
+ESM dist/chunk-TMWES33W.js.map 153.73 KB
+ESM dist/cddl/index.js.map     80.97 KB
+ESM dist/chunk-4JARXTNS.js.map 230.02 KB
+ESM dist/index.js.map          229.41 KB
+ESM ⚡️ Build success in 2599ms
+DTS ⚡️ Build success in 13472ms
+DTS dist/parser/index.d.ts                   1.50 KB
+DTS dist/encoder/index.d.ts                  2.60 KB
+DTS dist/cddl/index.d.ts                     26.48 KB
+DTS dist/index.d.ts                          34.60 KB
+DTS dist/utils-vMVl3_pB.d.ts                 1.96 KB
+DTS dist/types-DhGaMkdN.d.ts                 2.47 KB
+DTS dist/types-9D4EVRXr.d.ts                 11.01 KB
+DTS dist/useCborSimpleEncoder-DHpIrYHa.d.ts  6.87 KB
+DTS dist/stream-D29lHVj5.d.ts                10.30 KB
+DTS dist/parser/index.d.cts                  1.50 KB
+DTS dist/encoder/index.d.cts                 2.60 KB
+DTS dist/cddl/index.d.cts                    26.48 KB
+DTS dist/index.d.cts                         34.61 KB
+DTS dist/utils-vMVl3_pB.d.cts                1.96 KB
+DTS dist/types-DIilE6m2.d.cts                2.47 KB
+DTS dist/types-9D4EVRXr.d.cts                11.01 KB
+DTS dist/useCborSimpleEncoder-BnqICWZ5.d.cts 6.88 KB
+DTS dist/stream-DZwV3v6A.d.cts               10.30 KB

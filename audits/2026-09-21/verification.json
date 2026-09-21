@@ -1,0 +1,418 @@
+{
+  "verifiedAt": "2026-09-21T12:09:39.572289+00:00",
+  "status": "complete-local-candidate",
+  "version": "0.4.0",
+  "published": false,
+  "deployed": false,
+  "committed": false,
+  "artifact": {
+    "file": "nachos/artifacts/marcuspuchalla-nachos-0.4.0.tgz",
+    "size": 1727352,
+    "sha256": "d8a1ed19f12b7af8f0e2f506b27fdd24bcdd70d69eb9916b7a50fe3a7a893527",
+    "integrity": "sha512-Ng5/kMWhASRZKh/mQvfDYITogQCwjKt7lK9pZVKhg2vGZZ8X5/ZtS5PJ6MFOx0OcCrYGPiWlDstH2ghLqA/VrQ=="
+  },
+  "consumers": {
+    "taco": {
+      "packageIntegrity": "sha512-Ng5/kMWhASRZKh/mQvfDYITogQCwjKt7lK9pZVKhg2vGZZ8X5/ZtS5PJ6MFOx0OcCrYGPiWlDstH2ghLqA/VrQ==",
+      "lockSha256": "f0fb1d941e2315bc23c407ef15c18ab4de4268d04883ff89f7fffefa7268dcea",
+      "vendorSha256": "d8a1ed19f12b7af8f0e2f506b27fdd24bcdd70d69eb9916b7a50fe3a7a893527"
+    },
+    "cbor_decoder": {
+      "packageIntegrity": "sha512-Ng5/kMWhASRZKh/mQvfDYITogQCwjKt7lK9pZVKhg2vGZZ8X5/ZtS5PJ6MFOx0OcCrYGPiWlDstH2ghLqA/VrQ==",
+      "lockSha256": "40584bb9033a0b18cd09f0f56c4d0e637f7d79ecc5d9224ec375887aeb1a1058",
+      "vendorSha256": "d8a1ed19f12b7af8f0e2f506b27fdd24bcdd70d69eb9916b7a50fe3a7a893527"
+    }
+  },
+  "checks": {
+    "nachos": {
+      "testFiles": 52,
+      "testsPassed": 1803,
+      "typecheck": "pass",
+      "build": "pass"
+    },
+    "taco": {
+      "harnessTests": 13,
+      "vectors": 3195,
+      "generatedFixtureFiles": 29,
+      "lintErrors": 0,
+      "typecheck": "pass",
+      "adapters": 26,
+      "scheduled": 83070,
+      "nachosPassed": 3195,
+      "nachosCompleteRequirements": 46,
+      "catalogRequirements": 46,
+      "bridgeErrors": 0
+    },
+    "app": {
+      "testFiles": 24,
+      "testsPassed": 3561,
+      "typecheck": "pass",
+      "build": "pass",
+      "browserTestsPassed": 4,
+      "browser": "Chromium Headless Shell 153.0.8010.12",
+      "playwright": "1.63.0",
+      "browserWorkers": 1,
+      "providerTransactions": 8,
+      "mainnet": 6,
+      "preprod": 2,
+      "byteExactExcerpts": 7,
+      "offlineWasmAndPwaUpgrade": "pass"
+    },
+    "provenance": {
+      "cslAndCmlHashes": 8,
+      "koiosRefetchMatches": 6,
+      "cddlPatchAppliesToPristineFiles": "pass",
+      "specificationAndBackendDigests": "pass"
+    }
+  },
+  "matrixProvenance": {
+    "runnerVersion": "3.0.0",
+    "gitSha": "81ea7ba45c8fe7bcd02ddf362a42c981429fcba5",
+    "sourceDiffSha256": "2c706b6c2d116a7c4f8bf1592f6c7ca7df23df37f68c97e6b4dfe789f5a494e2",
+    "runtime": "v24.13.1",
+    "corpusSha256": "2b1fdbe4881e618dec1b06931e890542b2a0d85d8c6e09f3aa150a4cfefebf40",
+    "runnerSha256": "ad44a1a9d84fd82f9dee06a13205e789d287c6d8730cb59c84488f7f0606107e",
+    "protocolSha256": "e36fc96dead0fdfb4850dbac63de6170dcf1d0d4881ecb4490f4e55611033c6d",
+    "referenceSha256": "a5405b49d901a3b00aa72fcf4cde5ba1c0f41a925a48b67b630c4895e18e442c",
+    "requirementsSha256": "f605a8a872d1b5b948b71886ff164e2f208ff2b0b2c254236ed8b8e10347ed3f",
+    "expectedContainers": [
+      "node-nachos",
+      "node-cbor2",
+      "node-borc",
+      "node-cbor-x",
+      "node-cbor",
+      "node-cbor-js",
+      "node-cbor-redux",
+      "node-tiny-cbor",
+      "node-cbor-sync",
+      "node-cborg",
+      "node-dag-cbor",
+      "node-harmonic-cbor",
+      "node-stablelib-cbor",
+      "node-oslo-cbor",
+      "node-strica-cbors",
+      "node-cardano-csl",
+      "node-cardano-cml",
+      "python-cbor2",
+      "rust-ciborium",
+      "go-cbor",
+      "c-libcbor",
+      "java-cbor",
+      "csharp-cbor",
+      "php-cbor",
+      "ruby-cbor",
+      "perl-cbor"
+    ],
+    "imageManifest": "runtime-images.json (captured by host runner)"
+  },
+  "libraries": [
+    {
+      "adapter": "node-nachos",
+      "version": "0.4.0",
+      "runtime": "v24.13.1",
+      "passed": 3195,
+      "total": 3195,
+      "completeRequirements": 46,
+      "bridgeErrors": 0,
+      "eligibleForRanking": true
+    },
+    {
+      "adapter": "node-cbor2",
+      "version": "2.0.1",
+      "runtime": "v24.13.1",
+      "passed": 2787,
+      "total": 3195,
+      "completeRequirements": 26,
+      "bridgeErrors": 0,
+      "eligibleForRanking": true
+    },
+    {
+      "adapter": "node-borc",
+      "version": "3.0.0",
+      "runtime": "v24.13.1",
+      "passed": 2675,
+      "total": 3195,
+      "completeRequirements": 14,
+      "bridgeErrors": 0,
+      "eligibleForRanking": false
+    },
+    {
+      "adapter": "node-cbor-x",
+      "version": "1.6.0",
+      "runtime": "v24.13.1",
+      "passed": 2359,
+      "total": 3195,
+      "completeRequirements": 1,
+      "bridgeErrors": 0,
+      "eligibleForRanking": false
+    },
+    {
+      "adapter": "node-cbor",
+      "version": "10.0.11",
+      "runtime": "v24.13.1",
+      "passed": 2546,
+      "total": 3195,
+      "completeRequirements": 7,
+      "bridgeErrors": 0,
+      "eligibleForRanking": false
+    },
+    {
+      "adapter": "node-cbor-js",
+      "version": "0.1.0",
+      "runtime": "v24.13.1",
+      "passed": 2311,
+      "total": 3195,
+      "completeRequirements": 6,
+      "bridgeErrors": 0,
+      "eligibleForRanking": true
+    },
+    {
+      "adapter": "node-cbor-redux",
+      "version": "1.0.0",
+      "runtime": "v24.13.1",
+      "passed": 2351,
+      "total": 3195,
+      "completeRequirements": 3,
+      "bridgeErrors": 0,
+      "eligibleForRanking": true
+    },
+    {
+      "adapter": "node-tiny-cbor",
+      "version": "0.3.2",
+      "runtime": "v24.13.1",
+      "passed": 1504,
+      "total": 3195,
+      "completeRequirements": 7,
+      "bridgeErrors": 0,
+      "eligibleForRanking": true
+    },
+    {
+      "adapter": "node-cbor-sync",
+      "version": "1.0.4",
+      "runtime": "v24.13.1",
+      "passed": 752,
+      "total": 3195,
+      "completeRequirements": 2,
+      "bridgeErrors": 0,
+      "eligibleForRanking": false
+    },
+    {
+      "adapter": "node-cborg",
+      "version": "4.2.18",
+      "runtime": "v24.13.1",
+      "passed": 2416,
+      "total": 3195,
+      "completeRequirements": 8,
+      "bridgeErrors": 0,
+      "eligibleForRanking": true
+    },
+    {
+      "adapter": "node-dag-cbor",
+      "version": "9.2.5",
+      "runtime": "v24.13.1",
+      "passed": 1661,
+      "total": 3195,
+      "completeRequirements": 2,
+      "bridgeErrors": 0,
+      "eligibleForRanking": true
+    },
+    {
+      "adapter": "node-harmonic-cbor",
+      "version": "1.6.6",
+      "runtime": "v24.13.1",
+      "passed": 2650,
+      "total": 3195,
+      "completeRequirements": 15,
+      "bridgeErrors": 0,
+      "eligibleForRanking": false
+    },
+    {
+      "adapter": "node-stablelib-cbor",
+      "version": "2.0.1",
+      "runtime": "v24.13.1",
+      "passed": 2461,
+      "total": 3195,
+      "completeRequirements": 9,
+      "bridgeErrors": 0,
+      "eligibleForRanking": true
+    },
+    {
+      "adapter": "node-oslo-cbor",
+      "version": "1.0.0",
+      "runtime": "v24.13.1",
+      "passed": 2256,
+      "total": 3195,
+      "completeRequirements": 2,
+      "bridgeErrors": 0,
+      "eligibleForRanking": false
+    },
+    {
+      "adapter": "node-strica-cbors",
+      "version": "1.0.3",
+      "runtime": "v24.13.1",
+      "passed": 2593,
+      "total": 3195,
+      "completeRequirements": 11,
+      "bridgeErrors": 0,
+      "eligibleForRanking": false
+    },
+    {
+      "adapter": "node-cardano-csl",
+      "version": "15.0.1",
+      "runtime": "v24.13.1",
+      "passed": 2034,
+      "total": 3195,
+      "completeRequirements": 2,
+      "bridgeErrors": 0,
+      "eligibleForRanking": true
+    },
+    {
+      "adapter": "node-cardano-cml",
+      "version": "6.2.0",
+      "runtime": "v24.13.1",
+      "passed": 2031,
+      "total": 3195,
+      "completeRequirements": 2,
+      "bridgeErrors": 0,
+      "eligibleForRanking": true
+    },
+    {
+      "adapter": "python-cbor2",
+      "version": "5.6.5",
+      "runtime": "3.12.14",
+      "passed": 2646,
+      "total": 3195,
+      "completeRequirements": 16,
+      "bridgeErrors": 0,
+      "eligibleForRanking": false
+    },
+    {
+      "adapter": "rust-ciborium",
+      "version": "0.2.2",
+      "runtime": "rustc 1.83.0 (90b35a623 2024-11-26)",
+      "passed": 2767,
+      "total": 3195,
+      "completeRequirements": 25,
+      "bridgeErrors": 0,
+      "eligibleForRanking": true
+    },
+    {
+      "adapter": "go-cbor",
+      "version": "v2.7.0",
+      "runtime": "go1.21.13",
+      "passed": 2693,
+      "total": 3195,
+      "completeRequirements": 18,
+      "bridgeErrors": 0,
+      "eligibleForRanking": false
+    },
+    {
+      "adapter": "c-libcbor",
+      "version": "0.11.0",
+      "runtime": null,
+      "passed": 2718,
+      "total": 3195,
+      "completeRequirements": 24,
+      "bridgeErrors": 0,
+      "eligibleForRanking": true
+    },
+    {
+      "adapter": "java-cbor",
+      "version": "4.5.5",
+      "runtime": "17.0.20+8",
+      "passed": 2796,
+      "total": 3195,
+      "completeRequirements": 27,
+      "bridgeErrors": 0,
+      "eligibleForRanking": true
+    },
+    {
+      "adapter": "csharp-cbor",
+      "version": "4.5.5",
+      "runtime": "8.0.31",
+      "passed": 2796,
+      "total": 3195,
+      "completeRequirements": 27,
+      "bridgeErrors": 0,
+      "eligibleForRanking": true
+    },
+    {
+      "adapter": "php-cbor",
+      "version": "3.1.0",
+      "runtime": "8.2.33",
+      "passed": 2697,
+      "total": 3195,
+      "completeRequirements": 15,
+      "bridgeErrors": 0,
+      "eligibleForRanking": true
+    },
+    {
+      "adapter": "ruby-cbor",
+      "version": "0.5.9.0",
+      "runtime": "3.1.6",
+      "passed": 2746,
+      "total": 3195,
+      "completeRequirements": 20,
+      "bridgeErrors": 0,
+      "eligibleForRanking": false
+    },
+    {
+      "adapter": "perl-cbor",
+      "version": 1.87,
+      "runtime": "v5.38.5",
+      "passed": 2420,
+      "total": 3195,
+      "completeRequirements": 7,
+      "bridgeErrors": 0,
+      "eligibleForRanking": false
+    }
+  ],
+  "evidenceSha256": {
+    "taco/docker/reports/summary.json": "362eba170d31cec7215a98033f28b6809a3a177c22bfe0110510e8a9fad38937",
+    "taco/docker/reports/TEST_RESULTS.md": "91fcd28f7c9fa068c25d287bb0ef87f2e45f1f7c3e73e24a5599f276cdae0b21",
+    "taco/docker/reports/runtime-images.json": "d1c824752e6ec6fcbc4da93bed2be94ea4e242fcda5c1afa8cb7fd587fed0cf2",
+    "taco/docker/reports/runtime-containers.jsonl": "28f70564bbc85c648c1833875f208774e5cbb0a67211e317e6aea1371acb5d86",
+    "cbor_decoder/dist/build-info.json": "c47dea01a5ac08e59fe25b118d927842118020477254feb9ada1eb45c98b9df2",
+    "cbor_decoder/src/examples/cardano-transactions.json": "bf80bbbbff7d4480a53cc3249530e5c4b2d3133a941bff916cb077c00a5bc329",
+    "cbor_decoder/src/examples/cardano-examples.json": "03b820153fe3bc0b0627a21f58e30ccb108e2c2d8cf8327bb97eb7a5221d62ac",
+    "cbor_decoder/test-support/taco/provenance.json": "892c12563398eb58aba54b7e3778aa7a205d550d8e30cc34f6736e43e40ab357",
+    "nachos/specs/roadmap-2026-09/sources.json": "0e24e6b84ebbc97b01bf4a1a9a2ef3c732a0f24422bdf5215ff6d435959775e5",
+    "taco/docker/reports/node-nachos-results.json": "7e7fc34158a657b26b9afffd88fbe1a3573d752afe0f1d1df3fa319b969a2404",
+    "taco/docker/reports/node-cbor2-results.json": "39da6fa3cb43faa4876b42f4e6cf1ed8ceac2771e83b6bde763b191b3c386614",
+    "taco/docker/reports/node-borc-results.json": "d69cbb3fc33eed8688a091b1864e2cc2d834a9877b4344a1d0faaf8084321017",
+    "taco/docker/reports/node-cbor-x-results.json": "30e17a0b00af186735aac6984f54393bc3d2f370908d3118be7e48e5695065e6",
+    "taco/docker/reports/node-cbor-results.json": "56749ab1e78d068c23924c114725d9beb945be12367e9110bfba46af2746882c",
+    "taco/docker/reports/node-cbor-js-results.json": "e63d57a314f410aafee3fc9d796c1b01eb77f168d6b6ba82a85d548d9d4cc353",
+    "taco/docker/reports/node-cbor-redux-results.json": "5e2b0e5c409d2a353046d5642908373615157f692ef3e456aff8f5b92f15e265",
+    "taco/docker/reports/node-tiny-cbor-results.json": "2516a5aaa0014705462beadcb015257292e1c929b93a474a053fa6472be881fd",
+    "taco/docker/reports/node-cbor-sync-results.json": "c31d1e369cc72a85feb86a1784af06618c7f3716011e6b902bddf2e15aff90a1",
+    "taco/docker/reports/node-cborg-results.json": "9f4d52a6f8e71bb695977d55b082da02018d9cffbd628cce528bfee5e584625d",
+    "taco/docker/reports/node-dag-cbor-results.json": "be2d74a5e85f80678da8af8bd976f42ea0e8fd25f52912cfaba7550c5e53a0ed",
+    "taco/docker/reports/node-harmonic-cbor-results.json": "2678087f8433840b6f9d0a43c4f3fb6defa32de6d5599019631d4c89dbd4ccad",
+    "taco/docker/reports/node-stablelib-cbor-results.json": "586b46e51c70cea6b2ed20c250c53de2873a3b82b31674ca2cc1aa87f184b15d",
+    "taco/docker/reports/node-oslo-cbor-results.json": "8f6714d419cc08377ea9ce1c7dc3148b7af1951ee0e5265e37c398eb98aeda01",
+    "taco/docker/reports/node-strica-cbors-results.json": "2f079cecc5ad7a383110b035fe4133fa84d436051f6634e299e512976488997c",
+    "taco/docker/reports/node-cardano-csl-results.json": "975c11a17311ee8b920bde1485c875eefb1c861cbffebbb661d6a90e27fca077",
+    "taco/docker/reports/node-cardano-cml-results.json": "2b8a279cbea975f9e49771b4431e863aa6b1962fd85dbae5480461923536f14e",
+    "taco/docker/reports/python-cbor2-results.json": "44749dada67b8ddc36202c1240824f5d9801d69946b7027821d3668666760aff",
+    "taco/docker/reports/rust-ciborium-results.json": "c57fdfa9074ae39a1722f13c2e9b68855a86a36378b2d1a8d72612f03cb4958b",
+    "taco/docker/reports/go-cbor-results.json": "08414cc57d1be724d55de1fc8e3ebee849003c38c359a673dfb19cd109225e7e",
+    "taco/docker/reports/c-libcbor-results.json": "615786b9c6d7d12f2157b1db5f22d2cdec77c3616f6aff3c0ed7c65d0b8ebbd9",
+    "taco/docker/reports/java-cbor-results.json": "de882793e23196bbc7289614da8d878ea47e740c88e7e0f4e5c04cea1b392e7c",
+    "taco/docker/reports/csharp-cbor-results.json": "ac3f542b02b13cd91c75c51562ed12181f54722e0920dd14e77e311ca3c512c1",
+    "taco/docker/reports/php-cbor-results.json": "4698688f7e2068b02eb39a3d847cd2b6c87b69498b81d17997f459153041f3a0",
+    "taco/docker/reports/ruby-cbor-results.json": "a3368e03f492038e9877d89485188b4b3ade22023bc0948f7222e422e90d5f0e",
+    "taco/docker/reports/perl-cbor-results.json": "42dfe01f00b2613e65c7c23865cdc46a9e31cf8d690d0a99697218a20072685b"
+  },
+  "logsSha256": {
+    "nachos-tests.txt": "eeeb95cccb7c7743e6f66d6e76d8e37c11d1179db4dbf3fa19078fe58ef8a1fd",
+    "package-smoke.txt": "4c9c921b906f03b441aecf79a1d09f16d089f46b5604cb457aea70dfa9ee7d86",
+    "app-tests.txt": "def3ea3de009c88160fbdeb896b634fe151700c17801b86cfe11a1cac915ecf9",
+    "browser-tests.txt": "1dba3230228b4468746cdfcf6494909add43194387ddaa28db78f0709e91299a",
+    "nachos-build.txt": "8d33677e3d18be98b7bebf81f36f420a61e47165a4089342de8be5360b10171e",
+    "nachos-typecheck.txt": "b11973773a2e462ee41993e8ab4875003d6d5399bb03cfb08d1e779fd2fe2c98",
+    "app-build.txt": "2eb3df1fd71cd9a5fc5a57e3d83decbb32cfa442045d4e8e0c47c124eca997e5",
+    "provider-recheck.txt": "9a8c459fd7c413e066195ba8b5ddb98c61eed756a57ad7d2028c3919186a6d66",
+    "taco-docker.txt": "693c0cf7350de9158c784e5ad732ead4f3933f1bd7f64a8791e48cc8f6e02b50"
+  }
+}

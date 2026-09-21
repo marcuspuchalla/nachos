@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CBOR Ecosystem Audit — nachos · cbor.app · taco</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
+<style>
+  :root {
+    --r-background-color: #0d1117;
+    --r-main-font: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    --r-heading-font: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    --r-main-font-size: 34px;
+    --r-heading-color: #f0f6fc;
+    --r-main-color: #c9d1d9;
+    --r-link-color: #58a6ff;
+  }
+  .reveal h1 { font-size: 2.1em; }
+  .reveal h2 { font-size: 1.4em; }
+  .reveal h3 { font-size: 1.05em; color: #8b949e; font-weight: 500; }
+  .reveal .slides section { text-align: left; }
+  .reveal .slides section.center-slide { text-align: center; }
+  .reveal table { font-size: 0.62em; margin: 0 auto; }
+  .reveal table th { color: #f0f6fc; border-bottom: 2px solid #30363d; }
+  .reveal table td, .reveal table th { padding: 0.35em 0.7em; border-bottom: 1px solid #21262d; }
+  .reveal ul { font-size: 0.78em; line-height: 1.45; }
+  .reveal ol { font-size: 0.78em; line-height: 1.45; }
+  .reveal li { margin-bottom: 0.35em; }
+  .reveal pre { font-size: 0.55em; width: 100%; box-shadow: none; border: 1px solid #30363d; border-radius: 8px; }
+  .reveal code.inline { background: #21262d; padding: 0.08em 0.35em; border-radius: 5px; font-size: 0.9em; color: #ffa657; }
+  .tag { display: inline-block; padding: 0.12em 0.55em; border-radius: 999px; font-size: 0.55em; font-weight: 700; vertical-align: middle; letter-spacing: 0.04em; }
+  .tag.high { background: #da3633; color: #fff; }
+  .tag.med  { background: #bb8009; color: #fff; }
+  .tag.low  { background: #388bfd33; color: #79c0ff; }
+  .tag.ok   { background: #238636; color: #fff; }
+  .tag.verified { background: #1f6feb33; color: #79c0ff; border: 1px solid #1f6feb; }
+  .good { color: #3fb950; }
+  .bad  { color: #f85149; }
+  .warn { color: #d29922; }
+  .dim  { color: #8b949e; }
+  .big  { font-size: 1.6em; font-weight: 700; }
+  .huge { font-size: 3.2em; font-weight: 800; line-height: 1.1; }
+  .cols { display: flex; gap: 1.2em; }
+  .cols > div { flex: 1; }
+  .kicker { text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.5em; color: #58a6ff; font-weight: 700; margin-bottom: 0.6em; }
+  .funnel-bar { display: flex; height: 2.2em; border-radius: 8px; overflow: hidden; font-size: 0.55em; font-weight: 700; margin: 0.8em 0; }
+  .funnel-bar div { display: flex; align-items: center; justify-content: center; color: #fff; white-space: nowrap; }
+  .scorebox { text-align: center; background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 0.6em 1em; }
+  .scorebox .n { font-size: 1.9em; font-weight: 800; }
+  .scorebox .l { font-size: 0.55em; color: #8b949e; text-transform: uppercase; letter-spacing: 0.1em; }
+  .footnote { font-size: 0.5em; color: #8b949e; margin-top: 1em; }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- 1 · TITLE -->
+<section class="center-slide">
+  <div class="kicker">Full Ecosystem Audit · 2026-07-01</div>
+  <h1>nachos · cbor.app · taco</h1>
+  <h3>Library · Application · Cross-language test harness</h3>
+  <p style="margin-top:1.5em"><span class="tag verified">EVERY HEADLINE CLAIM RE-VERIFIED AGAINST CODE &amp; RUNTIME</span></p>
+</section>
+
+<!-- 2 · METHOD -->
+<section>
+  <div class="kicker">Method</div>
+  <h2>How this audit was done</h2>
+  <ul>
+    <li>Three parallel deep-audit agents, one per repo — code reading with <code class="inline">file:line</code> evidence, no grep-only claims</li>
+    <li>Full test suites executed: nachos <span class="good">1484/1484</span>, cbor.app <span class="good">612 pass</span>, plus builds &amp; typechecks</li>
+    <li>Taco: all 358 vectors <b>replayed live</b> against the actual nachos container with the current runner logic</li>
+    <li>The four headline nachos bugs re-confirmed by hand at the Node REPL</li>
+  </ul>
+  <p class="footnote">Full details: <code class="inline">thoughts/ecosystem-audit-2026-07/TLDR.md</code></p>
+</section>
+
+<!-- 3 · EXEC VERDICT -->
+<section>
+  <div class="kicker">Executive verdict</div>
+  <h2>Three components, three states</h2>
+  <table>
+    <tr><th></th><th>Architecture</th><th>Correctness</th><th>Docs / Hygiene</th></tr>
+    <tr><td><b>nachos</b> v0.3.0</td><td class="good">✅ sound</td><td class="warn">⚠️ 2 HIGH bugs + 3 asymmetries</td><td class="warn">⚠️ stale README, cluttered root</td></tr>
+    <tr><td><b>cbor.app</b> v0.2.0</td><td class="good">✅ sound</td><td class="good">✅ green everywhere</td><td class="bad">❌ README is fiction</td></tr>
+    <tr><td><b>taco</b></td><td class="good">✅ sound</td><td class="bad">❌ rankings unreliable</td><td class="warn">⚠️ stale reports &amp; artifacts</td></tr>
+  </table>
+  <p class="fragment" style="margin-top:0.8em; font-size:0.8em">The <b>designs all make sense</b>. What failed everywhere is <b class="warn">verification discipline</b> — tests that pass without testing reality.</p>
+</section>
+
+<!-- 4 · HEADLINE -->
+<section class="center-slide" data-background-color="#160b0b">
+  <div class="kicker">The headline finding</div>
+  <h2>“nachos scores 73.74% — rank #8 of 19”</h2>
+  <p class="huge fragment bad">That number is not<br>a measurement of nachos.</p>
+</section>
+
+<!-- 5 · FUNNEL -->
+<section>
+  <div class="kicker">Taco × nachos</div>
+  <h2>Anatomy of 94 “failures”</h2>
+  <div class="funnel-bar">
+    <div style="flex:53; background:#bb8009">53 adapter bugs</div>
+    <div style="flex:21; background:#8250df">21 broken vectors</div>
+    <div style="flex:14; background:#30363d">14 stale runner</div>
+    <div style="flex:6; background:#1f6feb">6 strictness</div>
+    <div style="flex:3; background:#da3633; min-width:6em">1 real bug</div>
+  </div>
+  <ul>
+    <li><b>53</b> — bugs in taco's <code class="inline">node-nachos</code> adapter (plutus tag shape, byte map keys, bignum wire format, indefinite bytes, ignored <code class="inline">bytesRead</code>)</li>
+    <li><b>21</b> — broken or self-contradicting test vectors</li>
+    <li><b>14</b> — artifacts of a 6-month-stale runner image</li>
+    <li><b>6</b> — defensible security/strictness choices penalized</li>
+    <li><b class="bad">1</b> — a real nachos bug (decode/encode depth asymmetry)</li>
+  </ul>
+  <div class="cols fragment" style="margin-top:0.6em">
+    <div class="scorebox"><div class="n dim">264/358</div><div class="l">published</div></div>
+    <div class="scorebox"><div class="n warn">277/358</div><div class="l">current runner, replayed</div></div>
+    <div class="scorebox"><div class="n good">~330/358</div><div class="l">after adapter fixes ≈ 92%</div></div>
+  </div>
+</section>
+
+<!-- 6 · TACO stale runner -->
+<section>
+  <div class="kicker">Taco · wrongly implemented</div>
+  <h2>The scoreboard used a stale ruler</h2>
+  <ul>
+    <li>Runner docker image built <b>~Dec 2025</b> — but reports are dated <b>2026-07-01</b></li>
+    <li>Missing 6 months of committed scoring fixes: tag interpretation, hex whitespace normalization, the <b>entire encode/roundtrip leg</b></li>
+    <li class="fragment"><b>Proof:</b> zero <code class="inline">roundTripHex</code> fields in any published report — the current runner writes one on every pass</li>
+    <li class="fragment"><b>Cause:</b> <code class="inline">npm test</code> runs <code class="inline">docker compose up</code> <b class="bad">without --build</b>. Library containers were rebuilt; the runner wasn't.</li>
+    <li class="fragment">Bonus: README table (72.63%, #9) doesn't even match <code class="inline">docker/reports</code> (73.74%, #8)</li>
+  </ul>
+</section>
+
+<!-- 7 · TACO broken vectors -->
+<section>
+  <div class="kicker">Taco · wrongly implemented</div>
+  <h2>~15% of vectors are unpassable</h2>
+  <p style="font-size:0.75em"><b>43 of 358 vectors pass for ZERO of 20 libraries</b>; 9 more pass for exactly one.</p>
+  <ul>
+    <li>Special floats expect <code class="inline">null</code> instead of the protocol's <code class="inline">__cbor_float__</code> marker — JSON ate Infinity/NaN</li>
+    <li><code class="inline">float32-pi</code> expects the <i>double</i> π for a float32 input</li>
+    <li>Truncated hex in 3 vectors; nachos's error message is byte-exact correct — and scored as failure</li>
+    <li class="fragment">Two vectors demand accepting two-byte simple values &lt;32 — <b>RFC 8949 §3.3 forbids this</b>. Nachos is penalized for being right.</li>
+    <li class="fragment"><b>Self-contradiction:</b> the same invalid-UTF-8 hex is <code class="inline">shouldSucceed:false</code> in one file and <code class="inline">shouldSucceed:true</code> in another — every library forfeits ≥3 points no matter what it does</li>
+  </ul>
+</section>
+
+<!-- 8 · TACO adapter fairness -->
+<section>
+  <div class="kicker">Taco · wrongly implemented</div>
+  <h2>The ranking has a language bias</h2>
+  <ul>
+    <li>Byte-string map keys: python-cbor2 &amp; rust-ciborium adapters emit <b>bare hex</b> (matches vectors); node adapters emit <code class="inline">JSON.stringify</code> wrappers (never matches)</li>
+    <li>→ all CIP-25 / multi-asset vectors <b>auto-fail for every JS library</b></li>
+    <li class="fragment">python-cbor2's #1 rank (285) is partly an <b>adapter artifact</b>, not library quality</li>
+    <li class="fragment">node-tiny-cbor: <b>314 of 358 failures are one typo</b> (<code class="inline">decodeFirstSync is not a function</code>) — a bridge error ranked as library quality</li>
+    <li class="fragment">Binary pass/fail hides all of this: no <code class="inline">bridge_error</code> / <code class="inline">unsupported</code> / <code class="inline">mismatch</code> taxonomy</li>
+  </ul>
+</section>
+
+<!-- 9 · NACHOS solid -->
+<section>
+  <div class="kicker">Nachos · what's solid</div>
+  <h2>The RFC 8949 core is genuinely good</h2>
+  <ul>
+    <li><span class="tag ok">VERIFIED</span> All 7 June-2026 audit fixes in-tree &amp; regression-locked (<code class="inline">audit-fixes.test.ts</code>)</li>
+    <li><span class="tag ok">VERIFIED</span> 1484/1484 tests green · clean strict <code class="inline">tsc</code></li>
+    <li><span class="tag ok">VERIFIED</span> Strong DoS posture: every limit (input, string, array, map, depth, tag-depth, bignum, parse-time) enforced <b>before allocation</b></li>
+    <li><span class="tag ok">VERIFIED</span> Full coverage: indefinite items, half-floats, bignum decode, tags 4/5, dates, CBOR sequences (RFC 8742), diagnostic output, deterministic encoding, CIP-21 ordering</li>
+    <li><span class="tag ok">VERIFIED</span> Cardano layer correctly builds <i>on</i> the base parser — no reimplementation</li>
+  </ul>
+</section>
+
+<!-- 10 · NACHOS bug 1 -->
+<section>
+  <div class="kicker">Nachos · wrongly implemented</div>
+  <h2><span class="tag high">HIGH</span> <code>undefined</code> corrupts to <code>null</code></h2>
+  <pre><code class="language-js" data-trim>
+encode(undefined).hex      // "f7"    ✓ correct (0xf7 = undefined)
+encode([undefined]).hex    // "81f6"  ✗ BUG — 0xf6 = null
+// round-trip: [undefined] → [null]   silent data corruption
+  </code></pre>
+  <ul>
+    <li>Top-level path uses <code class="inline">encodeSimple</code> (correct); the collection encoder has its own inline path that emits <code class="inline">0xf6</code> for both null and undefined</li>
+    <li>Fix: <code class="inline">useCborCollectionEncoder.ts:87-90</code> — one line</li>
+    <li>Applies to arrays <b>and</b> map values</li>
+  </ul>
+</section>
+
+<!-- 11 · NACHOS bug 2 -->
+<section>
+  <div class="kicker">Nachos · wrongly implemented</div>
+  <h2><span class="tag high">HIGH</span> CIP-25 parser can't read its own decoder</h2>
+  <pre><code class="language-js" data-trim>
+const decoded = decode(metadataHex);        // → Map instances
+extractCip25FromCbor(decoded);              // → null  (always)
+parseCip25Metadata(decoded);
+// → { isValid:false, errors:["Missing CIP-25 label: 721"] }
+  </code></pre>
+  <ul>
+    <li>Parser uses bracket access <code class="inline">cborMetadata['721']</code> — but the decoder returns <code class="inline">Map</code>s, where that's always <code class="inline">undefined</code></li>
+    <li class="fragment">All <b>18 CIP-25 tests pass</b> — because they feed plain object literals, never real decoder output</li>
+    <li class="fragment">Consequence: the flagship feature of the new Cardano layer is <b>non-functional in the real pipeline</b> — and cbor.app was about to adopt it</li>
+  </ul>
+</section>
+
+<!-- 12 · NACHOS asymmetries -->
+<section>
+  <div class="kicker">Nachos · wrongly implemented</div>
+  <h2>The codec disagrees with itself</h2>
+  <ul>
+    <li><span class="tag med">MED</span> <b>Bignum:</b> decoder produces <code class="inline">BigInt</code> &gt; 2⁶⁴ from tags 2/3 — encoder <b>throws</b> on them. Decoded bignums can't round-trip.</li>
+    <li><span class="tag med">MED</span> <b>Depth:</b> decoder default maxDepth 100, encoder default 64 → nachos rejects re-encoding values it just decoded. <i>This is the one real bug taco caught.</i></li>
+    <li><span class="tag med">MED</span> <b>O(N²) residual:</b> <code class="inline">parseSequence</code> re-hexes the buffer tail per item for arrays/maps/tags — the June fix covered only the source-map path</li>
+    <li><span class="tag med">MED</span> <b>Cardano layer:</b> pointer addresses classified as <code class="inline">enterprise</code>; Byron era detector fires <code class="inline">confidence:'high'</code> on any <code class="inline">[0|1, x]</code> array</li>
+    <li><span class="tag low">LOW</span> README documents options that don't exist (<code class="inline">rejectDuplicateKeys</code> on ParseOptions), wrong defaults, plain-object map examples (decoder returns <code class="inline">Map</code>)</li>
+  </ul>
+</section>
+
+<!-- 13 · CBOR.APP healthy -->
+<section>
+  <div class="kicker">cbor.app · what's solid</div>
+  <h2>The consolidation worked</h2>
+  <ul>
+    <li><span class="tag ok">VERIFIED</span> <code class="inline">@marcuspuchalla/nachos@^0.3.0</code> is the <b>sole</b> CBOR engine — zero references to the deleted 57-file fork</li>
+    <li><span class="tag ok">VERIFIED</span> Stray <code class="inline">lib/</code> (old nachos 0.1.0 checkout) already deleted</li>
+    <li><span class="tag ok">VERIFIED</span> 612 tests pass · vite build + PWA green · <code class="inline">vue-tsc</code> clean</li>
+    <li><span class="tag ok">VERIFIED</span> No XSS surface: no <code class="inline">v-html</code> / <code class="inline">innerHTML</code> / <code class="inline">eval</code> anywhere; decode errors caught &amp; surfaced cleanly</li>
+    <li>Real feature set: decoder + source-map hex↔JSON linking, encoder, re-encode, diff, QR, era detection, security demos, PWA</li>
+  </ul>
+</section>
+
+<!-- 14 · CBOR.APP stale -->
+<section>
+  <div class="kicker">cbor.app · wrongly implemented</div>
+  <h2>The README describes a product that doesn't exist</h2>
+  <ul>
+    <li>“Current Phase: Ready for Implementation… <b>5 months to production</b>” — for an app shipped at v0.2.0</li>
+    <li>Links <b>4 root docs + 8 /docs pages that don't exist</b>; documents a <code class="inline">/documentation</code> route the router doesn't have</li>
+    <li>Never mentions nachos — still describes the deleted vendored engine</li>
+    <li class="fragment">Dead code: <code class="inline">DocumentationView.vue</code> (213 lines, unrouted, unimported); <code class="inline">tree-structure.test.ts</code> fully <code class="inline">describe.skip</code>ped</li>
+    <li class="fragment">“100% coverage” — with all views and the router excluded from thresholds</li>
+    <li class="fragment">~2 MB stale tracked artifacts: <code class="inline">test-output.txt</code>, two 1.5 MB logos, 18 obsolete <code class="inline">scripts/</code> targeting the deleted fork</li>
+  </ul>
+</section>
+
+<!-- 15 · CBOR.APP free wins -->
+<section>
+  <div class="kicker">cbor.app · should add</div>
+  <h2>It ignores features nachos already ships</h2>
+  <ul>
+    <li><b>Diagnostic notation tab</b> (RFC 8949 §8) — nachos exports <code class="inline">useCborDiagnostic</code>; the app never imports it. <span class="good">Near-free.</span></li>
+    <li><b>CIP-25 NFT metadata view</b> — nachos exports <code class="inline">useCip25Parser</code>; unused. <span class="warn">Fix the Map bug first, then adopt.</span></li>
+    <li>Replace the hand-rolled <code class="inline">interpretCardanoData</code> heuristic with nachos <code class="inline">useCardanoHelpers().parseTransaction</code></li>
+    <li class="fragment">Genuinely missing for a web inspector: <b>share links</b> (<code class="inline">#hex=…</code>), <b>.cbor file upload</b> (paste-hex only today), JSON download, CSP header</li>
+  </ul>
+</section>
+
+<!-- 16 · CROSS-CUTTING -->
+<section data-background-color="#0b1220">
+  <div class="kicker">The pattern behind everything</div>
+  <h2>Green tests ≠ correct system</h2>
+  <ul>
+    <li><b>nachos CIP-25:</b> 18 passing tests — fed object literals, never real <code class="inline">Map</code> decoder output</li>
+    <li><b>taco:</b> 6 months of fixes marked “Done” in the plan — never in the deployed runner image</li>
+    <li><b>cbor.app:</b> “100% coverage” — views excluded; one suite silently skipped</li>
+    <li><b>nachos codec:</b> encoder and decoder each self-consistent — mutually asymmetric. Only caught by <i>cross</i>-testing (taco's roundtrip leg).</li>
+  </ul>
+  <p class="fragment big" style="margin-top:0.6em; color:#79c0ff">Test the integration seam,<br>not the unit's assumption.</p>
+</section>
+
+<!-- 17 · ROADMAP -->
+<section>
+  <div class="kicker">Roadmap</div>
+  <h2>Priority action plan</h2>
+  <div class="cols" style="font-size:0.85em">
+    <div>
+      <h3><span class="tag high">P0</span> Correctness — hours</h3>
+      <ul>
+        <li>nachos: <code class="inline">undefined→0xf7</code> in collections</li>
+        <li>nachos: CIP-25 Map-aware access + real-decode test</li>
+        <li>taco: <code class="inline">--build</code> in test scripts; fix 5 nachos-adapter bugs; <b>re-run &amp; republish all reports</b></li>
+      </ul>
+    </div>
+    <div>
+      <h3><span class="tag med">P1</span> Integrity — days</h3>
+      <ul>
+        <li>taco: repair 21 broken vectors, resolve UTF-8 contradictions, vector-lint CI, result taxonomy</li>
+        <li>nachos: bignum encode, align depth defaults, kill O(N²), Cardano fixes, README</li>
+        <li>cbor.app: rewrite README</li>
+      </ul>
+    </div>
+    <div>
+      <h3><span class="tag low">P2</span> Polish</h3>
+      <ul>
+        <li>cbor.app: diagnostic tab, CIP-25 view, share links, upload, CSP</li>
+        <li>nachos: fuzzing, unify tag-internal parsers, root cleanup</li>
+        <li>taco: adapter self-test gate, encode-direction suite, strict/lenient dual score</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 18 · DOES IT MAKE SENSE -->
+<section class="center-slide">
+  <div class="kicker">Does it all make sense?</div>
+  <h2 class="good" style="font-size:2em">Yes — the architecture is right.</h2>
+  <p style="font-size:0.75em; max-width:34em; margin:0.8em auto; text-align:center">
+    Library → App → Cross-language harness is the correct three-tier design.<br>
+    Nachos's base/Cardano split is right. cbor.app consuming nachos as a dependency is right. Taco's vector/bridge/container model is right.
+  </p>
+  <p class="fragment" style="font-size:0.85em; text-align:center">What's broken is <b class="warn">verification discipline</b>, not design —<br>and after P0, re-measure: <span class="big good">the ecosystem is far healthier than 73.74% suggests.</span></p>
+</section>
+
+<!-- 19 · NUMBERS -->
+<section class="center-slide">
+  <div class="kicker">By the numbers</div>
+  <h2>Appendix</h2>
+  <div class="cols" style="margin-top:0.8em">
+    <div class="scorebox"><div class="n">1484</div><div class="l">nachos tests green</div></div>
+    <div class="scorebox"><div class="n">612</div><div class="l">cbor.app tests green</div></div>
+    <div class="scorebox"><div class="n">358</div><div class="l">taco vectors</div></div>
+  </div>
+  <div class="cols" style="margin-top:0.6em">
+    <div class="scorebox"><div class="n bad">43</div><div class="l">vectors no library passes</div></div>
+    <div class="scorebox"><div class="n warn">53</div><div class="l">adapter bugs of 94 “failures”</div></div>
+    <div class="scorebox"><div class="n good">1</div><div class="l">real nachos bug in taco</div></div>
+  </div>
+  <p class="footnote" style="text-align:center">Full evidence with file:line citations → <code class="inline">thoughts/ecosystem-audit-2026-07/TLDR.md</code> · Audit date 2026-07-01</p>
+</section>
+
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    transition: 'slide',
+    plugins: [ RevealHighlight ]
+  });
+</script>
+</body>
+</html>

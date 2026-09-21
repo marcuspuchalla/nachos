@@ -1,0 +1,291 @@
+
+> @marcuspuchalla/nachos@0.4.0 test
+> vitest run
+
+
+ RUN  v2.1.8 /Users/tk/projects/nachos
+
+ ✓ src/parser/__tests__/cbor-float.test.ts (56 tests) 62ms
+ ✓ src/encoder/__tests__/cbor-collection-encoder.test.ts (34 tests) 67ms
+ ✓ src/encoder/__tests__/cbor-encoder-errors.test.ts (73 tests) 191ms
+ ✓ src/parser/__tests__/cbor-tag-advanced.test.ts (42 tests) 107ms
+ ✓ src/parser/__tests__/cbor-tag-errors.test.ts (43 tests) 130ms
+ ✓ src/parser/__tests__/cbor-tag.test.ts (66 tests) 130ms
+ ✓ src/cardano/__tests__/cardano-era-detector.test.ts (43 tests) 86ms
+ ✓ src/parser/__tests__/cbor-deterministic-encoding.test.ts (49 tests) 109ms
+ ✓ src/parser/__tests__/rfc-test-vectors.test.ts (83 tests) 150ms
+stderr | src/parser/__tests__/cbor-map-duplicate-keys.test.ts > CBOR Map Duplicate Key Detection > Default Behavior > should NOT reject duplicates by default (lenient mode)
+[CBOR] Duplicate map key detected; all entries preserved in ALL_ENTRIES_SYMBOL
+
+ ✓ src/parser/__tests__/cbor-map-duplicate-keys.test.ts (39 tests) 89ms
+ ✓ src/parser/__tests__/cbor-security-dos-protection.test.ts (45 tests) 201ms
+ ✓ src/__tests__/public-api.test.ts (58 tests) 226ms
+ ✓ src/__tests__/roundtrip.test.ts (91 tests) 395ms
+ ✓ src/__tests__/audit-2026-07.test.ts (58 tests) 433ms
+ ✓ src/cardano/__tests__/cardano-audit-2026-07.test.ts (38 tests) 558ms
+ ✓ src/parser/__tests__/cbor-standard-tags.test.ts (38 tests) 274ms
+ ✓ src/encoder/__tests__/cbor-string-encoder.test.ts (36 tests) 171ms
+ ✓ src/encoder/__tests__/cbor-simple-encoder.test.ts (33 tests) 518ms
+ ✓ src/encoder/__tests__/cbor-tag-encoder.test.ts (37 tests) 558ms
+stdout | src/parser/__tests__/cbor-tag-source-map.test.ts > Tag Source Map Generation > Simple Tagged Values > should create source map entry for tag and value
+Source map entries: 2
+[
+  {
+    "path": "",
+    "start": 0,
+    "end": 2,
+    "majorType": 6,
+    "type": "tag(121)",
+    "isHeader": true,
+    "headerEnd": 2,
+    "children": [
+      ".value"
+    ]
+  },
+  {
+    "path": ".value",
+    "start": 2,
+    "end": 4,
+    "majorType": 0,
+    "type": "Unsigned Integer",
+    "parent": ""
+  }
+]
+
+ ✓ src/parser/__tests__/cbor-tag-source-map.test.ts (16 tests) 330ms
+ ✓ src/parser/__tests__/cbor-source-map.test.ts (14 tests) 212ms
+ ✓ src/parser/__tests__/cbor-collection.test.ts (33 tests) 380ms
+ ✓ src/parser/__tests__/ast-tree-structure.test.ts (9 tests) 216ms
+ ✓ src/parser/__tests__/buffer-native-parsing.test.ts (38 tests) 276ms
+ ✓ src/parser/__tests__/cbor-collection-errors.test.ts (31 tests) 283ms
+ ✓ src/cardano/__tests__/cip25-nft-metadata.test.ts (18 tests) 63ms
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Simple ADA Transfers > should roundtrip simple UTXO input
+✅ Roundtrip verified for: Simple UTXO input
+   Original bytes: 36
+   Re-encoded bytes: 36
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Simple ADA Transfers > should roundtrip lovelace amount (1 ADA)
+✅ Roundtrip verified for: 1 ADA amount
+   Original bytes: 5
+   Re-encoded bytes: 5
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Simple ADA Transfers > should roundtrip transaction output
+✅ Roundtrip verified for: Transaction output (address + amount)
+   Original bytes: 65
+   Re-encoded bytes: 65
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Plutus Data Structures > should roundtrip Plutus constructor 0 (Nothing)
+✅ Roundtrip verified for: Plutus Constructor 0 (Nothing)
+   Original bytes: 3
+   Re-encoded bytes: 3
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Plutus Data Structures > should roundtrip Plutus constructor 1 (Just 42)
+✅ Roundtrip verified for: Plutus Constructor 1 (Just 42)
+   Original bytes: 5
+   Re-encoded bytes: 5
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Plutus Data Structures > should roundtrip nested Plutus constructors
+✅ Roundtrip verified for: Nested Plutus constructors
+   Original bytes: 6
+   Re-encoded bytes: 6
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Plutus Data Structures > should roundtrip Plutus extended constructor (tag 1283)
+✅ Roundtrip verified for: Plutus Extended Constructor 10
+   Original bytes: 7
+   Re-encoded bytes: 7
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Plutus Data Structures > should roundtrip Plutus alternative constructor (tag 102)
+✅ Roundtrip verified for: Plutus Alternative Constructor 200
+   Original bytes: 8
+   Re-encoded bytes: 8
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Complex Cardano Structures > should roundtrip redeemer with Plutus data
+✅ Roundtrip verified for: Real Cardano redeemer with Plutus data
+   Original bytes: 112
+   Re-encoded bytes: 112
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Complex Cardano Structures > should roundtrip map with text keys
+✅ Roundtrip verified for: Map with text keys
+   Original bytes: 13
+   Re-encoded bytes: 13
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Complex Cardano Structures > should roundtrip nested maps
+✅ Roundtrip verified for: Nested maps (transaction metadata)
+   Original bytes: 13
+   Re-encoded bytes: 10
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Complex Cardano Structures > should roundtrip indefinite-length array
+✅ Roundtrip verified for: Indefinite-length array
+   Original bytes: 7
+   Re-encoded bytes: 7
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Complex Cardano Structures > should roundtrip indefinite-length map
+✅ Roundtrip verified for: Indefinite-length map
+   Original bytes: 8
+   Re-encoded bytes: 8
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Edge Cases and Special Values > should roundtrip empty structures
+✅ Roundtrip verified for: Empty array
+   Original bytes: 1
+   Re-encoded bytes: 1
+✅ Roundtrip verified for: Empty map
+   Original bytes: 1
+   Re-encoded bytes: 1
+✅ Roundtrip verified for: Empty string
+   Original bytes: 1
+   Re-encoded bytes: 1
+✅ Roundtrip verified for: Empty byte string
+   Original bytes: 1
+   Re-encoded bytes: 1
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Edge Cases and Special Values > should roundtrip boolean values
+✅ Roundtrip verified for: Boolean false
+   Original bytes: 1
+   Re-encoded bytes: 1
+✅ Roundtrip verified for: Boolean true
+   Original bytes: 1
+   Re-encoded bytes: 1
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Edge Cases and Special Values > should roundtrip null and undefined
+✅ Roundtrip verified for: Null value
+   Original bytes: 1
+   Re-encoded bytes: 1
+✅ Roundtrip verified for: Undefined value
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Edge Cases and Special Values > should roundtrip large integers
+✅ Roundtrip verified for: Large integer (2^32)
+   Original bytes: 9
+   Re-encoded bytes: 9
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Edge Cases and Special Values > should roundtrip negative integers
+✅ Roundtrip verified for: Negative integer (-1000)
+   Original bytes: 3
+   Re-encoded bytes: 3
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Edge Cases and Special Values > should roundtrip floating point numbers
+✅ Roundtrip verified for: Float64 (1.1)
+   Original bytes: 9
+   Re-encoded bytes: 9
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Real Transaction Components > should roundtrip transaction hash
+✅ Roundtrip verified for: Transaction hash (32 bytes)
+   Original bytes: 34
+   Re-encoded bytes: 34
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Real Transaction Components > should roundtrip payment key hash
+✅ Roundtrip verified for: Payment key hash (28 bytes)
+   Original bytes: 31
+   Re-encoded bytes: 30
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Real Transaction Components > should roundtrip Shelley address
+✅ Roundtrip verified for: Shelley address (57 bytes)
+   Original bytes: 59
+   Re-encoded bytes: 59
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Real Transaction Components > should roundtrip collateral UTXO structure
+✅ Roundtrip verified for: CIP-30 collateral UTXO
+   Original bytes: 37
+   Re-encoded bytes: 37
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Tagged Values (Non-Plutus) > should roundtrip datetime (tag 0)
+✅ Roundtrip verified for: Datetime (tag 0)
+   Original bytes: 22
+   Re-encoded bytes: 22
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Tagged Values (Non-Plutus) > should roundtrip set (tag 258)
+✅ Roundtrip verified for: Set (tag 258)
+   Original bytes: 7
+   Re-encoded bytes: 7
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Stress Tests with Large Structures > should roundtrip array with 100 elements
+✅ Roundtrip verified for: Array with 100 elements
+   Original bytes: 178
+   Re-encoded bytes: 178
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Stress Tests with Large Structures > should roundtrip map with 50 entries
+✅ Roundtrip verified for: Map with 50 entries
+   Original bytes: 368
+   Re-encoded bytes: 368
+
+stdout | src/cardano/__tests__/cardano-real-world-roundtrip.test.ts > Real-World Cardano Roundtrip Tests > Stress Tests with Large Structures > should roundtrip deeply nested structure
+✅ Roundtrip verified for: Deeply nested array (10 levels)
+   Original bytes: 12
+   Re-encoded bytes: 12
+
+ ✓ src/cardano/__tests__/cardano-real-world-roundtrip.test.ts (31 tests) 203ms
+ ✓ src/parser/__tests__/cbor-float-errors.test.ts (30 tests) 58ms
+ ✓ src/parser/__tests__/cbor-diagnostic.test.ts (52 tests) 73ms
+ ✓ src/encoder/__tests__/cbor-integer-encoder.test.ts (32 tests) 86ms
+ ✓ src/parser/__tests__/pathBuilder.test.ts (29 tests) 88ms
+ ✓ src/parser/__tests__/security-limits.test.ts (44 tests) 147ms
+(node:23847) ExperimentalWarning: The Ed448 Web Crypto API algorithm is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ src/parser/__tests__/cbor-tag-reparse-fix.test.ts (20 tests) 212ms
+ ✓ src/__tests__/roadmap-cose.test.ts (17 tests) 653ms
+ ✓ src/cardano/__tests__/cardano-decoder.test.ts (21 tests) 612ms
+ ✓ src/parser/__tests__/cbor-string-errors.test.ts (22 tests) 501ms
+ ✓ src/parser/__tests__/cbor-string.test.ts (17 tests) 189ms
+ ✓ src/cardano/__tests__/cardano-integration.test.ts (20 tests) 337ms
+ ✓ src/parser/__tests__/cbor-integer.test.ts (10 tests) 136ms
+stderr | src/parser/__tests__/cbor-duplicate-keys.test.ts > useCborParser - Duplicate Map Key Detection > Allow Mode (default) > should allow duplicate string keys by default
+[CBOR] Duplicate map key detected; all entries preserved in ALL_ENTRIES_SYMBOL
+
+stderr | src/parser/__tests__/cbor-duplicate-keys.test.ts > useCborParser - Duplicate Map Key Detection > Allow Mode (default) > should allow duplicate integer keys by default
+[CBOR] Duplicate map key detected; all entries preserved in ALL_ENTRIES_SYMBOL
+
+ ✓ src/parser/__tests__/cbor-duplicate-keys.test.ts (14 tests) 291ms
+ ✓ src/parser/__tests__/extreme-edge-cases.test.ts (7 tests) 127ms
+ ✓ src/parser/__tests__/utils-errors.test.ts (17 tests) 94ms
+ ✓ src/utils/__tests__/logger.test.ts (21 tests) 213ms
+ ✓ src/cardano/__tests__/cardano-helpers.test.ts (12 tests) 219ms
+ ✓ src/__tests__/audit-fixes.test.ts (23 tests) 600ms
+ ✓ src/parser/__tests__/cbor-integer-errors.test.ts (12 tests) 110ms
+ ✓ src/parser/__tests__/cbor-sequences.test.ts (13 tests) 344ms
+ ✓ src/parser/__tests__/cbor-parser-errors.test.ts (12 tests) 264ms
+stderr | src/__tests__/roadmap-tags-stream.test.ts > RFC 9581 > rejects 1001({1:0,1:1})
+[CBOR] Duplicate map key detected; all entries preserved in ALL_ENTRIES_SYMBOL
+
+ ✓ src/__tests__/roadmap-tags-stream.test.ts (87 tests) 6312ms
+   ✓ incremental RFC 8742 > matches the full-buffer decoder at every split, including inside headers and UTF-8 327ms
+   ✓ converts and encodes large byte values and offset views without changing any byte 5033ms
+ ✓ src/__tests__/roadmap-cddl.test.ts (66 tests) 7394ms
+   ✓ RFC 8610 CDDL validation > root = {name: tstr, age: 0..150, ? active: bool} 404ms
+   ✓ RFC 8610 CDDL validation > lints every pinned CIP-21 schema root without relying on the trusted-schema shortcut 5292ms
+stderr | src/__tests__/audit-2026-09.test.ts > September audit: shared RFC 8949 decoding > retains wire types, duplicate map entries, chunks, and uint64 tag numbers
+[CBOR] Duplicate map key detected; all entries preserved in ALL_ENTRIES_SYMBOL
+
+ ✓ src/__tests__/audit-2026-09.test.ts (26 tests) 14407ms
+   ✓ September audit: shared RFC 8949 decoding > rejects all widened finite binary16 encodings in deterministic mode (independent bit oracle) 13675ms
+ ✓ src/__tests__/roadmap-cip21.test.ts (27 tests) 40589ms
+   ✓ complete serialized CIP-21 checks > accepts bodies and three/four-element transaction envelopes 6969ms
+   ✓ complete serialized CIP-21 checks > requires valid ledger structures before declaring compatibility 3830ms
+   ✓ complete serialized CIP-21 checks > rejects unsupported field 6 431ms
+   ✓ complete serialized CIP-21 checks > rejects unsupported field 20 378ms
+   ✓ complete serialized CIP-21 checks > rejects unsupported certificate 10 913ms
+   ✓ complete serialized CIP-21 checks > rejects unsupported certificate 11 1036ms
+   ✓ complete serialized CIP-21 checks > rejects unsupported certificate 12 969ms
+   ✓ complete serialized CIP-21 checks > rejects unsupported certificate 13 555ms
+   ✓ complete serialized CIP-21 checks > rejects pre-Conway unsupported certificate 5 475ms
+   ✓ complete serialized CIP-21 checks > rejects pre-Conway unsupported certificate 6 349ms
+   ✓ complete serialized CIP-21 checks > rejects optional empty collection 4 364ms
+   ✓ complete serialized CIP-21 checks > rejects optional empty collection 5 450ms
+   ✓ complete serialized CIP-21 checks > rejects optional empty collection 9 434ms
+   ✓ complete serialized CIP-21 checks > rejects optional empty collection 13 367ms
+   ✓ complete serialized CIP-21 checks > rejects optional empty collection 14 364ms
+   ✓ complete serialized CIP-21 checks > rejects optional empty collection 18 340ms
+   ✓ complete serialized CIP-21 checks > rejects optional empty collection 19 362ms
+   ✓ complete serialized CIP-21 checks > allows required empty input/output containers but rejects empty multiassets 1374ms
+   ✓ complete serialized CIP-21 checks > checks tag 258 consistency across inputs, certificates, owners and witnesses 1978ms
+   ✓ complete serialized CIP-21 checks > checks pool registration exclusions individually 9649ms
+   ✓ complete serialized CIP-21 checks > allows supported certificates and mixed output formats including inline datum/reference script 389ms
+   ✓ complete serialized CIP-21 checks > rejects empty output data and reference scripts 697ms
+   ✓ complete serialized CIP-21 checks > enforces signed int64 bounds while permitting full uint64 coin values 1222ms
+   ✓ complete serialized CIP-21 checks > allows exactly one voting procedure 861ms
+   ✓ complete serialized CIP-21 checks > validates Catalyst auxiliary data only when the exceptional signing workflow is requested 1243ms
+   ✓ complete serialized CIP-21 checks > checks UINT16 count boundaries before schema validation 4576ms
+
+ Test Files  52 passed (52)
+      Tests  1803 passed (1803)
+   Start at  13:55:58
+   Duration  58.42s (transform 21.33s, setup 0ms, collect 64.89s, tests 80.48s, environment 475ms, prepare 56.86s)
+

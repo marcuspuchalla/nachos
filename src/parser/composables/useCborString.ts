@@ -118,6 +118,7 @@ export function useCborString() {
       const chunks: Uint8Array[] = []
       let currentOffset = offset + 1 + bytesConsumed
       let totalLength = 0
+      let foundBreak = false
 
       while (currentOffset < buffer.length) {
         // Peek at next byte to check for break marker
@@ -130,6 +131,7 @@ export function useCborString() {
         // Check for break marker (0xff)
         if (nextByte === 0xff) {
           currentOffset++ // Consume break byte
+          foundBreak = true
           break
         }
 
@@ -165,6 +167,8 @@ export function useCborString() {
           throw new Error(`Byte string length ${totalLength} exceeds limit of ${options.limits.maxStringLength} bytes`)
         }
       }
+
+      if (!foundBreak) throw new Error('Incomplete indefinite string: missing break marker')
 
       // Concatenate all chunks
       const bytes = new Uint8Array(totalLength)
@@ -231,6 +235,7 @@ export function useCborString() {
       const chunks: string[] = []
       let currentOffset = offset + 1 + bytesConsumed
       let totalLength = 0
+      let foundBreak = false
 
       while (currentOffset < buffer.length) {
         // Peek at next byte to check for break marker
@@ -243,6 +248,7 @@ export function useCborString() {
         // Check for break marker (0xff)
         if (nextByte === 0xff) {
           currentOffset++ // Consume break byte
+          foundBreak = true
           break
         }
 
@@ -270,7 +276,7 @@ export function useCborString() {
         }
 
         chunks.push(chunkResult.value)
-        totalLength += chunkResult.value.length
+        totalLength += new TextEncoder().encode(chunkResult.value).length
         currentOffset += chunkResult.bytesRead
 
         // Check length limit during accumulation
@@ -278,6 +284,8 @@ export function useCborString() {
           throw new Error(`Text string length ${totalLength} exceeds limit of ${options.limits.maxStringLength} characters`)
         }
       }
+
+      if (!foundBreak) throw new Error('Incomplete indefinite string: missing break marker')
 
       // Concatenate all chunks
       const text = chunks.join('')
@@ -310,7 +318,7 @@ export function useCborString() {
     }
 
     // Decode UTF-8 bytes to string
-    const decoder = new TextDecoder('utf-8')
+    const decoder = new TextDecoder('utf-8', { ignoreBOM: true })
     const text = decoder.decode(payload)
 
     return {

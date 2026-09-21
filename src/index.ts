@@ -1,3 +1,4 @@
+import { decodeLossless, nodeToDiagnostic } from './parser/lossless'
 /**
  * NACHOS - Not Another CBOR Handling Object System
  *
@@ -484,6 +485,9 @@ export function toDiagnostic(value: unknown, options?: DiagnosticOptions): strin
  *
  * Combines decoding and diagnostic conversion in one step.
  *
+ * With `showOffsets: true`, decodes with a source map and annotates every
+ * value with its byte span in the input, e.g. `[1, 2] /* 0-3 *​/`.
+ *
  * @param hexString - CBOR data as hex string
  * @param options - Optional formatting options
  * @returns Diagnostic notation string
@@ -493,9 +497,80 @@ export function toDiagnostic(value: unknown, options?: DiagnosticOptions): strin
  * decodeToDiagnostic('1864')           // "100"
  * decodeToDiagnostic('83010203')       // "[1, 2, 3]"
  * decodeToDiagnostic('d87980')         // "121([])"
+ * decodeToDiagnostic('8101', { showOffsets: true })  // "[1 /* 1-2 *​/] /* 0-2 *​/"
  * ```
  */
 export function decodeToDiagnostic(hexString: string, options?: DiagnosticOptions): string {
-  const { value } = decode(hexString)
-  return toDiagnostic(value, options)
+  return nodeToDiagnostic(decodeLossless(hexString).node, options)
 }
+
+/**
+ * Parse RFC 8949 §8 diagnostic notation back to a CBOR value
+ *
+ * Inverse of {@link toDiagnostic}. Supports integers (incl. bigints), floats
+ * (incl. Infinity/-Infinity/NaN and `_N` width suffixes), strings with
+ * escapes, h'…' and b64'…' byte strings, arrays, maps (returned as `Map`),
+ * tagged values `n(…)`, `simple(n)`, `true`/`false`/`null`/`undefined`, and
+ * indefinite-length forms (`[_ …]`, `{_ …}`, `(_ …)`).
+ *
+ * @param diagnostic - Diagnostic notation string
+ * @returns Parsed CBOR value
+ * @throws {Error} On malformed diagnostic notation
+ *
+ * @example
+ * ```typescript
+ * fromDiagnostic('100')              // 100
+ * fromDiagnostic("h'0102'")          // Uint8Array [1, 2]
+ * fromDiagnostic('[1, 2, 3]')        // [1, 2, 3]
+ * fromDiagnostic('{"a": 1}')         // Map { "a" => 1 }
+ * fromDiagnostic('121([])')          // { tag: 121, value: [] }
+ * fromDiagnostic('18446744073709551616')  // 18446744073709551616n
+ * ```
+ */
+export function fromDiagnostic(diagnostic: string, options?: { preserveFloatType?: boolean; maxDepth?: number }): unknown {
+  const { fromDiagnostic: parse } = useCborDiagnostic()
+  return parse(diagnostic, options)
+}
+
+/**
+ * Encode a value as self-described CBOR (RFC 8949 §3.4.6)
+ *
+ * Wraps the encoded output in tag 55799, so the byte stream starts with the
+ * magic bytes `d9d9f7` which unambiguously identify it as CBOR.
+ *
+ * Use `decode(hex, { unwrapSelfDescribed: true })` to transparently remove
+ * the wrapper when decoding.
+ *
+ * @param value - JavaScript value to encode
+ * @param options - Optional encoder configuration
+ * @returns CBOR bytes and hex string (starting with d9d9f7)
+ *
+ * @example
+ * ```typescript
+ * encodeSelfDescribed(100)  // { hex: "d9d9f71864", bytes: ... }
+ * decode('d9d9f71864', { unwrapSelfDescribed: true })  // { value: 100, ... }
+ * ```
+ */
+export function encodeSelfDescribed(value: EncodableValue, options?: Partial<EncodeOptions>): EncodeResult {
+  return encode(value, { ...options, selfDescribed: true })
+}
+
+export { decodeLossless, encodeLossless, cborSemanticEqual, nodeToDiagnostic, nodeToCborJson, valueToCborJson, cborJsonToValue } from './parser/lossless'
+export type { CborJson } from './parser/lossless'
+export type { CborNode } from './parser/scanner'
+export type { CborFloat } from './parser/types'
+
+export { getTagDefinition, TAG_DEFINITIONS, TAG_REGISTRY_UPDATED } from './parser/registry'
+export type { TagDefinition } from './parser/registry'
+
+export { typedArrayView, decodeObjectIdentifier, validateRegisteredTag } from './parser/extensions'
+
+export { ALL_ENTRIES_SYMBOL, INDEFINITE_SYMBOL } from './parser/types'
+export { decodeIpAddress, formatIpAddress } from './parser/ip'
+export type { CborIpAddress } from './parser/ip'
+export { decodeExtendedTime } from './parser/time'
+export type { ExtendedTime, ExtendedPeriod, ExactTimeSeconds } from './parser/time'
+export { createSequenceDecoder, decodeSequenceStream } from './parser/stream'
+export type { SequenceStreamOptions, StreamItem } from './parser/stream'
+export { verifyCoseSign1, verifyCoseSign, importCoseKey } from './cose'
+export type { CoseSignatureAlgorithm, CoseVerificationKey, CoseVerifyOptions, CoseVerification } from './cose'

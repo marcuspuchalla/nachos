@@ -6,6 +6,7 @@
 
 import type { EncodeResult, TaggedValue, EncodableValue } from '../types'
 import { bytesToHex, writeUint, writeBigUint } from '../utils'
+import { bigintToMinimalBytes } from './useCborIntegerEncoder'
 
 /**
  * CBOR Tag Encoder Composable
@@ -54,6 +55,7 @@ export function useCborTagEncoder() {
    * @throws Error if tag number is negative or >= 2^64
    */
   const encodeTagNumber = (tagNumber: number | bigint): Uint8Array => {
+    if (typeof tagNumber === 'number' && !Number.isSafeInteger(tagNumber)) throw new Error('Tag number must be a safe integer or bigint')
     // Convert to BigInt for consistent handling
     const bigTag = typeof tagNumber === 'bigint' ? tagNumber : BigInt(tagNumber)
 
@@ -119,8 +121,25 @@ export function useCborTagEncoder() {
     // Encode tag number
     const tagBytes = encodeTagNumber(tagNumber)
 
+    // Bignum tags (2/3) semantically contain a byte string. The decoder
+    // converts that byte string to a BigInt ({ tag: 2, value: 2n**70n }), so
+    // accept the BigInt form here and re-emit the minimal-length big-endian
+    // byte string (round-trip support, RFC 8949 §3.4.3).
+    let contentValue = value
+    const numericTag = typeof tagNumber === 'bigint' ? Number(tagNumber) : tagNumber
+    if ((numericTag === 2 || numericTag === 3) && typeof value === 'bigint') {
+      if (numericTag === 2 && value < 0n) {
+        throw new Error('Tag 2 (positive bignum) cannot contain a negative bigint')
+      }
+      if (numericTag === 3 && value >= 0n) {
+        throw new Error('Tag 3 (negative bignum) requires a negative bigint')
+      }
+      const magnitude = numericTag === 2 ? value : -1n - value
+      contentValue = bigintToMinimalBytes(magnitude)
+    }
+
     // Recursively encode the tagged value
-    const valueResult = encode(value)
+    const valueResult = encode(contentValue)
 
     // Concatenate tag header + value bytes
     const totalLength = tagBytes.length + valueResult.bytes.length

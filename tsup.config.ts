@@ -5,7 +5,8 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
     'parser/index': 'src/parser/index.ts',
-    'encoder/index': 'src/encoder/index.ts'
+    'encoder/index': 'src/encoder/index.ts',
+    'cddl/index': 'src/cddl/index.ts'
   },
 
   // Output formats

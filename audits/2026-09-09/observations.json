@@ -1,0 +1,2189 @@
+{
+  "generatedAt": "2026-09-09T11:51:49.837Z",
+  "node": "v24.13.1",
+  "scope": "Targeted audit observations; unmet expectations mix correctness defects, API promises, and planned completeness features. Counts are not RFC coverage percentages.",
+  "provenance": {
+    "nachos": {
+      "head": "c712795e40005a7218bac4b20b3ebba00a01c93a",
+      "diffSha256": "8c0de1603c37bfee239b1ba743bc3b467ccb952359a30a9fd7aede7e19e51ddd",
+      "bundledSourceSha256": "28ed72875393aea7edccff107880c07009021468672adb88011944d7a12c6270"
+    },
+    "taco": {
+      "head": "81ea7ba45c8fe7bcd02ddf362a42c981429fcba5",
+      "diffSha256": "781aae3a9e141f562767de46849c1bfec668b8a1e50ef553e92a41cb7b8eb41c",
+      "runnerSha256": "ee9f49b353f3269d1e84bf283c17d87aeb9184d2c075ec398b8ae9fd504ae025",
+      "adapterSha256": "aed445deff1c6ec8f9b22f45b5999a2c2598ce092d9fcc11bb928b9477567a92"
+    },
+    "app": {
+      "head": "31d08d230717e6978bb42d7186d3b33dfee58f60",
+      "diffSha256": "b4e68ec6af95e1f444e16154fa6f981f3602012436b526f1e585d46fc33c867b"
+    }
+  },
+  "summary": {
+    "checks": 152,
+    "met": 37,
+    "unmet": 115
+  },
+  "binary16Exhaustive": {
+    "finitePatterns": 63488,
+    "incorrectlyAcceptedAsDeterministicBinary32": 63406,
+    "examples": [
+      {
+        "binary16": "0003",
+        "binary32": "fa34400000",
+        "value": 1.7881393432617188e-7
+      },
+      {
+        "binary16": "0005",
+        "binary32": "fa34a00000",
+        "value": 2.980232238769531e-7
+      },
+      {
+        "binary16": "0006",
+        "binary32": "fa34c00000",
+        "value": 3.5762786865234375e-7
+      },
+      {
+        "binary16": "0007",
+        "binary32": "fa34e00000",
+        "value": 4.172325134277344e-7
+      },
+      {
+        "binary16": "0009",
+        "binary32": "fa35100000",
+        "value": 5.364418029785156e-7
+      }
+    ]
+  },
+  "tacoCorpus": {
+    "note": "Current source runner and Nachos adapter with in-memory HTTP responses and current Nachos source. NOT a Docker run or a trustworthy library ranking; runner defects are demonstrated above.",
+    "total": 355,
+    "categories": {
+      "addresses": 15,
+      "certificates": 20,
+      "metadata": 3,
+      "plutus-data": 29,
+      "primitives": 7,
+      "transactions": 21,
+      "tx-body-fields": 18,
+      "witnesses": 24,
+      "unsigned-integers": 36,
+      "negative-integers": 28,
+      "byte-strings": 14,
+      "text-strings": 13,
+      "arrays": 13,
+      "maps": 14,
+      "tags": 13,
+      "simple-floats": 21,
+      "canonical": 17,
+      "limits": 17,
+      "malformed": 32
+    },
+    "sectionsPresent": 36,
+    "outcomes": {
+      "pass": 352,
+      "mismatch": 2,
+      "rejected_strict": 1
+    },
+    "failures": [
+      {
+        "testId": "tx-body-field-voting-procedures",
+        "passed": false,
+        "category": "mismatch",
+        "actualOutput": {
+          "0": [],
+          "1": [],
+          "2": 0,
+          "19": {
+            "[0,{\"__cbor_bytes__\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}]": {
+              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": 0
+            }
+          }
+        },
+        "expectedOutput": {
+          "0": [],
+          "1": [],
+          "2": 0,
+          "19": {
+            "0,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": {
+              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": 0
+            }
+          }
+        },
+        "duration": 0,
+        "error": "Output mismatch"
+      },
+      {
+        "testId": "limits-nesting-depth-500",
+        "passed": false,
+        "category": "rejected_strict",
+        "error": "Maximum nesting depth 100 exceeded",
+        "duration": 0
+      },
+      {
+        "testId": "malformed-tag-2-invalid-content",
+        "passed": false,
+        "category": "mismatch",
+        "actualOutput": {
+          "__cbor_tag__": 2,
+          "__cbor_value__": 1
+        },
+        "expectedOutput": "0",
+        "duration": 0,
+        "error": "Output mismatch"
+      }
+    ]
+  },
+  "checks": [
+    {
+      "id": "N01-empty-bytes/decode/hex",
+      "description": "Unterminated indefinite byte string",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "5f",
+        "options": {},
+        "value": {
+          "type": "cbor-byte-string",
+          "bytes": {
+            "$bytes": ""
+          },
+          "chunks": []
+        },
+        "bytesRead": 1
+      }
+    },
+    {
+      "id": "N01-empty-bytes/decode/bytes",
+      "description": "Unterminated indefinite byte string",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "5f",
+        "options": {},
+        "value": {
+          "type": "cbor-byte-string",
+          "bytes": {
+            "$bytes": ""
+          },
+          "chunks": []
+        },
+        "bytesRead": 1
+      }
+    },
+    {
+      "id": "N01-empty-bytes/decodeWithSourceMap/hex",
+      "description": "Unterminated indefinite byte string",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "5f",
+        "options": {},
+        "value": {
+          "type": "cbor-byte-string",
+          "bytes": {
+            "$bytes": ""
+          },
+          "chunks": []
+        },
+        "bytesRead": 1
+      }
+    },
+    {
+      "id": "N01-empty-bytes/decodeWithSourceMap/bytes",
+      "description": "Unterminated indefinite byte string",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "5f",
+        "options": {},
+        "value": {
+          "type": "cbor-byte-string",
+          "bytes": {
+            "$bytes": ""
+          },
+          "chunks": []
+        },
+        "bytesRead": 1
+      }
+    },
+    {
+      "id": "N01-bytes-chunk/decode/hex",
+      "description": "Unterminated indefinite byte string with chunk",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "5f4101",
+        "options": {},
+        "value": {
+          "type": "cbor-byte-string",
+          "bytes": {
+            "$bytes": "01"
+          },
+          "chunks": [
+            {
+              "$bytes": "01"
+            }
+          ]
+        },
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "N01-bytes-chunk/decode/bytes",
+      "description": "Unterminated indefinite byte string with chunk",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "5f4101",
+        "options": {},
+        "value": {
+          "type": "cbor-byte-string",
+          "bytes": {
+            "$bytes": "01"
+          },
+          "chunks": [
+            {
+              "$bytes": "01"
+            }
+          ]
+        },
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "N01-bytes-chunk/decodeWithSourceMap/hex",
+      "description": "Unterminated indefinite byte string with chunk",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "5f4101",
+        "options": {},
+        "value": {
+          "type": "cbor-byte-string",
+          "bytes": {
+            "$bytes": "01"
+          },
+          "chunks": [
+            {
+              "$bytes": "01"
+            }
+          ]
+        },
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "N01-bytes-chunk/decodeWithSourceMap/bytes",
+      "description": "Unterminated indefinite byte string with chunk",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "5f4101",
+        "options": {},
+        "value": {
+          "type": "cbor-byte-string",
+          "bytes": {
+            "$bytes": "01"
+          },
+          "chunks": [
+            {
+              "$bytes": "01"
+            }
+          ]
+        },
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "N01-empty-text/decode/hex",
+      "description": "Unterminated indefinite text string",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "7f",
+        "options": {},
+        "value": {
+          "type": "cbor-text-string",
+          "text": "",
+          "chunks": []
+        },
+        "bytesRead": 1
+      }
+    },
+    {
+      "id": "N01-empty-text/decode/bytes",
+      "description": "Unterminated indefinite text string",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "7f",
+        "options": {},
+        "value": {
+          "type": "cbor-text-string",
+          "text": "",
+          "chunks": []
+        },
+        "bytesRead": 1
+      }
+    },
+    {
+      "id": "N01-empty-text/decodeWithSourceMap/hex",
+      "description": "Unterminated indefinite text string",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "7f",
+        "options": {},
+        "value": {
+          "type": "cbor-text-string",
+          "text": "",
+          "chunks": []
+        },
+        "bytesRead": 1
+      }
+    },
+    {
+      "id": "N01-empty-text/decodeWithSourceMap/bytes",
+      "description": "Unterminated indefinite text string",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "7f",
+        "options": {},
+        "value": {
+          "type": "cbor-text-string",
+          "text": "",
+          "chunks": []
+        },
+        "bytesRead": 1
+      }
+    },
+    {
+      "id": "N01-text-chunk/decode/hex",
+      "description": "Unterminated indefinite text string with chunk",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "7f6161",
+        "options": {},
+        "value": {
+          "type": "cbor-text-string",
+          "text": "a",
+          "chunks": [
+            "a"
+          ]
+        },
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "N01-text-chunk/decode/bytes",
+      "description": "Unterminated indefinite text string with chunk",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "7f6161",
+        "options": {},
+        "value": {
+          "type": "cbor-text-string",
+          "text": "a",
+          "chunks": [
+            "a"
+          ]
+        },
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "N01-text-chunk/decodeWithSourceMap/hex",
+      "description": "Unterminated indefinite text string with chunk",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "7f6161",
+        "options": {},
+        "value": {
+          "type": "cbor-text-string",
+          "text": "a",
+          "chunks": [
+            "a"
+          ]
+        },
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "N01-text-chunk/decodeWithSourceMap/bytes",
+      "description": "Unterminated indefinite text string with chunk",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "7f6161",
+        "options": {},
+        "value": {
+          "type": "cbor-text-string",
+          "text": "a",
+          "chunks": [
+            "a"
+          ]
+        },
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "N02-bom/decode/hex",
+      "description": "Preserve U+FEFF at start of text",
+      "expected": "U+FEFF",
+      "met": false,
+      "actual": {
+        "hex": "63efbbbf",
+        "options": {},
+        "value": "",
+        "bytesRead": 4
+      }
+    },
+    {
+      "id": "N02-bom/decode/bytes",
+      "description": "Preserve U+FEFF at start of text",
+      "expected": "U+FEFF",
+      "met": false,
+      "actual": {
+        "hex": "63efbbbf",
+        "options": {},
+        "value": "",
+        "bytesRead": 4
+      }
+    },
+    {
+      "id": "N02-bom/decodeWithSourceMap/hex",
+      "description": "Preserve U+FEFF at start of text",
+      "expected": "U+FEFF",
+      "met": false,
+      "actual": {
+        "hex": "63efbbbf",
+        "options": {},
+        "value": "",
+        "bytesRead": 4
+      }
+    },
+    {
+      "id": "N02-bom/decodeWithSourceMap/bytes",
+      "description": "Preserve U+FEFF at start of text",
+      "expected": "U+FEFF",
+      "met": false,
+      "actual": {
+        "hex": "63efbbbf",
+        "options": {},
+        "value": "",
+        "bytesRead": 4
+      }
+    },
+    {
+      "id": "N03-bignum/decode/hex",
+      "description": "Validate tag 2 before semantic conversion",
+      "expected": "tag 2 / 1n",
+      "met": false,
+      "error": "Tag 2 (bignum) must contain a byte string, got bigint"
+    },
+    {
+      "id": "N03-bignum/decode/bytes",
+      "description": "Validate tag 2 before semantic conversion",
+      "expected": "tag 2 / 1n",
+      "met": false,
+      "error": "Tag 2 (bignum) must contain a byte string, got bigint"
+    },
+    {
+      "id": "N03-bignum/decodeWithSourceMap/hex",
+      "description": "Validate tag 2 before semantic conversion",
+      "expected": "tag 2 / 1n",
+      "met": false,
+      "error": "Tag 2 (bignum) must contain a byte string, got bigint"
+    },
+    {
+      "id": "N03-bignum/decodeWithSourceMap/bytes",
+      "description": "Validate tag 2 before semantic conversion",
+      "expected": "tag 2 / 1n",
+      "met": false,
+      "error": "Tag 2 (bignum) must contain a byte string, got bigint"
+    },
+    {
+      "id": "N03-decimal/decode/hex",
+      "description": "Decimal fraction with bignum mantissa",
+      "expected": "accept",
+      "met": false,
+      "error": "Tag 2 (bignum) must contain a byte string, got bigint"
+    },
+    {
+      "id": "N03-decimal/decode/bytes",
+      "description": "Decimal fraction with bignum mantissa",
+      "expected": "accept",
+      "met": false,
+      "error": "Tag 2 (bignum) must contain a byte string, got bigint"
+    },
+    {
+      "id": "N03-decimal/decodeWithSourceMap/hex",
+      "description": "Decimal fraction with bignum mantissa",
+      "expected": "accept",
+      "met": false,
+      "error": "Tag 2 (bignum) must contain a byte string, got bigint"
+    },
+    {
+      "id": "N03-decimal/decodeWithSourceMap/bytes",
+      "description": "Decimal fraction with bignum mantissa",
+      "expected": "accept",
+      "met": false,
+      "error": "Tag 2 (bignum) must contain a byte string, got bigint"
+    },
+    {
+      "id": "N03-float-exponent/decode/hex",
+      "description": "Tag 4 exponent has the wrong CBOR major type",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "c482f9000001",
+        "options": {
+          "validateTagSemantics": true
+        },
+        "value": {
+          "tag": 4,
+          "value": [
+            0,
+            1
+          ]
+        },
+        "bytesRead": 6
+      }
+    },
+    {
+      "id": "N03-float-exponent/decode/bytes",
+      "description": "Tag 4 exponent has the wrong CBOR major type",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "c482f9000001",
+        "options": {
+          "validateTagSemantics": true
+        },
+        "value": {
+          "tag": 4,
+          "value": [
+            0,
+            1
+          ]
+        },
+        "bytesRead": 6
+      }
+    },
+    {
+      "id": "N03-float-exponent/decodeWithSourceMap/hex",
+      "description": "Tag 4 exponent has the wrong CBOR major type",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "c482f9000001",
+        "options": {
+          "validateTagSemantics": true
+        },
+        "value": {
+          "tag": 4,
+          "value": [
+            0,
+            1
+          ]
+        },
+        "bytesRead": 6
+      }
+    },
+    {
+      "id": "N03-float-exponent/decodeWithSourceMap/bytes",
+      "description": "Tag 4 exponent has the wrong CBOR major type",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "c482f9000001",
+        "options": {
+          "validateTagSemantics": true
+        },
+        "value": {
+          "tag": 4,
+          "value": [
+            0,
+            1
+          ]
+        },
+        "bytesRead": 6
+      }
+    },
+    {
+      "id": "N03-chunk-limit/decode/hex",
+      "description": "Apply maxBignumBytes to indefinite byte content",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "c25f420100ff",
+        "options": {
+          "limits": {
+            "maxBignumBytes": 1
+          }
+        },
+        "value": {
+          "tag": 2,
+          "value": {
+            "type": "cbor-byte-string",
+            "bytes": {
+              "$bytes": "0100"
+            },
+            "chunks": [
+              {
+                "$bytes": "0100"
+              }
+            ]
+          }
+        },
+        "bytesRead": 6
+      }
+    },
+    {
+      "id": "N03-chunk-limit/decode/bytes",
+      "description": "Apply maxBignumBytes to indefinite byte content",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "c25f420100ff",
+        "options": {
+          "limits": {
+            "maxBignumBytes": 1
+          }
+        },
+        "value": {
+          "tag": 2,
+          "value": {
+            "type": "cbor-byte-string",
+            "bytes": {
+              "$bytes": "0100"
+            },
+            "chunks": [
+              {
+                "$bytes": "0100"
+              }
+            ]
+          }
+        },
+        "bytesRead": 6
+      }
+    },
+    {
+      "id": "N03-chunk-limit/decodeWithSourceMap/hex",
+      "description": "Apply maxBignumBytes to indefinite byte content",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "c25f420100ff",
+        "options": {
+          "limits": {
+            "maxBignumBytes": 1
+          }
+        },
+        "value": {
+          "tag": 2,
+          "value": {
+            "type": "cbor-byte-string",
+            "bytes": {
+              "$bytes": "0100"
+            },
+            "chunks": [
+              {
+                "$bytes": "0100"
+              }
+            ]
+          }
+        },
+        "bytesRead": 6
+      }
+    },
+    {
+      "id": "N03-chunk-limit/decodeWithSourceMap/bytes",
+      "description": "Apply maxBignumBytes to indefinite byte content",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "c25f420100ff",
+        "options": {
+          "limits": {
+            "maxBignumBytes": 1
+          }
+        },
+        "value": {
+          "tag": 2,
+          "value": {
+            "type": "cbor-byte-string",
+            "bytes": {
+              "$bytes": "0100"
+            },
+            "chunks": [
+              {
+                "$bytes": "0100"
+              }
+            ]
+          }
+        },
+        "bytesRead": 6
+      }
+    },
+    {
+      "id": "N04-array-length/decode/hex",
+      "description": "Reject nonpreferred array length in deterministic mode",
+      "expected": "reject",
+      "met": true,
+      "error": "Non-canonical length encoding: 1 should use direct encoding (AI < 24), not AI=24"
+    },
+    {
+      "id": "N04-array-length/decode/bytes",
+      "description": "Reject nonpreferred array length in deterministic mode",
+      "expected": "reject",
+      "met": true,
+      "error": "Non-canonical length encoding: 1 should use direct encoding (AI < 24), not AI=24"
+    },
+    {
+      "id": "N04-array-length/decodeWithSourceMap/hex",
+      "description": "Reject nonpreferred array length in deterministic mode",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "980100",
+        "options": {
+          "validateCanonical": true
+        },
+        "value": [
+          0
+        ],
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "N04-array-length/decodeWithSourceMap/bytes",
+      "description": "Reject nonpreferred array length in deterministic mode",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "980100",
+        "options": {
+          "validateCanonical": true
+        },
+        "value": [
+          0
+        ],
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "N04-map-order/decode/hex",
+      "description": "Reject unsorted map in deterministic mode",
+      "expected": "reject",
+      "met": true,
+      "error": "Map keys are not in canonical order (length-first): key at index 1 should come before key at index 0"
+    },
+    {
+      "id": "N04-map-order/decode/bytes",
+      "description": "Reject unsorted map in deterministic mode",
+      "expected": "reject",
+      "met": true,
+      "error": "Map keys are not in canonical order (length-first): key at index 1 should come before key at index 0"
+    },
+    {
+      "id": "N04-map-order/decodeWithSourceMap/hex",
+      "description": "Reject unsorted map in deterministic mode",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "a202000100",
+        "options": {
+          "validateCanonical": true
+        },
+        "value": {
+          "$map": [
+            [
+              2,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "bytesRead": 5
+      }
+    },
+    {
+      "id": "N04-map-order/decodeWithSourceMap/bytes",
+      "description": "Reject unsorted map in deterministic mode",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "a202000100",
+        "options": {
+          "validateCanonical": true
+        },
+        "value": {
+          "$map": [
+            [
+              2,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "bytesRead": 5
+      }
+    },
+    {
+      "id": "N04-trailing/decode/hex",
+      "description": "Enforce explicit single-item consumption option",
+      "expected": "reject",
+      "met": true,
+      "error": "Trailing data: 1 byte(s) remain after the top-level CBOR item (bytesRead=1, length=2). Use parseSequence to decode multiple items."
+    },
+    {
+      "id": "N04-trailing/decode/bytes",
+      "description": "Enforce explicit single-item consumption option",
+      "expected": "reject",
+      "met": true,
+      "error": "Trailing data: 1 byte(s) remain after the top-level CBOR item (bytesRead=1, length=2). Use parseSequence to decode multiple items."
+    },
+    {
+      "id": "N04-trailing/decodeWithSourceMap/hex",
+      "description": "Enforce explicit single-item consumption option",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "0102",
+        "options": {
+          "allowTrailingData": false
+        },
+        "value": 1,
+        "bytesRead": 1
+      }
+    },
+    {
+      "id": "N04-trailing/decodeWithSourceMap/bytes",
+      "description": "Enforce explicit single-item consumption option",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "0102",
+        "options": {
+          "allowTrailingData": false
+        },
+        "value": 1,
+        "bytesRead": 1
+      }
+    },
+    {
+      "id": "N04-unwrap/decode/hex",
+      "description": "Honor unwrapSelfDescribed consistently",
+      "expected": "1",
+      "met": true,
+      "actual": {
+        "hex": "d9d9f701",
+        "options": {
+          "unwrapSelfDescribed": true
+        },
+        "value": 1,
+        "bytesRead": 4
+      }
+    },
+    {
+      "id": "N04-unwrap/decode/bytes",
+      "description": "Honor unwrapSelfDescribed consistently",
+      "expected": "1",
+      "met": true,
+      "actual": {
+        "hex": "d9d9f701",
+        "options": {
+          "unwrapSelfDescribed": true
+        },
+        "value": 1,
+        "bytesRead": 4
+      }
+    },
+    {
+      "id": "N04-unwrap/decodeWithSourceMap/hex",
+      "description": "Honor unwrapSelfDescribed consistently",
+      "expected": "1",
+      "met": false,
+      "actual": {
+        "hex": "d9d9f701",
+        "options": {
+          "unwrapSelfDescribed": true
+        },
+        "value": {
+          "tag": 55799,
+          "value": 1
+        },
+        "bytesRead": 4
+      }
+    },
+    {
+      "id": "N04-unwrap/decodeWithSourceMap/bytes",
+      "description": "Honor unwrapSelfDescribed consistently",
+      "expected": "1",
+      "met": false,
+      "actual": {
+        "hex": "d9d9f701",
+        "options": {
+          "unwrapSelfDescribed": true
+        },
+        "value": {
+          "tag": 55799,
+          "value": 1
+        },
+        "bytesRead": 4
+      }
+    },
+    {
+      "id": "N05-maps/decode/hex",
+      "description": "Distinct maps used as map keys",
+      "expected": "two entries",
+      "met": false,
+      "error": "Duplicate map key detected: map:{} at offset 5"
+    },
+    {
+      "id": "N05-maps/decode/bytes",
+      "description": "Distinct maps used as map keys",
+      "expected": "two entries",
+      "met": false,
+      "error": "Duplicate map key detected: map:{} at offset 5"
+    },
+    {
+      "id": "N05-maps/decodeWithSourceMap/hex",
+      "description": "Distinct maps used as map keys",
+      "expected": "two entries",
+      "met": false,
+      "error": "Duplicate map key detected: [object Map] at offset 8"
+    },
+    {
+      "id": "N05-maps/decodeWithSourceMap/bytes",
+      "description": "Distinct maps used as map keys",
+      "expected": "two entries",
+      "met": false,
+      "error": "Duplicate map key detected: [object Map] at offset 8"
+    },
+    {
+      "id": "N05-arrays/decode/hex",
+      "description": "Distinct array keys must not collide through delimiters",
+      "expected": "two entries",
+      "met": false,
+      "error": "Duplicate map key detected: array:[str:a,str:b] at offset 11"
+    },
+    {
+      "id": "N05-arrays/decode/bytes",
+      "description": "Distinct array keys must not collide through delimiters",
+      "expected": "two entries",
+      "met": false,
+      "error": "Duplicate map key detected: array:[str:a,str:b] at offset 11"
+    },
+    {
+      "id": "N05-arrays/decodeWithSourceMap/hex",
+      "description": "Distinct array keys must not collide through delimiters",
+      "expected": "two entries",
+      "met": false,
+      "error": "Duplicate map key detected: a,b at offset 16"
+    },
+    {
+      "id": "N05-arrays/decodeWithSourceMap/bytes",
+      "description": "Distinct array keys must not collide through delimiters",
+      "expected": "two entries",
+      "met": false,
+      "error": "Duplicate map key detected: a,b at offset 16"
+    },
+    {
+      "id": "N05-text-duplicate/decode/hex",
+      "description": "Equal text keys with different chunking",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "a26161007f6161ff01",
+        "options": {
+          "dupMapKeyMode": "reject"
+        },
+        "value": {
+          "$map": [
+            [
+              "a",
+              0
+            ],
+            [
+              {
+                "type": "cbor-text-string",
+                "text": "a",
+                "chunks": [
+                  "a"
+                ]
+              },
+              1
+            ]
+          ]
+        },
+        "bytesRead": 9
+      }
+    },
+    {
+      "id": "N05-text-duplicate/decode/bytes",
+      "description": "Equal text keys with different chunking",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "a26161007f6161ff01",
+        "options": {
+          "dupMapKeyMode": "reject"
+        },
+        "value": {
+          "$map": [
+            [
+              "a",
+              0
+            ],
+            [
+              {
+                "type": "cbor-text-string",
+                "text": "a",
+                "chunks": [
+                  "a"
+                ]
+              },
+              1
+            ]
+          ]
+        },
+        "bytesRead": 9
+      }
+    },
+    {
+      "id": "N05-text-duplicate/decodeWithSourceMap/hex",
+      "description": "Equal text keys with different chunking",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "a26161007f6161ff01",
+        "options": {
+          "dupMapKeyMode": "reject"
+        },
+        "value": {
+          "$map": [
+            [
+              "a",
+              0
+            ],
+            [
+              {
+                "type": "cbor-text-string",
+                "text": "a",
+                "chunks": [
+                  "a"
+                ]
+              },
+              1
+            ]
+          ]
+        },
+        "bytesRead": 9
+      }
+    },
+    {
+      "id": "N05-text-duplicate/decodeWithSourceMap/bytes",
+      "description": "Equal text keys with different chunking",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "a26161007f6161ff01",
+        "options": {
+          "dupMapKeyMode": "reject"
+        },
+        "value": {
+          "$map": [
+            [
+              "a",
+              0
+            ],
+            [
+              {
+                "type": "cbor-text-string",
+                "text": "a",
+                "chunks": [
+                  "a"
+                ]
+              },
+              1
+            ]
+          ]
+        },
+        "bytesRead": 9
+      }
+    },
+    {
+      "id": "N05-nan-sign/decode/hex",
+      "description": "RFC 8949 verified erratum 8589 distinguishes NaN map keys with different signs",
+      "expected": "two entries",
+      "met": false,
+      "error": "Duplicate map key detected: num:NaN at offset 5"
+    },
+    {
+      "id": "N05-nan-sign/decode/bytes",
+      "description": "RFC 8949 verified erratum 8589 distinguishes NaN map keys with different signs",
+      "expected": "two entries",
+      "met": false,
+      "error": "Duplicate map key detected: num:NaN at offset 5"
+    },
+    {
+      "id": "N05-nan-sign/decodeWithSourceMap/hex",
+      "description": "RFC 8949 verified erratum 8589 distinguishes NaN map keys with different signs",
+      "expected": "two entries",
+      "met": false,
+      "error": "Duplicate map key detected: NaN at offset 8"
+    },
+    {
+      "id": "N05-nan-sign/decodeWithSourceMap/bytes",
+      "description": "RFC 8949 verified erratum 8589 distinguishes NaN map keys with different signs",
+      "expected": "two entries",
+      "met": false,
+      "error": "Duplicate map key detected: NaN at offset 8"
+    },
+    {
+      "id": "N06-float/decode/hex",
+      "description": "1.5 fits binary16; reject binary32 in deterministic mode",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "fa3fc00000",
+        "options": {
+          "validateCanonical": true
+        },
+        "value": 1.5,
+        "bytesRead": 5
+      }
+    },
+    {
+      "id": "N06-float/decode/bytes",
+      "description": "1.5 fits binary16; reject binary32 in deterministic mode",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "fa3fc00000",
+        "options": {
+          "validateCanonical": true
+        },
+        "value": 1.5,
+        "bytesRead": 5
+      }
+    },
+    {
+      "id": "N06-float/decodeWithSourceMap/hex",
+      "description": "1.5 fits binary16; reject binary32 in deterministic mode",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "fa3fc00000",
+        "options": {
+          "validateCanonical": true
+        },
+        "value": 1.5,
+        "bytesRead": 5
+      }
+    },
+    {
+      "id": "N06-float/decodeWithSourceMap/bytes",
+      "description": "1.5 fits binary16; reject binary32 in deterministic mode",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "fa3fc00000",
+        "options": {
+          "validateCanonical": true
+        },
+        "value": 1.5,
+        "bytesRead": 5
+      }
+    },
+    {
+      "id": "N08-depth/decode/hex",
+      "description": "Collection depth must survive intervening tags",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "81d86481d8648100",
+        "options": {
+          "limits": {
+            "maxDepth": 2,
+            "maxTagDepth": 2
+          }
+        },
+        "value": [
+          {
+            "tag": 100,
+            "value": [
+              {
+                "tag": 100,
+                "value": [
+                  0
+                ]
+              }
+            ]
+          }
+        ],
+        "bytesRead": 8
+      }
+    },
+    {
+      "id": "N08-depth/decode/bytes",
+      "description": "Collection depth must survive intervening tags",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "81d86481d8648100",
+        "options": {
+          "limits": {
+            "maxDepth": 2,
+            "maxTagDepth": 2
+          }
+        },
+        "value": [
+          {
+            "tag": 100,
+            "value": [
+              {
+                "tag": 100,
+                "value": [
+                  0
+                ]
+              }
+            ]
+          }
+        ],
+        "bytesRead": 8
+      }
+    },
+    {
+      "id": "N08-depth/decodeWithSourceMap/hex",
+      "description": "Collection depth must survive intervening tags",
+      "expected": "reject",
+      "met": true,
+      "error": "Maximum nesting depth 2 exceeded"
+    },
+    {
+      "id": "N08-depth/decodeWithSourceMap/bytes",
+      "description": "Collection depth must survive intervening tags",
+      "expected": "reject",
+      "met": true,
+      "error": "Maximum nesting depth 2 exceeded"
+    },
+    {
+      "id": "N09-tag64/decode/hex",
+      "description": "Preserve supported CBOR uint64 tag space",
+      "expected": "accept",
+      "met": false,
+      "error": "Tag number 9007199254740992 exceeds maximum safe integer"
+    },
+    {
+      "id": "N09-tag64/decode/bytes",
+      "description": "Preserve supported CBOR uint64 tag space",
+      "expected": "accept",
+      "met": false,
+      "error": "Tag number 9007199254740992 exceeds maximum safe integer"
+    },
+    {
+      "id": "N09-tag64/decodeWithSourceMap/hex",
+      "description": "Preserve supported CBOR uint64 tag space",
+      "expected": "accept",
+      "met": false,
+      "error": "Tag number 9007199254740992 exceeds maximum safe integer"
+    },
+    {
+      "id": "N09-tag64/decodeWithSourceMap/bytes",
+      "description": "Preserve supported CBOR uint64 tag space",
+      "expected": "accept",
+      "met": false,
+      "error": "Tag number 9007199254740992 exceeds maximum safe integer"
+    },
+    {
+      "id": "N10-embedded-type/decode/hex",
+      "description": "Validate tag 24 content type",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "d81800",
+        "options": {
+          "validateTagSemantics": true
+        },
+        "value": {
+          "tag": 24,
+          "value": 0
+        },
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "N10-embedded-type/decode/bytes",
+      "description": "Validate tag 24 content type",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "d81800",
+        "options": {
+          "validateTagSemantics": true
+        },
+        "value": {
+          "tag": 24,
+          "value": 0
+        },
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "N10-embedded-type/decodeWithSourceMap/hex",
+      "description": "Validate tag 24 content type",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "d81800",
+        "options": {
+          "validateTagSemantics": true
+        },
+        "value": {
+          "tag": 24,
+          "value": 0
+        },
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "N10-embedded-type/decodeWithSourceMap/bytes",
+      "description": "Validate tag 24 content type",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "d81800",
+        "options": {
+          "validateTagSemantics": true
+        },
+        "value": {
+          "tag": 24,
+          "value": 0
+        },
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "N10-embedded-malformed/decode/hex",
+      "description": "Validate embedded item under tag 24",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "d81841ff",
+        "options": {
+          "validateTagSemantics": true
+        },
+        "value": {
+          "tag": 24,
+          "value": {
+            "$bytes": "ff"
+          }
+        },
+        "bytesRead": 4
+      }
+    },
+    {
+      "id": "N10-embedded-malformed/decode/bytes",
+      "description": "Validate embedded item under tag 24",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "d81841ff",
+        "options": {
+          "validateTagSemantics": true
+        },
+        "value": {
+          "tag": 24,
+          "value": {
+            "$bytes": "ff"
+          }
+        },
+        "bytesRead": 4
+      }
+    },
+    {
+      "id": "N10-embedded-malformed/decodeWithSourceMap/hex",
+      "description": "Validate embedded item under tag 24",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "d81841ff",
+        "options": {
+          "validateTagSemantics": true
+        },
+        "value": {
+          "tag": 24,
+          "value": {
+            "$bytes": "ff"
+          }
+        },
+        "bytesRead": 4
+      }
+    },
+    {
+      "id": "N10-embedded-malformed/decodeWithSourceMap/bytes",
+      "description": "Validate embedded item under tag 24",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "d81841ff",
+        "options": {
+          "validateTagSemantics": true
+        },
+        "value": {
+          "tag": 24,
+          "value": {
+            "$bytes": "ff"
+          }
+        },
+        "bytesRead": 4
+      }
+    },
+    {
+      "id": "N10-base64/decode/hex",
+      "description": "Reject impossible one-character base64url",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "d8216141",
+        "options": {
+          "validateTagSemantics": true
+        },
+        "value": {
+          "tag": 33,
+          "value": "A"
+        },
+        "bytesRead": 4
+      }
+    },
+    {
+      "id": "N10-base64/decode/bytes",
+      "description": "Reject impossible one-character base64url",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "d8216141",
+        "options": {
+          "validateTagSemantics": true
+        },
+        "value": {
+          "tag": 33,
+          "value": "A"
+        },
+        "bytesRead": 4
+      }
+    },
+    {
+      "id": "N10-base64/decodeWithSourceMap/hex",
+      "description": "Reject impossible one-character base64url",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "d8216141",
+        "options": {
+          "validateTagSemantics": true
+        },
+        "value": {
+          "tag": 33,
+          "value": "A"
+        },
+        "bytesRead": 4
+      }
+    },
+    {
+      "id": "N10-base64/decodeWithSourceMap/bytes",
+      "description": "Reject impossible one-character base64url",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "d8216141",
+        "options": {
+          "validateTagSemantics": true
+        },
+        "value": {
+          "tag": 33,
+          "value": "A"
+        },
+        "bytesRead": 4
+      }
+    },
+    {
+      "id": "N11-plutus-big-index/decode/hex",
+      "description": "Tag 102 constructor index is a uint64",
+      "expected": "accept",
+      "met": false,
+      "error": "Plutus constructor index must be non-negative integer, got bigint"
+    },
+    {
+      "id": "N11-plutus-big-index/decode/bytes",
+      "description": "Tag 102 constructor index is a uint64",
+      "expected": "accept",
+      "met": false,
+      "error": "Plutus constructor index must be non-negative integer, got bigint"
+    },
+    {
+      "id": "N11-plutus-big-index/decodeWithSourceMap/hex",
+      "description": "Tag 102 constructor index is a uint64",
+      "expected": "accept",
+      "met": false,
+      "error": "Plutus constructor index must be non-negative integer, got bigint"
+    },
+    {
+      "id": "N11-plutus-big-index/decodeWithSourceMap/bytes",
+      "description": "Tag 102 constructor index is a uint64",
+      "expected": "accept",
+      "met": false,
+      "error": "Plutus constructor index must be non-negative integer, got bigint"
+    },
+    {
+      "id": "N11-plutus-text/decode/hex",
+      "description": "Plutus constructor fields cannot contain text",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "d879816161",
+        "options": {
+          "validatePlutusSemantics": true
+        },
+        "value": {
+          "tag": 121,
+          "value": [
+            "a"
+          ],
+          "plutus": {
+            "constructor": 0,
+            "fields": [
+              "a"
+            ]
+          }
+        },
+        "bytesRead": 5
+      }
+    },
+    {
+      "id": "N11-plutus-text/decode/bytes",
+      "description": "Plutus constructor fields cannot contain text",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "d879816161",
+        "options": {
+          "validatePlutusSemantics": true
+        },
+        "value": {
+          "tag": 121,
+          "value": [
+            "a"
+          ],
+          "plutus": {
+            "constructor": 0,
+            "fields": [
+              "a"
+            ]
+          }
+        },
+        "bytesRead": 5
+      }
+    },
+    {
+      "id": "N11-plutus-text/decodeWithSourceMap/hex",
+      "description": "Plutus constructor fields cannot contain text",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "d879816161",
+        "options": {
+          "validatePlutusSemantics": true
+        },
+        "value": {
+          "tag": 121,
+          "value": [
+            "a"
+          ],
+          "plutus": {
+            "constructor": 0,
+            "fields": [
+              "a"
+            ]
+          }
+        },
+        "bytesRead": 5
+      }
+    },
+    {
+      "id": "N11-plutus-text/decodeWithSourceMap/bytes",
+      "description": "Plutus constructor fields cannot contain text",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "hex": "d879816161",
+        "options": {
+          "validatePlutusSemantics": true
+        },
+        "value": {
+          "tag": 121,
+          "value": [
+            "a"
+          ],
+          "plutus": {
+            "constructor": 0,
+            "fields": [
+              "a"
+            ]
+          }
+        },
+        "bytesRead": 5
+      }
+    },
+    {
+      "id": "control-uint64/decode/hex",
+      "description": "Exact uint64 maximum",
+      "expected": "18446744073709551615n",
+      "met": true,
+      "actual": {
+        "hex": "1bffffffffffffffff",
+        "options": {},
+        "value": {
+          "$bigint": "18446744073709551615"
+        },
+        "bytesRead": 9
+      }
+    },
+    {
+      "id": "control-uint64/decode/bytes",
+      "description": "Exact uint64 maximum",
+      "expected": "18446744073709551615n",
+      "met": true,
+      "actual": {
+        "hex": "1bffffffffffffffff",
+        "options": {},
+        "value": {
+          "$bigint": "18446744073709551615"
+        },
+        "bytesRead": 9
+      }
+    },
+    {
+      "id": "control-uint64/decodeWithSourceMap/hex",
+      "description": "Exact uint64 maximum",
+      "expected": "18446744073709551615n",
+      "met": true,
+      "actual": {
+        "hex": "1bffffffffffffffff",
+        "options": {},
+        "value": {
+          "$bigint": "18446744073709551615"
+        },
+        "bytesRead": 9
+      }
+    },
+    {
+      "id": "control-uint64/decodeWithSourceMap/bytes",
+      "description": "Exact uint64 maximum",
+      "expected": "18446744073709551615n",
+      "met": true,
+      "actual": {
+        "hex": "1bffffffffffffffff",
+        "options": {},
+        "value": {
+          "$bigint": "18446744073709551615"
+        },
+        "bytesRead": 9
+      }
+    },
+    {
+      "id": "control-nint64/decode/hex",
+      "description": "Exact negative integer lower endpoint",
+      "expected": "-18446744073709551616n",
+      "met": true,
+      "actual": {
+        "hex": "3bffffffffffffffff",
+        "options": {},
+        "value": {
+          "$bigint": "-18446744073709551616"
+        },
+        "bytesRead": 9
+      }
+    },
+    {
+      "id": "control-nint64/decode/bytes",
+      "description": "Exact negative integer lower endpoint",
+      "expected": "-18446744073709551616n",
+      "met": true,
+      "actual": {
+        "hex": "3bffffffffffffffff",
+        "options": {},
+        "value": {
+          "$bigint": "-18446744073709551616"
+        },
+        "bytesRead": 9
+      }
+    },
+    {
+      "id": "control-nint64/decodeWithSourceMap/hex",
+      "description": "Exact negative integer lower endpoint",
+      "expected": "-18446744073709551616n",
+      "met": true,
+      "actual": {
+        "hex": "3bffffffffffffffff",
+        "options": {},
+        "value": {
+          "$bigint": "-18446744073709551616"
+        },
+        "bytesRead": 9
+      }
+    },
+    {
+      "id": "control-nint64/decodeWithSourceMap/bytes",
+      "description": "Exact negative integer lower endpoint",
+      "expected": "-18446744073709551616n",
+      "met": true,
+      "actual": {
+        "hex": "3bffffffffffffffff",
+        "options": {},
+        "value": {
+          "$bigint": "-18446744073709551616"
+        },
+        "bytesRead": 9
+      }
+    },
+    {
+      "id": "control-indefinite/decode/hex",
+      "description": "Generic mode accepts valid indefinite array",
+      "expected": "[1]",
+      "met": true,
+      "actual": {
+        "hex": "9f01ff",
+        "options": {},
+        "value": [
+          1
+        ],
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "control-indefinite/decode/bytes",
+      "description": "Generic mode accepts valid indefinite array",
+      "expected": "[1]",
+      "met": true,
+      "actual": {
+        "hex": "9f01ff",
+        "options": {},
+        "value": [
+          1
+        ],
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "control-indefinite/decodeWithSourceMap/hex",
+      "description": "Generic mode accepts valid indefinite array",
+      "expected": "[1]",
+      "met": true,
+      "actual": {
+        "hex": "9f01ff",
+        "options": {},
+        "value": [
+          1
+        ],
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "control-indefinite/decodeWithSourceMap/bytes",
+      "description": "Generic mode accepts valid indefinite array",
+      "expected": "[1]",
+      "met": true,
+      "actual": {
+        "hex": "9f01ff",
+        "options": {},
+        "value": [
+          1
+        ],
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "control-simple-malformed/decode/hex",
+      "description": "Two-byte encoding below simple value 32",
+      "expected": "reject",
+      "met": true,
+      "error": "Invalid 1-byte encoding for simple value 0"
+    },
+    {
+      "id": "control-simple-malformed/decode/bytes",
+      "description": "Two-byte encoding below simple value 32",
+      "expected": "reject",
+      "met": true,
+      "error": "Invalid 1-byte encoding for simple value 0"
+    },
+    {
+      "id": "control-simple-malformed/decodeWithSourceMap/hex",
+      "description": "Two-byte encoding below simple value 32",
+      "expected": "reject",
+      "met": true,
+      "error": "Invalid 1-byte encoding for simple value 0"
+    },
+    {
+      "id": "control-simple-malformed/decodeWithSourceMap/bytes",
+      "description": "Two-byte encoding below simple value 32",
+      "expected": "reject",
+      "met": true,
+      "error": "Invalid 1-byte encoding for simple value 0"
+    },
+    {
+      "id": "control-utf8/decode/hex",
+      "description": "Configured strict UTF-8 rejects overlong encoding",
+      "expected": "reject",
+      "met": true,
+      "error": "Invalid UTF-8 start byte 0xc0 at position 0"
+    },
+    {
+      "id": "control-utf8/decode/bytes",
+      "description": "Configured strict UTF-8 rejects overlong encoding",
+      "expected": "reject",
+      "met": true,
+      "error": "Invalid UTF-8 start byte 0xc0 at position 0"
+    },
+    {
+      "id": "control-utf8/decodeWithSourceMap/hex",
+      "description": "Configured strict UTF-8 rejects overlong encoding",
+      "expected": "reject",
+      "met": true,
+      "error": "Invalid UTF-8 start byte 0xc0 at position 0"
+    },
+    {
+      "id": "control-utf8/decodeWithSourceMap/bytes",
+      "description": "Configured strict UTF-8 rejects overlong encoding",
+      "expected": "reject",
+      "met": true,
+      "error": "Invalid UTF-8 start byte 0xc0 at position 0"
+    },
+    {
+      "id": "control-float/decode/hex",
+      "description": "Decode binary16 1.5",
+      "expected": "1.5",
+      "met": true,
+      "actual": {
+        "hex": "f93e00",
+        "options": {},
+        "value": 1.5,
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "control-float/decode/bytes",
+      "description": "Decode binary16 1.5",
+      "expected": "1.5",
+      "met": true,
+      "actual": {
+        "hex": "f93e00",
+        "options": {},
+        "value": 1.5,
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "control-float/decodeWithSourceMap/hex",
+      "description": "Decode binary16 1.5",
+      "expected": "1.5",
+      "met": true,
+      "actual": {
+        "hex": "f93e00",
+        "options": {},
+        "value": 1.5,
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "control-float/decodeWithSourceMap/bytes",
+      "description": "Decode binary16 1.5",
+      "expected": "1.5",
+      "met": true,
+      "actual": {
+        "hex": "f93e00",
+        "options": {},
+        "value": 1.5,
+        "bytesRead": 3
+      }
+    },
+    {
+      "id": "N07-canonical/decode",
+      "description": "Deterministic encoding must sort decoded map entries",
+      "expected": "a200010100",
+      "met": false,
+      "actual": "a201000001"
+    },
+    {
+      "id": "N07-simple/decode",
+      "description": "Unassigned simple value round-trip",
+      "expected": "f82a",
+      "met": false,
+      "actual": "a16b73696d706c6556616c7565182a"
+    },
+    {
+      "id": "N04-preserve/decode",
+      "description": "Lossless re-encode retains accepted duplicate entries",
+      "expected": "a201010102",
+      "met": true,
+      "actual": "a201010102"
+    },
+    {
+      "id": "N07-canonical/decodeWithSourceMap",
+      "description": "Deterministic encoding must sort decoded map entries",
+      "expected": "a200010100",
+      "met": true,
+      "actual": "a200010100"
+    },
+    {
+      "id": "N07-simple/decodeWithSourceMap",
+      "description": "Unassigned simple value round-trip",
+      "expected": "f82a",
+      "met": false,
+      "actual": "a16b73696d706c6556616c7565182a"
+    },
+    {
+      "id": "N04-preserve/decodeWithSourceMap",
+      "description": "Lossless re-encode retains accepted duplicate entries",
+      "expected": "a201010102",
+      "met": false,
+      "actual": "a10102"
+    },
+    {
+      "id": "N04-paths",
+      "description": "Integer key 1 and string key \"1\" need distinct source paths",
+      "expected": "unique paths",
+      "met": false,
+      "actual": [
+        "",
+        "#key0",
+        ".1",
+        "#key1",
+        "#key1#content",
+        ".1"
+      ]
+    },
+    {
+      "id": "N08-sequence-size",
+      "description": "Apply whole-sequence maxInputSize to source-map sequence API",
+      "expected": "reject",
+      "met": true,
+      "error": "Input size 2 bytes exceeds limit of 1 bytes"
+    },
+    {
+      "id": "N08-output",
+      "description": "Apply declared decoder maxOutputSize consistently",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "value": {
+          "$bytes": "01020304"
+        },
+        "bytesRead": 5
+      }
+    },
+    {
+      "id": "N10-date",
+      "description": "Reject a timezone-free tag-0 date",
+      "expected": "reject",
+      "met": false,
+      "actual": {
+        "value": {
+          "tag": 0,
+          "value": "2026-09-09T12:00:00"
+        },
+        "bytesRead": 21
+      }
+    },
+    {
+      "id": "N12-base32",
+      "description": "Diagnostic input supports RFC notation base32 bytes",
+      "expected": "12345678",
+      "met": false,
+      "error": "fromDiagnostic: unexpected character 'b' at position 0"
+    },
+    {
+      "id": "N12-empty-chunks",
+      "description": "Diagnostic input handles empty indefinite byte string",
+      "expected": "accept",
+      "met": false,
+      "error": "fromDiagnostic: unexpected trailing content '_' at position 3"
+    },
+    {
+      "id": "N12-simple",
+      "description": "Diagnostic simple value re-encodes as simple value",
+      "expected": "f82a",
+      "met": false,
+      "actual": "a16b73696d706c6556616c7565182a"
+    },
+    {
+      "id": "N12-bignum-output",
+      "description": "Diagnostic bignum content remains a byte string",
+      "expected": "contains h'01'",
+      "met": false,
+      "actual": "2(1)"
+    },
+    {
+      "id": "N11-label",
+      "description": "Cardano inspector labels Plutus tag 121 correctly",
+      "expected": "constructor description",
+      "met": false,
+      "actual": "tag 121: Cardano: address with network tag"
+    },
+    {
+      "id": "N11-shelley-envelope",
+      "description": "Three-element transaction metadata stays in auxiliaryData",
+      "expected": "metadata at auxiliaryData",
+      "met": false,
+      "actual": {
+        "body": {
+          "inputs": [],
+          "outputs": [],
+          "fee": 0,
+          "ttl": 0
+        },
+        "witnessSet": {},
+        "isValid": {
+          "$map": [
+            [
+              1,
+              2
+            ]
+          ]
+        },
+        "auxiliaryData": {
+          "$undefined": true
+        }
+      }
+    },
+    {
+      "id": "N11-witness-set",
+      "description": "Normalize Conway tagged witness collections to typed array field",
+      "expected": "array",
+      "met": false,
+      "actual": {
+        "tag": 258,
+        "value": [
+          {
+            "$bytes": "00"
+          }
+        ]
+      }
+    },
+    {
+      "id": "T01-bytes-text",
+      "description": "Comparison distinguishes bytes from hex text",
+      "expected": "false",
+      "met": false,
+      "actual": true
+    },
+    {
+      "id": "T01-number-text",
+      "description": "Comparison distinguishes integer from decimal text",
+      "expected": "false",
+      "met": false,
+      "actual": true
+    },
+    {
+      "id": "T01-tags",
+      "description": "Lossless comparison distinguishes different unknown tags",
+      "expected": "false",
+      "met": false,
+      "actual": true
+    },
+    {
+      "id": "T01-minus-zero",
+      "description": "Comparison preserves negative zero",
+      "expected": "false",
+      "met": false,
+      "actual": true
+    },
+    {
+      "id": "T02-roundtrip",
+      "description": "Reject malformed encoder output after correct decode",
+      "expected": "passed:false",
+      "met": false,
+      "actual": {
+        "testId": "audit",
+        "passed": true,
+        "category": "pass",
+        "actualOutput": 1,
+        "expectedOutput": 1,
+        "duration": 0,
+        "roundTripHex": "ff"
+      }
+    },
+    {
+      "id": "T03-anyof",
+      "description": "anyOf rejection must not accept adapter failure",
+      "expected": "passed:false",
+      "met": false,
+      "actual": {
+        "testId": "audit",
+        "passed": true,
+        "category": "pass",
+        "viaAnyOf": true,
+        "duration": 0
+      }
+    },
+    {
+      "id": "T01-map-keys",
+      "description": "Adapter retains both integer 1 and text \"1\" keys",
+      "expected": "two entries",
+      "met": false,
+      "actual": {
+        "1": "text"
+      }
+    },
+    {
+      "id": "A02-json-map",
+      "description": "CBOR-aware JSON serializer preserves Maps",
+      "expected": "contains entries",
+      "met": false,
+      "actual": "{}"
+    },
+    {
+      "id": "A02-json-special",
+      "description": "CBOR-aware JSON preserves undefined, NaN, negative zero",
+      "expected": "distinct typed values",
+      "met": false,
+      "actual": "[null,null,0]"
+    },
+    {
+      "id": "A02-display-keys",
+      "description": "Display retains mixed-type map keys",
+      "expected": "two entries",
+      "met": false,
+      "actual": {
+        "1": "text"
+      }
+    },
+    {
+      "id": "A02-proto-key",
+      "description": "Display retains literal __proto__ map key",
+      "expected": "own property",
+      "met": false,
+      "actual": {}
+    }
+  ],
+  "warnings": [
+    "[CBOR] Duplicate map key detected: str:a at offset 4",
+    "[CBOR] Duplicate map key detected: str:a at offset 4",
+    "[CBOR] Duplicate map key detected: str:a at offset 7",
+    "[CBOR] Duplicate map key detected: num:1 at offset 5"
+  ]
+}

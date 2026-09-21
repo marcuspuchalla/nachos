@@ -51,10 +51,14 @@ export type MapKeyOrder = 'length-first' | 'bytewise'
  * Parser options for controlling behavior
  */
 export interface ParseOptions {
+  /** Explicit validation policy; strict remains a legacy compatibility preset. */
+  profile?: 'permissive' | 'rfc8949' | 'deterministic' | 'cardano'
   /** Enable strict Cardano mode (all validations) */
   strict?: boolean
   /** Validate canonical encoding (shortest form, sorted maps) */
   validateCanonical?: boolean
+  /** Require the single NaN encoding f97e00 (legacy canonical policy); false preserves NaN payloads. */
+  canonicalNaN?: boolean
   /** Allow indefinite-length encoding (false in strict mode) */
   allowIndefinite?: boolean
   /**
@@ -70,6 +74,8 @@ export interface ParseOptions {
   validateSetUniqueness?: boolean
   /** Validate semantic tag constraints (Tag 4, Tag 5 array structure) */
   validateTagSemantics?: boolean
+  /** Validate implemented registered extensions (RFC 8746, RFC 8943, RFC 9090, RFC 9164, RFC 9581, UUID). */
+  validateRegisteredTags?: boolean
   /** Validate Plutus constructor semantics (Tags 102, 121-127, 1280-1400) */
   validatePlutusSemantics?: boolean
   /**
@@ -78,6 +84,12 @@ export interface ParseOptions {
    * Use 'bytewise' for RFC 8949 Section 4.2.1 core deterministic order.
    */
   mapKeyOrder?: MapKeyOrder
+  /**
+   * Transparently unwrap a top-level tag 55799 (self-described CBOR,
+   * RFC 8949 §3.4.6). When true, decoding d9d9f7... returns the inner value
+   * instead of { tag: 55799, value }. Default: false (tag is preserved).
+   */
+  unwrapSelfDescribed?: boolean
   /**
    * Reject trailing bytes after the top-level data item (well-formedness).
    * Defaults to true for backward compatibility (decode returns bytesRead so
@@ -108,8 +120,10 @@ export const DEFAULT_LIMITS: Required<ParserLimits> = {
  * Default parse options
  */
 export const DEFAULT_OPTIONS: Required<ParseOptions> = {
+  profile: 'permissive',
   strict: false,
   validateCanonical: false,
+  canonicalNaN: true,
   allowIndefinite: true,
   // Default to 'warn' so duplicate keys are never silently collapsed in the Map
   // view. Duplicates remain byte-perfect for round-trips via ALL_ENTRIES_SYMBOL.
@@ -117,8 +131,10 @@ export const DEFAULT_OPTIONS: Required<ParseOptions> = {
   validateUtf8Strict: false,
   validateSetUniqueness: false,
   validateTagSemantics: false,
+  validateRegisteredTags: false,
   validatePlutusSemantics: false,
   mapKeyOrder: 'length-first',
+  unwrapSelfDescribed: false,
   allowTrailingData: true,
   limits: DEFAULT_LIMITS
 }
@@ -228,6 +244,7 @@ export type CborValue =
   | CborMap
   | TaggedValue
   | SimpleValue
+  | CborFloat
 
 /**
  * Symbol to mark arrays/maps as indefinite-length encoded
@@ -272,9 +289,16 @@ export type CborArray = CborValue[] & { [INDEFINITE_SYMBOL]?: boolean }
  * Tagged CBOR value (Major Type 6)
  */
 export interface TaggedValue {
-  tag: number
+  tag: number | bigint
   value: CborValue
   plutus?: PlutusConstr  // Decoded Plutus constructor (for tags 102, 121-127, 1280-1400)
+}
+
+/** Explicit float, used when JavaScript Map would collapse distinct CBOR keys. */
+export interface CborFloat {
+  type: 'cbor-float'
+  value: number
+  bytes?: Uint8Array
 }
 
 /**
@@ -298,7 +322,7 @@ export type PlutusData =
  * Plutus Constructor (algebraic data type)
  */
 export interface PlutusConstr {
-  constructor: number
+  constructor: number | bigint
   fields: PlutusData[]
 }
 

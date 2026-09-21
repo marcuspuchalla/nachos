@@ -1,0 +1,70 @@
+{
+  "retrievedAt": "2026-09-21T10:25:31.248718+00:00",
+  "sources": [
+    {
+      "file": "rfc8742.txt",
+      "url": "https://www.rfc-editor.org/rfc/rfc8742.txt",
+      "sha256": "4462966836b60f42ebae9b5f1d2a479c328e16f0380a3434311a083bccbce30e"
+    },
+    {
+      "file": "rfc9581.txt",
+      "url": "https://www.rfc-editor.org/rfc/rfc9581.txt",
+      "sha256": "7c81cc73f43b35827741209555b349352d95f2571654b4e07f7fb8216897112d"
+    },
+    {
+      "file": "rfc9164.txt",
+      "url": "https://www.rfc-editor.org/rfc/rfc9164.txt",
+      "sha256": "bc18d7ca07f6e4036ee3e6a6ad2d2de1b095945bf1ed3bda59ef45465b6ca695"
+    },
+    {
+      "file": "rfc8610.txt",
+      "url": "https://www.rfc-editor.org/rfc/rfc8610.txt",
+      "sha256": "3713f2a50e23a2bea0a6147ad6c4433605a00c3d00a868bfa86a42b204997089"
+    },
+    {
+      "file": "rfc9052.txt",
+      "url": "https://www.rfc-editor.org/rfc/rfc9052.txt",
+      "sha256": "01eecd7f646537600e7aad665b1fa581ce6ec33dae4ef4add0997aaf38cd0a45"
+    },
+    {
+      "file": "rfc9053.txt",
+      "url": "https://www.rfc-editor.org/rfc/rfc9053.txt",
+      "sha256": "3d470615875620375f8453ba25b8dce7e4d0271e76b0b79a46df34ccb2d56ab0"
+    },
+    {
+      "file": "cip21.md",
+      "url": "https://raw.githubusercontent.com/cardano-foundation/CIPs/86b89208d3b2aabb5dcc5b778dfbe09096b4e114/CIP-0021/README.md",
+      "sha256": "8f9a6c420cd67fcd8ef212aba459d451709e34a9267f3a3950288e62d315185b",
+      "revision": "86b89208d3b2aabb5dcc5b778dfbe09096b4e114"
+    },
+    {
+      "file": "conway.cddl",
+      "url": "https://raw.githubusercontent.com/IntersectMBO/cardano-ledger/9975f3d3f36869822eee7225c8422aacafe57790/eras/conway/impl/cddl/data/conway.cddl",
+      "revision": "9975f3d3f36869822eee7225c8422aacafe57790",
+      "sha256": "316ed8ee090ea172983083329e849f24f4360a236d26be0a6f2094c6078f1e1f"
+    },
+    {
+      "file": "rfc9864.txt",
+      "url": "https://www.rfc-editor.org/rfc/rfc9864.txt",
+      "sha256": "0f9b6dd26b3285fd9fe7f7e0a82e684d06512dee642703d51c6f88a7b0edaa2b"
+    }
+  ],
+  "cddl": {
+    "engine": "anweiss/cddl",
+    "version": "0.10.7",
+    "revision": "938a931dd96db1d75425f0015921aacfb628fc94",
+    "source": "https://github.com/anweiss/cddl/tree/938a931dd96db1d75425f0015921aacfb628fc94",
+    "patch": "cddl-rfc8610.patch",
+    "lockfile": "cddl-Cargo.lock",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "wasmPack": "wasm-pack 0.14.0",
+    "artifacts": {
+      "src/cddl/vendor/LICENSE": "44d5a4a93719a655de46ea2cc80689c477f3f624d713eb6708c3f97c7cfeddc4",
+      "src/cddl/vendor/cddl.d.ts": "85feccd6251bca3e1d4dafaae0466381d7be04d490c02beeb8447a3d97238c3f",
+      "src/cddl/vendor/cddl_bg.wasm": "64174fe427e7b0cd4351b573f26e78f007a830236729df565b065d23c1d51e3e",
+      "src/cddl/vendor/cddl.js": "439d321a77466ccac4983d433a12084976dcd8bffae3a81dd52e1f0051f106df"
+    },
+    "patchSha256": "825ebf3024d4bb4c72a8dc0c727a15f97bd8bff7c5557a19aa05f7ddc165d859",
+    "lockfileSha256": "e9065e0a11db34ba7c16ad56580cbffb71ef9166972ab88473ecd8e5ab948f79"
+  }
+}

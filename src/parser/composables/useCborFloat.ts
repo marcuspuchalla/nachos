@@ -75,43 +75,10 @@ export function useCborFloat() {
     if (abs > 65504) return false
     if (abs < 5.960464477539063e-8) return false
 
-    // Encode to float16 and back to see if value is preserved
-    const sign = value < 0 ? 1 : 0
-    const buf = new ArrayBuffer(8)
-    const view = new DataView(buf)
-    view.setFloat64(0, abs, false)
-    const bits64 = view.getBigUint64(0, false)
-    const exp64 = Number((bits64 >> 52n) & 0x7ffn) - 1023
-    const mant64 = Number(bits64 & 0xfffffffffffffn)
-
-    let exp16: number
-    let mant16: number
-    if (exp64 < -14) {
-      // Subnormal float16
-      exp16 = 0
-      const shift = -14 - exp64
-      mant16 = ((1 << 10) | (mant64 >> 42)) >> shift
-    } else if (exp64 > 15) {
-      return false
-    } else {
-      exp16 = exp64 + 15
-      mant16 = mant64 >> 42
-    }
-
-    const float16Bits = (sign << 15) | (exp16 << 10) | mant16
-    // Decode back
-    const s = (float16Bits & 0x8000) >> 15
-    const e = (float16Bits & 0x7c00) >> 10
-    const f = float16Bits & 0x03ff
-    let reconstructed: number
-    if (e === 0) {
-      reconstructed = (s === 0 ? 1 : -1) * Math.pow(2, -14) * (f / 1024)
-    } else if (e === 0x1f) {
-      reconstructed = f === 0 ? (s === 0 ? Infinity : -Infinity) : NaN
-    } else {
-      reconstructed = (s === 0 ? 1 : -1) * Math.pow(2, e - 15) * (1 + f / 1024)
-    }
-    return reconstructed === value
+    // Binary16 normal values have 11 significant bits; subnormals are
+    // integer multiples of 2^-24. Avoid JS bitwise operators on 52-bit data.
+    const quantum = abs < 2 ** -14 ? 2 ** -24 : 2 ** (Math.floor(Math.log2(abs)) - 10)
+    return Number.isInteger(abs / quantum)
   }
 
   /**
@@ -214,7 +181,7 @@ export function useCborFloat() {
             const bits = (byte1 << 8) | byte2
             const exp = (bits >> 10) & 0x1f
             const mant = bits & 0x03ff
-            if (exp === 0x1f && mant !== 0 && bits !== 0x7e00) {
+            if (exp === 0x1f && mant !== 0 && bits !== 0x7e00 && options.canonicalNaN !== false) {
               throw new Error('Non-canonical NaN encoding: use 0xf97e00')
             }
           }
@@ -232,7 +199,10 @@ export function useCborFloat() {
           const value = dataView.getFloat32(0, false) // false = big-endian
           if (options?.validateCanonical) {
             if (Number.isNaN(value)) {
-              throw new Error('Non-canonical NaN encoding: NaN must use float16 0xf97e00')
+              const payload = additionalInfo === 26 ? BigInt(dataView.getUint32(0, false) & 0x7fffff) : dataView.getBigUint64(0, false) & 0xfffffffffffffn
+              const discarded = additionalInfo === 26 ? 13n : 29n
+              if (options.canonicalNaN !== false || (payload & ((1n << discarded) - 1n)) === 0n) throw new Error('Non-canonical NaN encoding: payload fits a shorter float')
+              return { value, bytesRead: additionalInfo === 26 ? 5 : 9 }
             }
             // Check if value could be represented as float16 (shortest form)
             if (fitsInFloat16(value)) {
@@ -252,7 +222,10 @@ export function useCborFloat() {
           const value = dataView.getFloat64(0, false) // false = big-endian
           if (options?.validateCanonical) {
             if (Number.isNaN(value)) {
-              throw new Error('Non-canonical NaN encoding: NaN must use float16 0xf97e00')
+              const payload = dataView.getBigUint64(0, false) & 0xfffffffffffffn
+              const discarded = 29n
+              if (options.canonicalNaN !== false || (payload & ((1n << discarded) - 1n)) === 0n) throw new Error('Non-canonical NaN encoding: payload fits a shorter float')
+              return { value, bytesRead: 9 }
             }
             // Check if value could be represented in a smaller float
             if (fitsInFloat16(value)) {

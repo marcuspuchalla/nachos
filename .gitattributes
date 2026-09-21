@@ -1,0 +1,4 @@
+# Preserve the exact bytes and whitespace of standards snapshots and audit logs.
+specs/** -text -whitespace
+audits/**/*.txt -text -whitespace
+nachos-audit.txt -text -whitespace

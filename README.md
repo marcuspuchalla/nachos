@@ -15,9 +15,40 @@
 
 A production-ready, zero-dependency CBOR (Concise Binary Object Representation) codec implementation in TypeScript. Works in Node.js and browsers.
 
+## 0.4.0 release candidate
+
+The September audit repairs are staged locally. Publication and the production app rollout await review. The full resolution record and reproducible evidence are in [audits/2026-09-09](audits/2026-09-09).
+
+```ts
+import { decodeLossless, encodeLossless, nodeToCborJson, nodeToDiagnostic } from '@marcuspuchalla/nachos'
+
+const decoded = decodeLossless('a201006131f93c00', {
+  profile: 'rfc8949', allowTrailingData: false
+})
+nodeToDiagnostic(decoded.node) // {1: 0, "1": 1.0}
+nodeToCborJson(decoded.node)   // typed map entry pairs; the float stays a float
+encodeLossless(decoded.node)  // exact original bytes, including widths and chunks
+encodeLossless(decoded.node, { canonical: true, mapKeyOrder: 'bytewise' })
+```
+
+The wire node is a snapshot. `encodeLossless(node)` reproduces its original bytes and ignores edits to convenience values; use `encode(value)` for edits. Native JavaScript numbers and Maps cannot express every wire distinction. Use the node APIs for authoritative diagnostics, typed export, NaN payloads, and byte preservation. `cborSemanticEqual` compares CBOR types and values, independently of widths and map order.
+
+| Decode profile | Policy |
+| --- | --- |
+| `permissive` (default) | Inspect well-formed CBOR, preserve unknown tags and tolerated invalid tag contents. Pass `allowTrailingData: false` for exactly one item. |
+| `rfc8949` | Strict UTF-8, duplicate rejection, implemented core tag validity, one complete item. |
+| `deterministic` | RFC 8949 validity plus shortest encodings, bytewise map order, no indefinite values. NaN sign/payload are preserved when enforcing shortest width. |
+| `cardano` | RFC 8949 validity plus implemented recursive Plutus constructor/data and chunk rules. This is not complete ledger, era CDDL, CIP-21 or signature validation. |
+
+Legacy `strict` keeps its earlier combined policy. Use explicit profiles for new code. Length-first deterministic ordering remains available via `mapKeyOrder: 'length-first'` with canonical validation/encoding. Encoder defaults remain compatible; request bytewise ordering explicitly for core deterministic output. Parser limits now share depth, input, output and elapsed-time budgets across traversal and sequences; the time limit is cooperative, not thread cancellation.
+
+`validateRegisteredTags: true` enables the implemented RFC 8746 typed-array/dimension checks, RFC 8943 dates, RFC 9090 OIDs and UUID-length validation. `typedArrayView` and `decodeObjectIdentifier` provide optional interpretations. The pinned IANA registry supplies names and references only; a registry entry does not imply implemented semantic validation. Regenerate names with `python3 scripts/generate-tag-registry.py`.
+
+The diagnostic parser supports the documented common and extended forms, including base32 and indefinite strings. It is not a complete implementation of every extended-diagnostic draft grammar. For typed re-encoding use `fromDiagnostic(text, { preserveFloatType: true })`.
+
 ## Features
 
-- ✅ **RFC 8949 Compliant** - Full implementation of CBOR specification
+- ✅ **RFC 8949 core codec** - All major types, configurable validity checks, source maps and lossless wire inspection
 - ✅ **Zero Dependencies** - No runtime dependencies, ~25KB minified
 - ✅ **TypeScript First** - Complete type definitions with strict mode
 - ✅ **Source Maps** - Bidirectional linking between hex bytes and decoded values
@@ -49,11 +80,15 @@ decode('6449455446')  // { value: "IETF", bytesRead: 5 }
 // Decode array
 decode('83010203')  // { value: [1, 2, 3], bytesRead: 4 }
 
-// Decode map
-decode('a16161 01')  // { value: { a: 1 }, bytesRead: 4 }
+// Decode map — maps decode to real Map instances (key types are preserved:
+// integer keys stay integers, byte-string keys stay Uint8Arrays)
+decode('a16161 01')  // { value: Map { "a" => 1 }, bytesRead: 4 }
 
 // Decode tagged value (Cardano)
 decode('d87980')  // { value: { tag: 121, value: [] }, bytesRead: 3 }
+
+// Decode bignum (tags 2/3) — values beyond ±2^64 become BigInt
+decode('c249010000000000000000')  // { value: { tag: 2, value: 18446744073709551616n }, ... }
 ```
 
 ### Encoding CBOR
@@ -70,12 +105,18 @@ encode("IETF")  // { hex: "6449455446", bytes: ... }
 // Encode array
 encode([1, 2, 3])  // { hex: "83010203", bytes: ... }
 
-// Encode map with canonical ordering (sorted keys)
+// Encode map with canonical ordering
 encode({ z: 1, a: 2 }, { canonical: true })
-// Keys are sorted alphabetically: { a: 2, z: 1 }
+// Keys are sorted length-first (RFC 7049 §3.9 / Cardano CIP-21) by default:
+// shorter encoded keys first, ties broken bytewise. Opt in to RFC 8949
+// §4.2.1 core deterministic (pure bytewise) order with:
+encode({ z: 1, a: 2 }, { canonical: true, mapKeyOrder: 'bytewise' })
 
 // Encode tagged value
 encode({ tag: 121, value: [] })  // { hex: "d87980", bytes: ... }
+
+// Encode bignum — bigints beyond ±2^64 automatically use tag 2/3
+encode(2n ** 70n)  // { hex: "c249400000000000000000", bytes: ... }
 ```
 
 ### Source Maps (Interactive Debugging)
@@ -129,6 +170,14 @@ encode(value: EncodableValue, options?: EncodeOptions): EncodeResult
 encodeToHex(value: EncodableValue, options?: EncodeOptions): string
 encodeToBytes(value: EncodableValue, options?: EncodeOptions): Uint8Array
 encodeSequence(values: EncodableValue[], options?: EncodeOptions): EncodeResult
+encodeSelfDescribed(value: EncodableValue, options?: EncodeOptions): EncodeResult
+
+// Diagnostic notation (RFC 8949 §8)
+import { toDiagnostic, fromDiagnostic, decodeToDiagnostic } from '@marcuspuchalla/nachos'
+
+toDiagnostic(value: unknown, options?: DiagnosticOptions): string
+fromDiagnostic(diagnostic: string): unknown
+decodeToDiagnostic(hexString: string, options?: DiagnosticOptions): string
 ```
 
 ### Class API (Alternative)
@@ -155,20 +204,31 @@ const encoded2 = encoder.encodeToHex([1, 2, 3])
 interface ParseOptions {
   strict?: boolean                    // Enable all validations (Cardano mode)
   validateCanonical?: boolean         // Validate canonical encoding
-  allowIndefinite?: boolean           // Allow indefinite-length encoding
-  rejectDuplicateKeys?: boolean       // Reject duplicate map keys
+  allowIndefinite?: boolean           // Allow indefinite-length encoding (default: true)
+  dupMapKeyMode?: 'allow' | 'warn' | 'reject'  // Duplicate map key handling (default: 'warn')
+  mapKeyOrder?: 'length-first' | 'bytewise'    // Canonical key order (default: 'length-first')
   validateUtf8Strict?: boolean        // Strict UTF-8 validation
+  validateSetUniqueness?: boolean     // Reject duplicate items in tag-258 sets
+  validateTagSemantics?: boolean      // Validate standard tag content (tags 0-5, 32-36, …)
+  validatePlutusSemantics?: boolean   // Validate Plutus constructor tags (102, 121-127, 1280-1400)
+  unwrapSelfDescribed?: boolean       // Unwrap top-level tag 55799 (default: false)
+  allowTrailingData?: boolean         // Allow bytes after the top-level item (default: true, false in strict)
   limits?: {
     maxInputSize?: number             // Max input bytes (default: 10 MB)
     maxOutputSize?: number            // Max output bytes (default: 100 MB)
     maxStringLength?: number          // Max string length (default: 1 MB)
     maxArrayLength?: number           // Max array length (default: 10,000)
     maxMapSize?: number               // Max map size (default: 10,000)
-    maxDepth?: number                 // Max nesting depth (default: 64)
+    maxDepth?: number                 // Max nesting depth (default: 100)
+    maxTagDepth?: number              // Max tag nesting depth (default: 100)
+    maxBignumBytes?: number           // Max bignum content bytes (default: 1024)
     maxParseTime?: number             // Max parse time ms (default: 1000)
   }
 }
 ```
+
+Note: duplicate map keys are handled by the parser's `dupMapKeyMode`
+(`rejectDuplicateKeys` is an *encoder* option).
 
 ### Encoder Options
 
@@ -177,8 +237,11 @@ interface EncodeOptions {
   canonical?: boolean                 // Canonical encoding (shortest form, sorted maps)
   allowIndefinite?: boolean           // Allow indefinite-length encoding
   rejectDuplicateKeys?: boolean       // Reject duplicate map keys
-  maxDepth?: number                   // Maximum nesting depth (default: 64)
+  mapKeyOrder?: 'length-first' | 'bytewise'  // Canonical key order (default: 'length-first')
+  maxDepth?: number                   // Maximum nesting depth (default: 100, matches parser)
   maxOutputSize?: number              // Maximum output size bytes (default: 100 MB)
+  maxBignumBytes?: number             // Max bignum content bytes for tag 2/3 (default: 1024)
+  selfDescribed?: boolean             // Wrap output in tag 55799 (d9d9f7 prefix)
 }
 ```
 
@@ -222,11 +285,60 @@ const original = { a: 1, b: [2, 3], c: "hello" }
 // Encode
 const { hex } = encode(original)
 
-// Decode
+// Decode — CBOR maps decode to Map instances (key types are preserved)
 const { value } = decode(hex)
 
-console.log(value)  // { a: 1, b: [2, 3], c: "hello" }
+console.log(value)  // Map { "a" => 1, "b" => [2, 3], "c" => "hello" }
+
+// Prefer Map end-to-end for lossless round-trips (integer keys, byte keys):
+const tx = new Map([[0, 'inputs'], [2, 170000]])
+decode(encode(tx).hex).value  // Map { 0 => "inputs", 2 => 170000 }
 ```
+
+### Self-Described CBOR (Tag 55799)
+
+```typescript
+import { encodeSelfDescribed, decode } from '@marcuspuchalla/nachos'
+
+// Wrap output in tag 55799 (RFC 8949 §3.4.6) — starts with magic bytes d9d9f7
+encodeSelfDescribed(100)                    // { hex: "d9d9f71864", ... }
+encode(100, { selfDescribed: true })        // same
+
+// Transparently unwrap when decoding
+decode('d9d9f71864', { unwrapSelfDescribed: true })  // { value: 100, ... }
+decode('d9d9f71864')                                 // { value: { tag: 55799, value: 100 }, ... }
+```
+
+### Diagnostic Notation (RFC 8949 §8)
+
+```typescript
+import { toDiagnostic, fromDiagnostic, decodeToDiagnostic } from '@marcuspuchalla/nachos'
+
+// Value → diagnostic notation
+toDiagnostic(new Map([['a', [1, new Uint8Array([0xff])]]]))  // '{"a": [1, h\'ff\']}'
+
+// Diagnostic notation → value (full parser: bigints, floats, escapes,
+// h'…'/b64'…' byte strings, arrays, maps, tags, simple(n), indefinite forms)
+fromDiagnostic('{"a": [1, h\'ff\']}')   // Map { "a" => [1, Uint8Array [255]] }
+fromDiagnostic('121([])')               // { tag: 121, value: [] }
+fromDiagnostic('18446744073709551616') // 18446744073709551616n
+
+// Decode + annotate with byte offsets from the source map
+decodeToDiagnostic('8101', { showOffsets: true })  // "[1 /* 1-2 */] /* 0-2 */"
+```
+
+### Standard Tags
+
+- **Tags 2/3 (bignums)**: decoded to `{ tag, value: BigInt }`; bigints beyond
+  ±2⁶⁴ encode automatically as tag 2/3 with minimal-length content.
+- **Tags 21-23 (expected later encodings)**: decoded as pass-through
+  `{ tag, value }` wrappers — no conversion is applied. Use
+  `useCborTag().applyExpectedEncoding(tagged)` to obtain the base64url /
+  base64 / base16 string form the tag promises (diagnostic/interop use).
+- **Tags 32-36 (URI, base64url, base64, regexp, MIME)**: content is validated
+  (text type, URI scheme, base64/base64url alphabet) when
+  `validateTagSemantics: true` (or `strict: true`) is set.
+- **Tag 55799 (self-described CBOR)**: see above.
 
 ### Streaming with CBOR Sequences
 
@@ -280,7 +392,7 @@ decode('d8668218c8811863')  // Constructor 200, [[99]]
 
 ## Testing
 
-This library is validated against the [taco](https://github.com/marcuspuchalla/taco) correctness test suite, ensuring RFC 8949 compliance and proper handling of edge cases.
+This library is validated against the [taco](https://github.com/marcuspuchalla/taco) correctness test suite, with explicit per-requirement observations and separate validation profiles. Passing the corpus is evidence for those cases, not a claim to implement every CBOR-based application protocol.
 
 ## Browser Compatibility
 
@@ -295,13 +407,61 @@ Requires ES2020+ for BigInt support:
 ## Security
 
 Security features:
-- ✅ **Depth limits** - Prevents stack overflow (default: 64)
+- ✅ **Depth limits** - Prevents stack overflow (default: 100)
 - ✅ **Size limits** - Prevents memory exhaustion
 - ✅ **Timeout protection** - Prevents infinite loops
 - ✅ **UTF-8 validation** - Rejects invalid sequences
 - ✅ **Overflow detection** - Safe integer arithmetic
 
 Report security issues via [GitHub Issues](https://github.com/marcuspuchalla/nachos/issues).
+
+## Optional protocol tools
+
+The codec now includes incremental RFC 8742 decoding (`createSequenceDecoder`,
+`decodeSequenceStream`), RFC 9164 address/prefix/interface interpretation
+(`decodeIpAddress`), and RFC 9581 time/duration/period interpretation
+(`decodeExtendedTime`). Pass a lossless node to the semantic helpers, or enable
+`validateRegisteredTags` to check their tag contents while decoding. Extended time
+retains exact coefficients and timescale identifiers; it does not silently convert
+TAI or other scales to UTC.
+
+`verifyCoseSign1`, `verifyCoseSign`, and `importCoseKey` verify COSE signatures with
+explicit trusted keys and Web Crypto. Supported algorithms are ES256, ES384,
+ES512, EdDSA and the RFC 9864 ESP256/ESP384/ESP512/Ed25519/Ed448 identifiers
+(Edwards curves require runtime support). Detached payloads,
+external AAD, protected headers, critical-header handlers and COSE EC2/OKP keys
+are supported. Verification does not establish trust in a key or certificate.
+
+CDDL validation is an optional, explicitly initialized WASM module:
+
+```ts
+import { readFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
+import { createCddlValidator } from '@marcuspuchalla/nachos/cddl'
+
+const require = createRequire(import.meta.url)
+const wasm = await readFile(require.resolve('@marcuspuchalla/nachos/cddl.wasm'))
+const validator = createCddlValidator(wasm)
+validator.validate('82016161', 'root = [uint, tstr]')
+validator.validateCip21(transactionHex)
+```
+
+In a browser, fetch the exported WASM asset using your bundler's URL support.
+Run untrusted schemas in a terminable worker: schema byte limits cannot bound
+recursive evaluation time. The app and TACO enforce worker deadlines.
+
+`validateCip21` checks the pinned Conway CDDL, canonical serialization and CIP-21
+restrictions. It accepts a body or a three/four-element transaction envelope and
+reports its checked scope. Set `catalystRegistration: true` for the exceptional
+Catalyst signing workflow. This checks serialized compatibility; ledger execution,
+signatures and a particular hardware wallet's support are separate questions.
+
+The optional backend is MIT-licensed cddl-rs 0.10.7 with local RFC 8610 repairs.
+Its source revision, patch, Cargo lockfile and artifact hashes are under
+`specs/roadmap-2026-09`; rebuild with `node scripts/build-cddl.mjs` (Rust,
+wasm32 target and wasm-pack required). The core TypeScript codec has no runtime
+package dependencies and never loads the backend implicitly. See the September
+21 audit for tested scope and interoperability evidence.
 
 ## Development
 

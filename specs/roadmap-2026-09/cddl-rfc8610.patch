@@ -1,0 +1,549 @@
+--- a/cddl.pest
++++ b/cddl.pest
+@@ -108,7 +108,7 @@
+ //   .b64u/.b64c/.hex/.b32/.b45 - encoding constraints
+ //   .printf/.json/.join - formatting operations
+ control_op = { "." ~ control_name }
+-control_name = { "size" | "bits" | "regexp" | "pcre" | "iregexp" | "cbor" | "cborseq" 
++control_name = { "size" | "bits" | "regexp" | "pcre" | "iregexp" | "cborseq" | "cbor" 
+                | "within" | "and" | "lt" | "le" | "gt" | "ge" | "eq" | "ne" 
+                | "default" | "cat" | "det" | "plus" | "abnfb" | "abnf" 
+                | "feature" | "b64u-sloppy" | "b64c-sloppy" | "b64u" | "b64c"
+--- a/src/ast/mod.rs
++++ b/src/ast/mod.rs
+@@ -1092,7 +1092,7 @@
+   /// Integer value
+   IntValue {
+     /// Value
+-    value: isize,
++    value: i128,
+     /// Span
+     #[cfg(feature = "ast-span")]
+     span: Span,
+@@ -1101,7 +1101,7 @@
+   /// Unsigned integer value
+   UintValue {
+     /// Value
+-    value: usize,
++    value: u64,
+     /// Span
+     #[cfg(feature = "ast-span")]
+     span: Span,
+@@ -1683,8 +1683,8 @@
+   }
+ }
+ 
+-impl From<usize> for Type2<'_> {
+-  fn from(value: usize) -> Self {
++impl From<u64> for Type2<'_> {
++  fn from(value: u64) -> Self {
+     Type2::UintValue {
+       value,
+       #[cfg(feature = "ast-span")]
+@@ -1693,8 +1693,8 @@
+   }
+ }
+ 
+-impl From<isize> for Type2<'_> {
+-  fn from(value: isize) -> Self {
++impl From<i128> for Type2<'_> {
++  fn from(value: i128) -> Self {
+     Type2::IntValue {
+       value,
+       #[cfg(feature = "ast-span")]
+--- a/src/pest_bridge.rs
++++ b/src/pest_bridge.rs
+@@ -72,20 +72,16 @@
+ }
+ 
+ /// Parse a CDDL uint literal into usize (the AST's uint representation).
+-fn parse_uint_lit(s: &str) -> Option<usize> {
+-  use core::convert::TryFrom;
+-  parse_u64_lit(s).and_then(|v| usize::try_from(v).ok())
++fn parse_uint_lit(s: &str) -> Option<u64> {
++  parse_u64_lit(s)
+ }
+ 
+ /// Parse a CDDL int literal (["-"] uint), radix forms included.
+-fn parse_int_lit(s: &str) -> Option<isize> {
+-  use core::convert::TryFrom;
+-  if let Some(rest) = s.strip_prefix('-') {
+-    let magnitude = i128::from(parse_u64_lit(rest)?);
+-    isize::try_from(-magnitude).ok()
+-  } else {
+-    parse_u64_lit(s).and_then(|v| isize::try_from(v).ok())
+-  }
++fn parse_int_lit(s: &str) -> Option<i128> {
++  let (negative, digits) = match s.strip_prefix('-') { Some(rest) => (true, rest), None => (false, s) };
++  let (radix, digits) = if let Some(rest) = digits.strip_prefix("0x") { (16, rest) } else if let Some(rest) = digits.strip_prefix("0b") { (2, rest) } else { (10, digits) };
++  let magnitude = i128::from_str_radix(digits, radix).ok()?;
++  Some(if negative { -magnitude } else { magnitude })
+ }
+ 
+ /// Convert a Pest error to the existing parser error format with enhanced messages
+@@ -3215,7 +3211,7 @@
+         let occur_str = inner.as_str();
+ 
+         let parse_bound = |bound: &str| -> Result<usize, Error> {
+-          parse_uint_lit(bound).ok_or_else(|| Error::PARSER {
++          parse_uint_lit(bound).and_then(|v| <usize as core::convert::TryFrom<u64>>::try_from(v).ok()).ok_or_else(|| Error::PARSER {
+             #[cfg(feature = "ast-span")]
+             position: pest_span_to_position(&inner.as_span(), input),
+             msg: ErrorMsg {
+--- a/src/token.rs
++++ b/src/token.rs
+@@ -403,9 +403,9 @@
+     Option<SocketPlug>,
+   ),
+   /// Integer
+-  INT(isize),
++  INT(i128),
+   /// Unsigned integer
+-  UINT(usize),
++  UINT(u64),
+   /// Float
+   FLOAT(f64),
+ }
+@@ -454,9 +454,9 @@
+ #[derive(Debug, PartialEq, Clone)]
+ pub enum Value<'a> {
+   /// Integer value
+-  INT(isize),
++  INT(i128),
+   /// Unsigned integer value
+-  UINT(usize),
++  UINT(u64),
+   /// Float value
+   FLOAT(f64),
+   /// Text value
+@@ -471,9 +471,9 @@
+ #[derive(Debug, PartialEq)]
+ pub enum Numeric {
+   /// Integer
+-  INT(isize),
++  INT(i128),
+   /// Unsigned integer
+-  UINT(usize),
++  UINT(u64),
+   /// Float
+   FLOAT(f64),
+ }
+--- a/src/validator/cbor.rs
++++ b/src/validator/cbor.rs
+@@ -16,7 +16,7 @@
+   fmt::{self, Write},
+ };
+ 
+-use super::cbor_value::{decode_cbor, Value};
++use super::cbor_value::{decode_cbor, decode_cbor_sequence, Value};
+ use chrono::{TimeZone, Utc};
+ use serde_json;
+ 
+@@ -732,8 +732,8 @@
+ // integer values or between two floating-point values; mixing is not defined.
+ #[derive(Copy, Clone)]
+ enum RangeBound {
+-  Uint(usize),
+-  Int(isize),
++  Uint(u64),
++  Int(i128),
+   Float(f64),
+ }
+ 
+@@ -938,6 +938,10 @@
+ 
+       // If this choice validates successfully (no errors), use it
+       if choice_validator.errors.is_empty() {
++        self.validated_keys = choice_validator.validated_keys.clone();
++        self.object_value = choice_validator.object_value.clone();
++        self.values_to_validate = choice_validator.values_to_validate.clone();
++        self.range_upper = choice_validator.range_upper;
+         #[cfg(feature = "additional-controls")]
+         if !choice_validator.state.has_feature_errors
+           || choice_validator.state.disabled_features.is_some()
+@@ -1606,7 +1610,7 @@
+             match &self.cbor {
+               Value::Bytes(b) => {
+                 // Handle direct byte string case
+-                let inner_value = decode_cbor(b);
++                let inner_value = if ctrl == ControlOperator::CBORSEQ { decode_cbor_sequence(b) } else { decode_cbor(b) };
+                 match inner_value {
+                   Ok(value) => {
+                     #[cfg(all(feature = "additional-controls", target_arch = "wasm32"))]
+@@ -1640,7 +1644,7 @@
+                 // Handle array of byte strings case
+                 for (idx, item) in arr.iter().enumerate() {
+                   if let Value::Bytes(b) = item {
+-                    let inner_value = decode_cbor(b);
++                    let inner_value = if ctrl == ControlOperator::CBORSEQ { decode_cbor_sequence(b) } else { decode_cbor(b) };
+                     match inner_value {
+                       Ok(value) => {
+                         let current_location = self.state.data_location.clone();
+@@ -2559,7 +2563,7 @@
+       return Ok(());
+     } else if matches!(self.state.ctrl, Some(ControlOperator::CBORSEQ)) {
+       if let Value::Bytes(b) = &self.cbor {
+-        let value = decode_cbor(b);
++        let value = decode_cbor_sequence(b);
+         match value {
+           Ok(Value::Array(_)) => {
+             let current_location = self.state.data_location.clone();
+@@ -2984,7 +2988,15 @@
+             cv.state.generic_rules = self.state.generic_rules.clone();
+             cv.state.eval_generic_rule = Some(ident.ident);
+             cv.state.is_multi_type_choice = self.state.is_multi_type_choice;
+-            cv.visit_rule(rule)?;
++            if let Rule::Type { rule: tr, .. } = rule {
++              let initial = cv.errors.len();
++              for choice in &tr.value.type_choices {
++                let before = cv.errors.len();
++                if let Type2::TaggedData { t, .. } = &choice.type1.type2 { cv.visit_type(t)?; }
++                else { cv.visit_type_choice(choice)?; }
++                if cv.errors.len() == before { cv.errors.truncate(initial); break; }
++              }
++            } else { cv.visit_rule(rule)?; }
+ 
+             self.errors.append(&mut cv.errors);
+ 
+@@ -2993,6 +3005,16 @@
+         }
+ 
+         if let Some(rule) = unwrap_rule_from_ident(self.state.cddl, ident) {
++          if let Rule::Type { rule: tr, .. } = rule {
++            let initial = self.errors.len();
++            for choice in &tr.value.type_choices {
++              let before = self.errors.len();
++              if let Type2::TaggedData { t, .. } = &choice.type1.type2 { self.visit_type(t)?; }
++              else { self.visit_type_choice(choice)?; }
++              if self.errors.len() == before { self.errors.truncate(initial); return Ok(()); }
++            }
++            return Ok(());
++          }
+           return self.visit_rule(rule);
+         }
+ 
+@@ -3203,6 +3225,7 @@
+           match mt {
+             7u8 => match constraint {
+               Some(_c) => {
++                if (_c.is_literal(25) && fits_half(*_f)) || (_c.is_literal(26) && (_f.is_nan() || (*_f as f32 as f64) == *_f)) || _c.is_literal(27) { return Ok(()); }
+                 // Float values don't match specific simple value constraints like #7.32
+                 // They only match the general #7 (no constraint)
+                 self.add_error(format!(
+@@ -3342,10 +3365,10 @@
+     if !self.state.is_colon_shortcut_present {
+       if let Some(r) = rule_from_ident(self.state.cddl, ident) {
+         // Check for recursion to prevent stack overflow
+-        let rule_key = ident.ident.to_string();
++        let rule_key = format!("{}:{:?}", ident.ident, self.cbor);
+         if self.state.visited_rules.contains(&rule_key) {
+-          // We've already validated this rule in the current validation path
+-          // This is a recursive reference, so we allow it and assume it's valid
++          // Recursion without consuming any data cannot establish a match.
++          self.add_error(format!("non-consuming recursive rule {}", ident));
+           return Ok(());
+         }
+ 
+@@ -3383,14 +3406,22 @@
+ 
+     // Handle standard prelude tagged types (decfrac, bigfloat) through the generic TaggedData path
+     let token = lookup_ident(ident.ident);
+-    if let Token::DECFRAC | Token::BIGFLOAT = token {
++    if tag_from_token(&token).is_some() {
+       if let Some(tagged_data_type) = tag_from_token(&token) {
+         return self.visit_type2(&tagged_data_type);
+       }
+     }
+ 
++    // A scalar identifier cannot match a map merely because one of its keys
++    // has that type. Map-key lookup is only valid in a member-key context.
++    if matches!(&self.cbor, Value::Map(_)) && !self.state.is_member_key {
++      self.add_error(format!("expected type {}, got {:?}", ident, self.cbor));
++      return Ok(());
++    }
++
+     match &self.cbor {
+       Value::Null if is_ident_null_data_type(self.state.cddl, ident) => Ok(()),
++      Value::Simple(23) if ident.ident == "undefined" => Ok(()),
+       Value::Bytes(_) if is_ident_byte_string_data_type(self.state.cddl, ident) => Ok(()),
+       Value::Bool(b) => {
+         if is_ident_bool_data_type(self.state.cddl, ident) {
+@@ -3432,6 +3463,8 @@
+       }
+       Value::Float(f) => {
+         if ident_numeric_kind(self.state.cddl, ident).is_some_and(NumericKind::admits_float) {
++          let valid = match token { Token::FLOAT16 => fits_half(*f), Token::FLOAT32 | Token::FLOAT1632 => f.is_nan() || (*f as f32 as f64) == *f, _ => true };
++          if !valid { self.add_error(format!("float is not representable as {}", ident)); }
+           Ok(())
+         } else if is_ident_time_data_type(self.state.cddl, ident) {
+           if let chrono::LocalResult::None = Utc.timestamp_millis_opt((*f * 1000f64) as i64) {
+@@ -3523,7 +3556,7 @@
+               self.add_error(format!("expected type {}, got {:?}", ident, self.cbor));
+             }
+           }
+-          _ => (),
++          _ => self.add_error(format!("expected type {}, got {:?}", ident, self.cbor)),
+         }
+ 
+         Ok(())
+@@ -4370,6 +4403,38 @@
+     &mut self,
+     entry: &ValueMemberKeyEntry<'a>,
+   ) -> visitor::Result<Error<T>> {
++    // Match arrow-style keys against each actual key, not the entire map.
++    // This covers aliased, generic, constrained and structured key types.
++    if let (Value::Map(items), Some(MemberKey::Type1 { t1, is_cut, .. })) = (&self.cbor, &entry.member_key) {
++      let items = items.clone();
++      let (min, max) = match entry.occur.as_ref().map(|o| &o.occur) {
++        Some(Occur::Optional { .. }) => (0, 1),
++        Some(Occur::ZeroOrMore { .. }) => (0, usize::MAX),
++        Some(Occur::OneOrMore { .. }) => (1, usize::MAX),
++        Some(Occur::Exact { lower, upper, .. }) => (lower.unwrap_or(0), upper.unwrap_or(usize::MAX)),
++        None => (1, 1),
++      };
++      let mut consumed = 0;
++      for (key, value) in items {
++        if consumed == max { break; }
++        if self.validated_keys.as_ref().is_some_and(|keys| keys.contains(&key)) { continue; }
++        let mut kc = self.new_with_recursion_state(key.clone());
++        kc.state.visited_rules.clear();
++        kc.visit_type1(t1)?;
++        if !kc.errors.is_empty() { continue; }
++        let mut vc = self.new_with_recursion_state(value);
++        vc.state.visited_rules.clear();
++        vc.visit_type(&entry.entry_type)?;
++        if !vc.errors.is_empty() {
++          if *is_cut { self.errors.extend(vc.errors); return Ok(()); }
++          continue;
++        }
++        self.validated_keys.get_or_insert_with(Vec::new).push(key);
++        consumed += 1;
++      }
++      if consumed < min { self.add_error(format!("map requires at least {} matching entries, found {}", min, consumed)); }
++      return Ok(());
++    }
+     if let Some(occur) = &entry.occur {
+       self.visit_occurrence(occur)?;
+     }
+@@ -4574,6 +4639,10 @@
+   }
+ 
+   fn visit_value(&mut self, value: &token::Value<'a>) -> visitor::Result<Error<T>> {
++    if matches!(&self.cbor, Value::Map(_)) && !self.state.is_member_key {
++      self.add_error(format!("expected {}, got {:?}", value, self.cbor));
++      return Ok(());
++    }
+     let error: Option<String> = match &self.cbor {
+       Value::Integer(i) => match value {
+         token::Value::INT(v) => match &self.state.ctrl {
+@@ -4627,12 +4696,12 @@
+           Some(ControlOperator::LE) if i128::from(*i) <= *v as i128 => None,
+           Some(ControlOperator::GT) if i128::from(*i) > *v as i128 => None,
+           Some(ControlOperator::GE) if i128::from(*i) >= *v as i128 => None,
+-          Some(ControlOperator::SIZE) => match 256i128.checked_pow(*v as u32) {
++          Some(ControlOperator::SIZE) => match u32::try_from(*v).ok().and_then(|n| 256i128.checked_pow(n)) {
+             Some(n) if i128::from(*i) < n => None,
+             _ => Some(format!("expected value .size {}, got {:?}", v, i)),
+           },
+           Some(ControlOperator::BITS) => {
+-            if let Some(sv) = 1u32.checked_shl(*v as u32) {
++            if let Some(sv) = u32::try_from(*v).ok().and_then(|bit| 1u64.checked_shl(bit)) {
+               if (i128::from(*i) & sv as i128) != 0 {
+                 None
+               } else {
+@@ -4811,7 +4880,7 @@
+         },
+         token::Value::UINT(u) => match &self.state.ctrl {
+           Some(ControlOperator::SIZE) => {
+-            if s.len() == *u {
++            if s.len() as u64 == *u {
+               None
+             } else {
+               Some(format!("expected \"{}\" .size {}, got {}", s, u, s.len()))
+@@ -4829,7 +4898,7 @@
+           Some(ControlOperator::SIZE) => {
+             if let Some(range_upper) = self.range_upper.as_ref() {
+               let len = b.len();
+-              if len < *v || len > *range_upper {
++              if (len as u64) < *v || len > *range_upper {
+                 Some(format!(
+                   "expected bytes .size to be in range {} <= value <= {}, got {}",
+                   v, range_upper, len
+@@ -4837,7 +4906,7 @@
+               } else {
+                 None
+               }
+-            } else if b.len() == *v {
++            } else if b.len() as u64 == *v {
+               None
+             } else {
+               Some(format!("expected \"{:?}\" .size {}, got {}", b, v, b.len()))
+@@ -4845,7 +4914,7 @@
+           }
+           Some(ControlOperator::BITS) => {
+             if let Some(rsv) = v.checked_shr(3) {
+-              if let Some(s) = b.get(rsv) {
++              if let Some(s) = usize::try_from(rsv).ok().and_then(|i| b.get(i)) {
+                 if let Some(lsv) = 1u32.checked_shl(*v as u32 & 7) {
+                   if (*s as u32 & lsv) != 0 {
+                     None
+@@ -5058,7 +5127,7 @@
+ pub fn token_value_into_cbor_value(value: token::Value) -> Value {
+   match value {
+     token::Value::UINT(i) => Value::Integer(i.into()),
+-    token::Value::INT(i) => Value::Integer(i.into()),
++    token::Value::INT(i) => Value::Integer(i.try_into().expect("CDDL integer exceeds CBOR range")),
+     token::Value::FLOAT(f) => Value::Float(f),
+     token::Value::TEXT(t) => Value::Text(t.to_string()),
+     token::Value::BYTE(b) => match b {
+@@ -5117,7 +5186,7 @@
+ #[cfg(feature = "freezer")]
+ fn extract_uint_from_type2(t2: &Type2) -> Option<usize> {
+   match t2 {
+-    Type2::UintValue { value, .. } => Some(*value),
++    Type2::UintValue { value, .. } => usize::try_from(*value).ok(),
+     Type2::IntValue { value, .. } if *value >= 0 => Some(*value as usize),
+     _ => None,
+   }
+@@ -6086,3 +6155,12 @@
+     );
+   }
+ }
++
++// RFC 8610 constrains representability, not the input float encoding width.
++fn fits_half(value: f64) -> bool {
++  if !value.is_finite() || value == 0.0 { return true; }
++  let n = value.abs();
++  if n > 65504.0 || n < 2f64.powi(-24) { return false; }
++  let step = 2f64.powi(if n < 2f64.powi(-14) { -24 } else { n.log2().floor() as i32 - 10 });
++  (n / step).fract() == 0.0
++}
+--- a/src/validator/cbor_value.rs
++++ b/src/validator/cbor_value.rs
+@@ -214,7 +214,17 @@
+ pub fn decode_cbor(input: &[u8]) -> Result<Value, DecodeError> {
+   let cursor = std::io::Cursor::new(input);
+   let mut decoder = Decoder::from(cursor);
+-  decode_value(&mut decoder)
++  let value = decode_value(&mut decoder)?;
++  if decoder.offset() != input.len() { return Err(DecodeError::Syntax(decoder.offset())); }
++  Ok(value)
++}
++
++/// RFC 8610 .cborseq interprets the concatenation as an array of items.
++pub fn decode_cbor_sequence(input: &[u8]) -> Result<Value, DecodeError> {
++  let mut decoder = Decoder::from(std::io::Cursor::new(input));
++  let mut values = Vec::new();
++  while decoder.offset() < input.len() { values.push(decode_value(&mut decoder)?); }
++  Ok(Value::Array(values))
+ }
+ 
+ fn decode_value<R: ciborium_io::Read>(decoder: &mut Decoder<R>) -> Result<Value, DecodeError>
+@@ -244,7 +254,7 @@
+     Header::Simple(s) => match s {
+       simple::FALSE => Ok(Value::Bool(false)),
+       simple::TRUE => Ok(Value::Bool(true)),
+-      simple::NULL | simple::UNDEFINED => Ok(Value::Null),
++      simple::NULL => Ok(Value::Null),
+       _ => Ok(Value::Simple(s)),
+     },
+     Header::Bytes(len) => {
+@@ -294,7 +304,7 @@
+         let h = decoder.pull().map_err(Into::into)?;
+         match h {
+           Header::Break => break,
+-          Header::Bytes(seg_len) => {
++          Header::Bytes(seg_len) if seg_len.is_some() => {
+             let seg = read_bytes(decoder, seg_len)?;
+             result.extend_from_slice(&seg);
+           }
+@@ -329,7 +339,7 @@
+         let h = decoder.pull().map_err(Into::into)?;
+         match h {
+           Header::Break => break,
+-          Header::Text(seg_len) => {
++          Header::Text(seg_len) if seg_len.is_some() => {
+             let seg = read_text(decoder, seg_len)?;
+             result.push_str(&seg);
+           }
+--- a/src/validator/control.rs
++++ b/src/validator/control.rs
+@@ -603,10 +603,10 @@
+       } => values.push((value + controller).into()),
+       Type2::IntValue {
+         value: controller, ..
+-      } => values.push(((*value as isize + controller) as usize).into()),
++      } => values.push(((*value as i128 + controller) as u64).into()),
+       Type2::FloatValue {
+         value: controller, ..
+-      } => values.push(((*value as isize + *controller as isize) as usize).into()),
++      } => values.push(((*value as i128 + *controller as i128) as u64).into()),
+       Type2::Typename { ident, .. } => {
+         let nv = numeric_values_from_ident(cddl, ident);
+         if nv.is_empty() {
+@@ -649,10 +649,10 @@
+       } => values.push((value + controller).into()),
+       Type2::UintValue {
+         value: controller, ..
+-      } => values.push((value + *controller as isize).into()),
++      } => values.push((value + *controller as i128).into()),
+       Type2::FloatValue {
+         value: controller, ..
+-      } => values.push((value + *controller as isize).into()),
++      } => values.push((value + *controller as i128).into()),
+       Type2::Typename { ident, .. } => {
+         let nv = numeric_values_from_ident(cddl, ident);
+         if nv.is_empty() {
+@@ -1497,11 +1497,11 @@
+   }
+ 
+   match controller {
+-    Type2::IntValue { value, .. } => match text_value.parse::<isize>() {
++    Type2::IntValue { value, .. } => match text_value.parse::<i128>() {
+       Ok(parsed_value) => Ok(parsed_value == *value),
+       Err(_) => Ok(false),
+     },
+-    Type2::UintValue { value, .. } => match text_value.parse::<usize>() {
++    Type2::UintValue { value, .. } => match text_value.parse::<u64>() {
+       Ok(parsed_value) => Ok(parsed_value == *value),
+       Err(_) => Ok(false),
+     },
+@@ -1767,21 +1767,21 @@
+ }
+ 
+ #[cfg(feature = "additional-controls")]
+-fn extract_int(t: &Type2<'_>) -> Result<isize, String> {
++fn extract_int(t: &Type2<'_>) -> Result<i128, String> {
+   match t {
+     Type2::IntValue { value, .. } => Ok(*value),
+-    Type2::UintValue { value, .. } => Ok(*value as isize),
+-    Type2::FloatValue { value, .. } => Ok(*value as isize),
++    Type2::UintValue { value, .. } => Ok(*value as i128),
++    Type2::FloatValue { value, .. } => Ok(*value as i128),
+     _ => Err(format!("expected integer for printf, got {}", t)),
+   }
+ }
+ 
+ #[cfg(feature = "additional-controls")]
+-fn extract_uint(t: &Type2<'_>) -> Result<usize, String> {
++fn extract_uint(t: &Type2<'_>) -> Result<u64, String> {
+   match t {
+     Type2::UintValue { value, .. } => Ok(*value),
+-    Type2::IntValue { value, .. } if *value >= 0 => Ok(*value as usize),
+-    Type2::FloatValue { value, .. } => Ok(*value as usize),
++    Type2::IntValue { value, .. } if *value >= 0 => Ok(*value as u64),
++    Type2::FloatValue { value, .. } => Ok(*value as u64),
+     _ => Err(format!("expected unsigned integer for printf, got {}", t)),
+   }
+ }
+--- a/src/validator/json.rs
++++ b/src/validator/json.rs
+@@ -3334,7 +3334,7 @@
+         },
+         Value::String(s) => match &self.state.ctrl {
+           Some(ControlOperator::SIZE) => {
+-            if s.len() == *v {
++            if s.len() as u64 == *v {
+               None
+             } else {
+               Some(format!("expected \"{}\" .size {}, got {}", s, v, s.len()))

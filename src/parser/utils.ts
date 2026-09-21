@@ -20,9 +20,12 @@ export const hexToBytes = (hex: string): Uint8Array => {
   if (!/^[0-9a-fA-F]+$/.test(hex)) {
     throw new Error(`Invalid hex character in: ${hex}`)
   }
-  const bytes = hex.match(/.{1,2}/g)
-  if (!bytes) return new Uint8Array(0)
-  return new Uint8Array(bytes.map(byte => parseInt(byte, 16)))
+  const bytes = new Uint8Array(hex.length / 2)
+  for (let i = 0; i < bytes.length; i++) {
+    const high = hex.charCodeAt(i * 2), low = hex.charCodeAt(i * 2 + 1)
+    bytes[i] = (((high & 15) + (high > 57 ? 9 : 0)) << 4) | ((low & 15) + (low > 57 ? 9 : 0))
+  }
+  return bytes
 }
 
 /**
@@ -31,10 +34,16 @@ export const hexToBytes = (hex: string): Uint8Array => {
  * @param bytes - Byte array
  * @returns Hex string (e.g., "1864")
  */
+const HEX_BYTES = Array.from({ length: 256 }, (_, n) => n.toString(16).padStart(2, '0'))
 export const bytesToHex = (bytes: Uint8Array): string => {
-  return Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
+  // Bound temporary arrays and reuse byte spellings for large wire values.
+  const chunks: string[] = []
+  for (let start = 0; start < bytes.length; start += 4096) {
+    const size = Math.min(4096, bytes.length - start), chunk = new Array<string>(size)
+    for (let i = 0; i < size; i++) chunk[i] = HEX_BYTES[bytes[start + i]!]!
+    chunks.push(chunk.join(''))
+  }
+  return chunks.join('')
 }
 
 /**
@@ -393,39 +402,23 @@ export function compareMapKeys(
  * @returns Normalized string representation
  */
 export function serializeValueForComparison(value: unknown): string {
-  // Handle primitives
   if (value === null) return 'null'
   if (value === undefined) return 'undefined'
-  if (typeof value === 'boolean') return value.toString()
-  if (typeof value === 'number') return `num:${value}`
-  if (typeof value === 'bigint') return `bigint:${value.toString()}`
-  if (typeof value === 'string') return `str:${value}`
-
-  // Handle Uint8Array (byte strings)
-  if (value instanceof Uint8Array) {
-    return `bytes:${Array.from(value).map(b => b.toString(16).padStart(2, '0')).join('')}`
-  }
-
-  // Handle arrays
-  if (Array.isArray(value)) {
-    return `array:[${value.map(v => serializeValueForComparison(v)).join(',')}]`
-  }
-
-  // Handle objects (maps and tagged values)
+  if (typeof value === 'boolean') return String(value)
+  if (typeof value === 'number') return `num:${Object.is(value, -0) ? '-0' : value}`
+  if (typeof value === 'bigint') return `num:${value}`
+  if (typeof value === 'string') return `str:${JSON.stringify(value)}`
+  if (value instanceof Uint8Array) return `bytes:${bytesToHex(value)}`
+  if (Array.isArray(value)) return JSON.stringify(['array', value.map(serializeValueForComparison)])
   if (typeof value === 'object') {
-    // Check if it's a tagged value
-    if ('tag' in value && 'value' in value) {
-      return `tag:${(value as any).tag}:${serializeValueForComparison((value as any).value)}`
-    }
-
-    // Regular object (map)
-    const keys = Object.keys(value).sort()
-    const pairs = keys.map(k => `${k}:${serializeValueForComparison((value as any)[k])}`)
-    return `map:{${pairs.join(',')}}`
+    if ('type' in value && value.type === 'cbor-byte-string' && 'bytes' in value) return serializeValueForComparison(value.bytes)
+    if ('type' in value && value.type === 'cbor-text-string' && 'text' in value) return serializeValueForComparison(value.text)
+    if ('tag' in value && 'value' in value) return JSON.stringify(['tag', String(value.tag), serializeValueForComparison(value.value)])
+    if ('simpleValue' in value) return `simple:${value.simpleValue}`
+    const entries = value instanceof Map ? [...value.entries()] : Object.entries(value)
+    return JSON.stringify(['map', entries.map(([k, v]) => JSON.stringify([serializeValueForComparison(k), serializeValueForComparison(v)])).sort()])
   }
-
-  // Fallback for unknown types
-  return String(value)
+  throw new Error(`Unsupported CBOR comparison type: ${typeof value}`)
 }
 
 /**

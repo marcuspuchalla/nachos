@@ -6,6 +6,8 @@
  */
 
 import { useCborParser } from '../../parser/composables/useCborParser'
+import { useCip25Parser } from './useCip25Parser'
+import type { Cip25ParseResult } from './useCip25Parser'
 
 export interface CardanoAddress {
   type: 'shelley' | 'byron' | 'reward' | 'enterprise' | 'pointer'
@@ -88,7 +90,7 @@ export interface CardanoWitnessSet {
  * transaction/witness parsing used here.
  */
 export interface CardanoHelperPlutusData {
-  constructor: number
+  constructor: number | bigint
   fields: any[]
 }
 
@@ -124,18 +126,22 @@ export function useCardanoHelpers() {
 
     const network = networkId === 1 ? 'mainnet' : 'testnet'
 
-    // Shelley addresses (types 0-7)
+    // Shelley addresses (types 0-7, CIP-19):
+    //   0-3: base addresses (payment credential + stake credential)
+    //   4-5: pointer addresses (payment credential + stake pointer)
+    //   6-7: enterprise addresses (payment credential only)
     if (addressType <= 7) {
       const paymentType = (addressType & 0x01) === 0 ? 'key' : 'script'
       const stakeType = (addressType & 0x02) === 0 ? 'key' : 'script'
-      const hasStake = addressType <= 3
+      const hasStakeHash = addressType <= 3
+      const isPointer = addressType === 4 || addressType === 5
 
       if (bytes.length < 29) {
         throw new Error('Shelley address is too short')
       }
 
       const address: CardanoAddress = {
-        type: hasStake ? 'shelley' : 'enterprise',
+        type: hasStakeHash ? 'shelley' : (isPointer ? 'pointer' : 'enterprise'),
         network,
         paymentCredential: {
           type: paymentType,
@@ -144,10 +150,44 @@ export function useCardanoHelpers() {
         raw: bytes
       }
 
-      if (hasStake && bytes.length >= 57) {
+      if (hasStakeHash && bytes.length >= 57) {
         address.stakeCredential = {
           type: stakeType,
           hash: bytes.slice(29, 57)
+        }
+      }
+
+      if (isPointer) {
+        // Pointer: three variable-length natural numbers (CIP-19):
+        // slot, tx_index, cert_index — 7 bits per byte, high bit = continuation
+        let offset = 29
+        const readVariableLengthNat = (): number => {
+          let value = 0
+          for (;;) {
+            if (offset >= bytes.length) {
+              throw new Error('Pointer address is truncated (incomplete variable-length nat)')
+            }
+            const byte = bytes[offset]!
+            offset++
+            value = value * 128 + (byte & 0x7f)
+            if ((byte & 0x80) === 0) {
+              return value
+            }
+            if (!Number.isSafeInteger(value)) {
+              throw new Error('Pointer address nat exceeds safe integer range')
+            }
+          }
+        }
+
+        const slot = readVariableLengthNat()
+        const txIndex = readVariableLengthNat()
+        const certIndex = readVariableLengthNat()
+
+        address.stakeCredential = {
+          type: 'pointer',
+          slot,
+          txIndex,
+          certIndex
         }
       }
 
@@ -186,17 +226,32 @@ export function useCardanoHelpers() {
       throw new Error('Transaction must be an array')
     }
 
+    if (tx.length !== 3 && tx.length !== 4) throw new Error('Transaction must have 3 (Shelley) or 4 (Alonzo and later) elements')
+    if (tx.length === 4 && typeof tx[2] !== 'boolean') throw new Error('Transaction validity flag must be boolean')
     return {
       body: parseTransactionBody(tx[0]),
       witnessSet: tx[1] ? parseWitnessSet(tx[1]) : undefined,
-      isValid: tx[2],
-      auxiliaryData: tx[3]
+      ...(tx.length === 4 ? { isValid: tx[2] } : {}),
+      auxiliaryData: tx.length === 3 ? tx[2] : tx[3]
     }
   }
 
   /**
    * Parse a transaction body
    */
+  /**
+   * Unwrap a tag-258 (set) wrapper, returning the inner array.
+   * Conway wraps inputs, collateral, reference inputs, required signers,
+   * certificates, and proposal procedures in CBOR tag 258 (CIP-0005 sets).
+   */
+  const unwrapSet = (value: any): any => {
+    if (value && typeof value === 'object' && 'tag' in value && 'value' in value &&
+        (value as { tag: number }).tag === 258) {
+      return (value as { value: any }).value
+    }
+    return value
+  }
+
   const parseTransactionBody = (body: any): CardanoTransactionBody => {
     if (!(body instanceof Map)) {
       throw new Error('Transaction body must be a map')
@@ -204,9 +259,9 @@ export function useCardanoHelpers() {
 
     const result: CardanoTransactionBody = {}
 
-    // Field 0: Inputs
+    // Field 0: Inputs (tag-258 set in Conway)
     if (body.has(0)) {
-      result.inputs = body.get(0)
+      result.inputs = unwrapSet(body.get(0))
     }
 
     // Field 1: Outputs
@@ -224,9 +279,9 @@ export function useCardanoHelpers() {
       result.ttl = body.get(3)
     }
 
-    // Field 4: Certificates
+    // Field 4: Certificates (tag-258 set in Conway)
     if (body.has(4)) {
-      result.certificates = body.get(4)
+      result.certificates = unwrapSet(body.get(4))
     }
 
     // Field 5: Withdrawals
@@ -259,14 +314,14 @@ export function useCardanoHelpers() {
       result.scriptDataHash = body.get(11)
     }
 
-    // Field 13: Collateral inputs
+    // Field 13: Collateral inputs (tag-258 set in Conway)
     if (body.has(13)) {
-      result.collateral = body.get(13)
+      result.collateral = unwrapSet(body.get(13))
     }
 
-    // Field 14: Required signers
+    // Field 14: Required signers (tag-258 set in Conway)
     if (body.has(14)) {
-      result.requiredSigners = body.get(14)
+      result.requiredSigners = unwrapSet(body.get(14))
     }
 
     // Field 15: Network ID
@@ -284,9 +339,9 @@ export function useCardanoHelpers() {
       result.totalCollateral = body.get(17)
     }
 
-    // Field 18: Reference inputs
+    // Field 18: Reference inputs (tag-258 set in Conway)
     if (body.has(18)) {
-      result.referenceInputs = body.get(18)
+      result.referenceInputs = unwrapSet(body.get(18))
     }
 
     // Field 19: Voting procedures (Conway)
@@ -294,9 +349,9 @@ export function useCardanoHelpers() {
       result.votingProcedures = body.get(19)
     }
 
-    // Field 20: Proposal procedures (Conway)
+    // Field 20: Proposal procedures (Conway, tag-258 set)
     if (body.has(20)) {
-      result.proposalProcedures = body.get(20)
+      result.proposalProcedures = unwrapSet(body.get(20))
     }
 
     // Field 21: Current treasury value (Conway)
@@ -323,23 +378,23 @@ export function useCardanoHelpers() {
     const result: CardanoWitnessSet = {}
 
     if (witnesses.has(0)) {
-      result.vkeyWitnesses = witnesses.get(0)
+      result.vkeyWitnesses = unwrapSet(witnesses.get(0))
     }
 
     if (witnesses.has(1)) {
-      result.nativeScripts = witnesses.get(1)
+      result.nativeScripts = unwrapSet(witnesses.get(1))
     }
 
     if (witnesses.has(2)) {
-      result.bootstrapWitnesses = witnesses.get(2)
+      result.bootstrapWitnesses = unwrapSet(witnesses.get(2))
     }
 
     if (witnesses.has(3)) {
-      result.plutusV1Scripts = witnesses.get(3)
+      result.plutusV1Scripts = unwrapSet(witnesses.get(3))
     }
 
     if (witnesses.has(4)) {
-      result.plutusData = witnesses.get(4)
+      result.plutusData = unwrapSet(witnesses.get(4))
     }
 
     if (witnesses.has(5)) {
@@ -347,11 +402,11 @@ export function useCardanoHelpers() {
     }
 
     if (witnesses.has(6)) {
-      result.plutusV2Scripts = witnesses.get(6)
+      result.plutusV2Scripts = unwrapSet(witnesses.get(6))
     }
 
     if (witnesses.has(7)) {
-      result.plutusV3Scripts = witnesses.get(7)
+      result.plutusV3Scripts = unwrapSet(witnesses.get(7))
     }
 
     return result
@@ -415,12 +470,16 @@ export function useCardanoHelpers() {
   }
 
   /**
-   * Parse CIP-25 NFT metadata
+   * Parse CIP-25 NFT metadata from CBOR hex
+   *
+   * Delegates to the single CIP-25 implementation in `useCip25Parser`
+   * (Map-aware, validates required fields, collects errors/warnings).
    *
    * @param hex - CBOR-encoded metadata hex string
-   * @returns Decoded NFT metadata
+   * @returns Parsed CIP-25 result (assets, version, errors, warnings)
+   * @throws Error if the metadata does not contain the CIP-25 label 721
    */
-  const parseCIP25Metadata = (hex: string): any => {
+  const parseCIP25Metadata = (hex: string): Cip25ParseResult => {
     const result = parseWithSourceMap(hex)
     const metadata = result.value as any
 
@@ -428,13 +487,13 @@ export function useCardanoHelpers() {
       throw new Error('Metadata must be a map')
     }
 
-    // CIP-25 uses label 721
-    const nftMetadata = metadata.get(721)
-    if (!nftMetadata) {
+    const { extractCip25FromCbor } = useCip25Parser()
+    const parsed = extractCip25FromCbor(metadata)
+    if (!parsed) {
       throw new Error('No CIP-25 metadata found (label 721)')
     }
 
-    return nftMetadata
+    return parsed
   }
 
   return {

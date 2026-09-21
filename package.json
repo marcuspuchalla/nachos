@@ -1,6 +1,6 @@
 {
   "name": "@marcuspuchalla/nachos",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "NACHOS - Not Another CBOR Handling Object System. RFC 8949 CBOR encoder/decoder with full source map support for interactive debugging. Zero dependencies, TypeScript, works in Node.js and browsers.",
   "keywords": [
     "nachos",
@@ -65,6 +65,11 @@
         "default": "./dist/encoder/index.cjs"
       }
     },
+    "./cddl": {
+      "import": { "types": "./dist/cddl/index.d.ts", "default": "./dist/cddl/index.js" },
+      "require": { "types": "./dist/cddl/index.d.cts", "default": "./dist/cddl/index.cjs" }
+    },
+    "./cddl.wasm": "./src/cddl/vendor/cddl_bg.wasm",
     "./package.json": "./package.json"
   },
   "files": [

@@ -1,0 +1,855 @@
+
+> taco@0.3.0 docker:test
+> bash docker/run-tests.sh
+
+
+> taco@0.3.0 test
+> npm run test:unit && npm run lint:vectors && npm run check:generated
+
+
+> taco@0.3.0 test:unit
+> node --test harness-tests/*.test.mjs
+
+✔ a hanging codec is terminated and the next request uses a fresh worker (2876.104431ms)
+✔ the Nachos validation endpoint reports real schema outcomes (448.3336ms)
+✔ typed comparison keeps CBOR types, unknown tags, signed zero and map entries (7.628088ms)
+✔ decode-only operation makes no encoder request (2.843136ms)
+✔ a correct decode followed by malformed encoder output fails (1.144912ms)
+✔ a well-formed encoder type change also fails (0.760212ms)
+✔ anyOf rejection cannot accept adapter faults or unsupported features (5.905584ms)
+✔ profiles are transmitted and deterministic encoding checks the specified bytes (0.859064ms)
+✔ bridge faults remain in denominators and disable ranking; untested requirements stay visible (1.625576ms)
+✔ independent reference checks BOM, chunks, types, NaN payload and truncation (3.875534ms)
+✔ equivalent decimal float spellings compare numerically without crossing CBOR types (0.570379ms)
+✔ extension operations use one dedicated call with all options (0.952381ms)
+✔ unsupported extensions and backend faults cannot satisfy negative validation cases (1.071629ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3812.299822
+
+> taco@0.3.0 lint:vectors
+> node scripts/lint-vectors.mjs
+
+lint-vectors: 3195 vectors, 0 errors
+
+> taco@0.3.0 check:generated
+> node scripts/generate-vectors.mjs --check
+
+Verified 29 fixture files
+
+> taco@0.3.0 build
+> tsc
+
+#1 [internal] load local bake definitions
+#1 reading from stdin 531B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 364B 0.0s done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:24.13.1-alpine
+#3 DONE 1.5s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 78B done
+#4 DONE 0.0s
+
+#5 [1/5] FROM docker.io/library/node:24.13.1-alpine@sha256:4f696fbf39f383c1e486030ba6b289a5d9af541642fc78ab197e584a113b9c03
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 28.48kB 0.0s done
+#6 DONE 0.0s
+
+#7 [2/5] WORKDIR /app
+#7 CACHED
+
+#8 [3/5] COPY docker/runner/package.json docker/runner/runner.js ./docker/runner/
+#8 CACHED
+
+#9 [4/5] COPY docker/shared/protocol.mjs docker/shared/reference.mjs docker/shared/nachos-extensions.mjs ./docker/shared/
+#9 CACHED
+
+#10 [5/5] COPY fixtures/requirements.json ./fixtures/requirements.json
+#10 CACHED
+
+#11 exporting to image
+#11 exporting layers done
+#11 writing image sha256:0c2dfb9e40b0991404c751d4d1c114babaa7ca8e9bff804b34e243e161817960 done
+#11 naming to docker.io/library/docker-test-runner
+#11 naming to docker.io/library/docker-test-runner 0.0s done
+#11 DONE 0.0s
+
+#12 resolving provenance for metadata file
+#12 DONE 0.0s
+ docker-test-runner  Built
+#1 [internal] load local bake definitions
+#1 reading from stdin 531B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 262B 0.0s done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:24.13.1-alpine
+#3 DONE 0.4s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 78B done
+#4 DONE 0.0s
+
+#5 [1/6] FROM docker.io/library/node:24.13.1-alpine@sha256:4f696fbf39f383c1e486030ba6b289a5d9af541642fc78ab197e584a113b9c03
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 1.86MB 0.2s done
+#6 DONE 0.2s
+
+#7 [2/6] WORKDIR /app
+#7 CACHED
+
+#8 [3/6] COPY package.json package-lock.json ./
+#8 DONE 0.1s
+
+#9 [4/6] COPY vendor ./vendor
+#9 DONE 0.1s
+
+#10 [5/6] RUN npm ci --omit=dev --ignore-scripts
+#10 9.658 
+#10 9.658 added 78 packages, and audited 79 packages in 9s
+#10 9.658 
+#10 9.658 5 packages are looking for funding
+#10 9.659   run `npm fund` for details
+#10 9.670 
+#10 9.670 6 vulnerabilities (2 low, 3 moderate, 1 high)
+#10 9.670 
+#10 9.670 To address issues that do not require attention, run:
+#10 9.670   npm audit fix
+#10 9.670 
+#10 9.670 To address all issues possible (including breaking changes), run:
+#10 9.670   npm audit fix --force
+#10 9.670 
+#10 9.670 Some issues need review, and may require choosing
+#10 9.670 a different dependency.
+#10 9.670 
+#10 9.670 Run `npm audit` for details.
+#10 9.675 npm notice
+#10 9.675 npm notice New minor version of npm available! 11.8.0 -> 11.19.1
+#10 9.675 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.19.1
+#10 9.675 npm notice To update run: npm install -g npm@11.19.1
+#10 9.675 npm notice
+#10 DONE 10.1s
+
+#11 [6/6] COPY docker/shared ./docker/shared
+#11 DONE 0.1s
+
+#12 exporting to image
+#12 exporting layers
+#12 exporting layers 1.8s done
+#12 writing image sha256:ec782f64e729f0e3cd74e51f1ab2e640d9c412f12d8397903a5f62de76bb5ee9 done
+#12 naming to docker.io/library/taco-node-v3:local 0.0s done
+#12 DONE 1.8s
+
+#13 resolving provenance for metadata file
+#13 DONE 0.0s
+ taco-node-v3:local  Built
+#1 [internal] load local bake definitions
+#1 reading from stdin 583B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 476B 0.0s done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/python:3.12-alpine
+#3 DONE 1.4s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B 0.0s done
+#4 DONE 0.1s
+
+#5 [1/5] FROM docker.io/library/python:3.12-alpine@sha256:c4634f578a412db396771b61b064c6e546c9d6414c7fb5b1b05d5871f1885f7b
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 66B done
+#6 DONE 0.0s
+
+#7 [2/5] WORKDIR /app
+#7 CACHED
+
+#8 [3/5] COPY requirements.txt ./
+#8 CACHED
+
+#9 [4/5] RUN pip install --no-cache-dir -r requirements.txt
+#9 CACHED
+
+#10 [5/5] COPY server.py ./
+#10 CACHED
+
+#11 exporting to image
+#11 exporting layers done
+#11 writing image sha256:afdeb87b5b2c46caca6d99f6464e2d2478aa6f7ca39f27ba6ca2a05e83c38914 done
+#11 naming to docker.io/library/docker-python-cbor2 done
+#11 DONE 0.0s
+
+#12 resolving provenance for metadata file
+#12 DONE 0.0s
+ docker-python-cbor2  Built
+#1 [internal] load local bake definitions
+#1 reading from stdin 589B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 841B 0.0s done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/rust:1.83-alpine
+#3 ...
+
+#4 [internal] load metadata for docker.io/library/alpine:3.19
+#4 DONE 1.4s
+
+#3 [internal] load metadata for docker.io/library/rust:1.83-alpine
+#3 DONE 1.6s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 2B done
+#5 DONE 0.0s
+
+#6 [builder 1/9] FROM docker.io/library/rust:1.83-alpine@sha256:0ac946ed7597a9f053a1be2ce38c09aa88b3d7079a91ea491493615294b1f699
+#6 DONE 0.0s
+
+#7 [stage-1 1/3] FROM docker.io/library/alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1
+#7 DONE 0.0s
+
+#8 [internal] load build context
+#8 transferring context: 144B 0.0s done
+#8 DONE 0.0s
+
+#9 [builder 7/9] RUN rm -rf src
+#9 CACHED
+
+#10 [builder 8/9] COPY src ./src
+#10 CACHED
+
+#11 [builder 3/9] RUN apk add --no-cache musl-dev
+#11 CACHED
+
+#12 [builder 4/9] COPY Cargo.toml Cargo.lock build.rs ./
+#12 CACHED
+
+#13 [builder 5/9] RUN mkdir src && echo "fn main() {}" > src/main.rs
+#13 CACHED
+
+#14 [stage-1 2/3] WORKDIR /app
+#14 CACHED
+
+#15 [builder 2/9] WORKDIR /app
+#15 CACHED
+
+#16 [builder 9/9] RUN touch src/main.rs && cargo build --release --locked
+#16 CACHED
+
+#17 [builder 6/9] RUN cargo build --release --locked
+#17 CACHED
+
+#18 [stage-1 3/3] COPY --from=builder /app/target/release/cbor-test-server ./
+#18 CACHED
+
+#19 exporting to image
+#19 exporting layers done
+#19 writing image sha256:4378ef07206e7062275128f14f92a2fc91624df8a6cb5f983c8deb6e7fd08e65 0.0s done
+#19 naming to docker.io/library/docker-rust-ciborium done
+#19 DONE 0.1s
+
+#20 resolving provenance for metadata file
+#20 DONE 0.0s
+ docker-rust-ciborium  Built
+#1 [internal] load local bake definitions
+#1 reading from stdin 553B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 458B 0.0s done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/golang:1.21-alpine
+#3 ...
+
+#4 [internal] load metadata for docker.io/library/alpine:3.19
+#4 DONE 0.7s
+
+#3 [internal] load metadata for docker.io/library/golang:1.21-alpine
+#3 DONE 1.7s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 2B 0.0s done
+#5 DONE 0.0s
+
+#6 [builder 1/6] FROM docker.io/library/golang:1.21-alpine@sha256:2414035b086e3c42b99654c8b26e6f5b1b1598080d65fd03c7f499552ff4dc94
+#6 DONE 0.0s
+
+#7 [stage-1 1/3] FROM docker.io/library/alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1
+#7 DONE 0.0s
+
+#8 [internal] load build context
+#8 transferring context: 81B done
+#8 DONE 0.0s
+
+#9 [builder 6/6] RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -o server .
+#9 CACHED
+
+#10 [stage-1 2/3] WORKDIR /app
+#10 CACHED
+
+#11 [builder 3/6] COPY go.mod go.sum ./
+#11 CACHED
+
+#12 [builder 4/6] RUN go mod download
+#12 CACHED
+
+#13 [builder 2/6] WORKDIR /app
+#13 CACHED
+
+#14 [builder 5/6] COPY main.go ./
+#14 CACHED
+
+#15 [stage-1 3/3] COPY --from=builder /app/server .
+#15 CACHED
+
+#16 exporting to image
+#16 exporting layers done
+#16 writing image sha256:fea6ce55c92c915eb755ce91620131a1ac83525b1ea593f3a9d3592df7a06e0b done
+#16 naming to docker.io/library/docker-go-cbor done
+#16 DONE 0.0s
+
+#17 resolving provenance for metadata file
+#17 DONE 0.0s
+ docker-go-cbor  Built
+#1 [internal] load local bake definitions
+#1 reading from stdin 565B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 834B 0.0s done
+#2 DONE 0.1s
+
+#3 [internal] load metadata for docker.io/library/alpine:3.19
+#3 DONE 0.7s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B 0.0s done
+#4 DONE 0.1s
+
+#5 [builder 1/9] FROM docker.io/library/alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 30B 0.0s done
+#6 DONE 0.1s
+
+#7 [builder 4/9] RUN git clone --depth 1 --branch v0.11.0 https://github.com/PJK/libcbor.git
+#7 CACHED
+
+#8 [builder 7/9] WORKDIR /app
+#8 CACHED
+
+#9 [stage-1 4/5] COPY --from=builder /app/server /app/server
+#9 CACHED
+
+#10 [stage-1 2/5] RUN apk add --no-cache libgcc json-c
+#10 CACHED
+
+#11 [builder 3/9] WORKDIR /build
+#11 CACHED
+
+#12 [builder 9/9] RUN gcc -O2 -o server server.c -lcbor -ljson-c -lm -I/usr/include -L/usr/lib
+#12 CACHED
+
+#13 [builder 5/9] WORKDIR /build/libcbor
+#13 CACHED
+
+#14 [builder 6/9] RUN cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr . &&     make &&     make install
+#14 CACHED
+
+#15 [stage-1 3/5] COPY --from=builder /usr/lib/libcbor* /usr/lib/
+#15 CACHED
+
+#16 [builder 2/9] RUN apk add --no-cache gcc g++ musl-dev cmake make git json-c-dev
+#16 CACHED
+
+#17 [builder 8/9] COPY server.c ./
+#17 CACHED
+
+#18 [stage-1 5/5] WORKDIR /app
+#18 CACHED
+
+#19 exporting to image
+#19 exporting layers done
+#19 writing image sha256:a7895f5f60fcce60db38f0753979a058ef859a8472c1729e70c6eb5d61c55620 0.0s done
+#19 naming to docker.io/library/docker-c-libcbor 0.0s done
+#19 DONE 0.0s
+
+#20 resolving provenance for metadata file
+#20 DONE 0.1s
+ docker-c-libcbor  Built
+#1 [internal] load local bake definitions
+#1 reading from stdin 565B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 565B 0.0s done
+#2 DONE 0.1s
+
+#3 [internal] load metadata for docker.io/library/maven:3.9-eclipse-temurin-17-alpine
+#3 DONE 1.5s
+
+#4 [internal] load metadata for docker.io/library/eclipse-temurin:17-jre-alpine
+#4 DONE 1.5s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 2B 0.0s done
+#5 DONE 0.0s
+
+#6 [stage-1 1/4] FROM docker.io/library/eclipse-temurin:17-jre-alpine@sha256:45d19def67191d1df7d233282051ac2f6908c6b2d7eaef75441d7e7c721c6d01
+#6 DONE 0.0s
+
+#7 [builder 1/6] FROM docker.io/library/maven:3.9-eclipse-temurin-17-alpine@sha256:11cf82c98d5e8f49be95d6177dc2592836feacd89d5938de370bf0400fcf61df
+#7 DONE 0.0s
+
+#8 [internal] load build context
+#8 transferring context: 60B 0.0s done
+#8 DONE 0.1s
+
+#9 [builder 5/6] COPY Server.java ./src/main/java/
+#9 CACHED
+
+#10 [builder 6/6] RUN mvn package -DskipTests
+#10 CACHED
+
+#11 [builder 4/6] RUN mvn dependency:go-offline
+#11 CACHED
+
+#12 [stage-1 2/4] WORKDIR /app
+#12 CACHED
+
+#13 [builder 3/6] COPY pom.xml ./
+#13 CACHED
+
+#14 [stage-1 3/4] COPY --from=builder /app/target/*.jar ./app.jar
+#14 CACHED
+
+#15 [builder 2/6] WORKDIR /app
+#15 CACHED
+
+#16 [stage-1 4/4] COPY --from=builder /app/target/lib ./lib
+#16 CACHED
+
+#17 exporting to image
+#17 exporting layers done
+#17 writing image sha256:2592b00dacdef44377d2bf248e49ceaa0ead83bbb4b8205c4b8704c7b140396b done
+#17 naming to docker.io/library/docker-java-cbor done
+#17 DONE 0.0s
+
+#18 resolving provenance for metadata file
+#18 DONE 0.0s
+ docker-java-cbor  Built
+#1 [internal] load local bake definitions
+#1 reading from stdin 577B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 556B 0.0s done
+#2 DONE 0.1s
+
+#3 [internal] load metadata for mcr.microsoft.com/dotnet/sdk:8.0-alpine
+#3 DONE 0.7s
+
+#4 [internal] load metadata for mcr.microsoft.com/dotnet/aspnet:8.0-alpine
+#4 DONE 0.7s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 2B done
+#5 DONE 0.1s
+
+#6 [builder 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:3111b113abec80b4a8a3d4b5cebebf61a4cdab019b7e56ca3e6389e6ac4e1c8d
+#6 DONE 0.0s
+
+#7 [stage-1 1/3] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:628ffa789119d231880f32653b75aca3f528968058fdc3cdfb6969e583f8243a
+#7 DONE 0.0s
+
+#8 [internal] load build context
+#8 transferring context: 107B done
+#8 DONE 0.1s
+
+#9 [stage-1 2/3] WORKDIR /app
+#9 CACHED
+
+#10 [builder 2/6] WORKDIR /app
+#10 CACHED
+
+#11 [builder 3/6] COPY CborServer.csproj packages.lock.json ./
+#11 CACHED
+
+#12 [builder 4/6] RUN dotnet restore --locked-mode
+#12 CACHED
+
+#13 [builder 5/6] COPY Program.cs ./
+#13 CACHED
+
+#14 [builder 6/6] RUN dotnet publish --no-restore -c Release -o out
+#14 CACHED
+
+#15 [stage-1 3/3] COPY --from=builder /app/out ./
+#15 CACHED
+
+#16 exporting to image
+#16 exporting layers done
+#16 writing image sha256:de2f79ce775836a79de759f9ca6f84884544b905fa5fdbde3606f72a284b5253 done
+#16 naming to docker.io/library/docker-csharp-cbor 0.0s done
+#16 DONE 0.1s
+
+#17 resolving provenance for metadata file
+#17 DONE 0.0s
+ docker-csharp-cbor  Built
+#1 [internal] load local bake definitions
+#1 reading from stdin 559B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 513B 0.0s done
+#2 DONE 0.1s
+
+#3 [internal] load metadata for docker.io/library/php:8.2-cli-alpine
+#3 ...
+
+#4 [internal] load metadata for docker.io/library/composer:2
+#4 DONE 1.2s
+
+#3 [internal] load metadata for docker.io/library/php:8.2-cli-alpine
+#3 DONE 1.2s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 2B done
+#5 DONE 0.0s
+
+#6 [stage-0 1/7] FROM docker.io/library/php:8.2-cli-alpine@sha256:87d16f53761567b7c6c9f20ff2d1c79e0934cdbc60bc4e43ee98d905205921ef
+#6 DONE 0.0s
+
+#7 FROM docker.io/library/composer:2@sha256:a5f59b9fd2faf31218632be4809dc6491761085e8064c31dc3b84378c48c248b
+#7 DONE 0.0s
+
+#8 [internal] load build context
+#8 transferring context: 98B 0.0s done
+#8 DONE 0.0s
+
+#9 [stage-0 4/7] WORKDIR /app
+#9 CACHED
+
+#10 [stage-0 5/7] COPY composer.json composer.lock ./
+#10 CACHED
+
+#11 [stage-0 3/7] COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+#11 CACHED
+
+#12 [stage-0 2/7] RUN apk add --no-cache gmp gmp-dev &&     docker-php-ext-install gmp bcmath
+#12 CACHED
+
+#13 [stage-0 6/7] RUN composer install --no-dev --optimize-autoloader
+#13 CACHED
+
+#14 [stage-0 7/7] COPY server.php ./
+#14 CACHED
+
+#15 exporting to image
+#15 exporting layers done
+#15 writing image sha256:b81fb8d2ccbbc01ff5ca29d35890dc9f83abfde67cf56bc6fddf7e4c3a1c7212 done
+#15 naming to docker.io/library/docker-php-cbor
+#15 naming to docker.io/library/docker-php-cbor done
+#15 DONE 0.0s
+
+#16 resolving provenance for metadata file
+#16 DONE 0.0s
+ docker-php-cbor  Built
+#1 [internal] load local bake definitions
+#1 reading from stdin 565B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.26kB 0.0s done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/ruby:3.1-alpine3.19
+#3 DONE 1.2s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [1/5] FROM docker.io/library/ruby:3.1-alpine3.19@sha256:a4d9c83b12c64dde4aa53cf994926737602c0e3526ed9e87287c7f22063ceb1d
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 31B done
+#6 DONE 0.0s
+
+#7 [4/5] RUN gem fetch cbor -v 0.5.9.0  && gem unpack cbor-0.5.9.0.gem --target /tmp  && gem specification cbor-0.5.9.0.gem --ruby > /tmp/cbor-0.5.9.0/cbor.gemspec  && sed -i 's/rb_cFixnum/rb_cInteger/g; s/rb_cBignum/rb_cInteger/g' /tmp/cbor-0.5.9.0/ext/cbor/*.c  && cd /tmp/cbor-0.5.9.0  && gem build cbor.gemspec  && gem install cbor-0.5.9.0.gem --local --no-document  && rm -rf /tmp/cbor-0.5.9.0 /app/cbor-0.5.9.0.gem
+#7 CACHED
+
+#8 [2/5] RUN apk add --no-cache build-base
+#8 CACHED
+
+#9 [3/5] WORKDIR /app
+#9 CACHED
+
+#10 [5/5] COPY server.rb ./
+#10 CACHED
+
+#11 exporting to image
+#11 exporting layers done
+#11 writing image sha256:fcf300d141aa2e87d34e237062760386cb9af080f8c6ec245dd37ddabbbbb224 done
+#11 naming to docker.io/library/docker-ruby-cbor done
+#11 DONE 0.0s
+
+#12 resolving provenance for metadata file
+#12 DONE 0.0s
+ docker-ruby-cbor  Built
+#1 [internal] load local bake definitions
+#1 reading from stdin 565B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 533B 0.0s done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/perl:5.38-slim
+#3 DONE 1.2s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [1/6] FROM docker.io/library/perl:5.38-slim@sha256:f114b242eda1ade24b19e6f6b02f0808175e25cf371e801879088bf1ea5ec41f
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 31B done
+#6 DONE 0.0s
+
+#7 [2/6] RUN apt-get update && apt-get install -y --no-install-recommends     build-essential     wget     && rm -rf /var/lib/apt/lists/*
+#7 CACHED
+
+#8 [3/6] RUN cpan -T MLEHMANN/CBOR-XS-1.87.tar.gz MLEHMANN/JSON-XS-4.03.tar.gz MLEHMANN/Types-Serialiser-1.01.tar.gz
+#8 CACHED
+
+#9 [4/6] WORKDIR /app
+#9 CACHED
+
+#10 [5/6] COPY server.pl ./
+#10 CACHED
+
+#11 [6/6] RUN chmod +x server.pl
+#11 CACHED
+
+#12 exporting to image
+#12 exporting layers done
+#12 writing image sha256:fe801a51a260a272ef528f309aa1c89a6fd2ce176c1083bda981eb512ab0469e done
+#12 naming to docker.io/library/docker-perl-cbor
+#12 naming to docker.io/library/docker-perl-cbor 0.0s done
+#12 DONE 0.0s
+
+#13 resolving provenance for metadata file
+#13 DONE 0.0s
+ docker-perl-cbor  Built
+ Network docker_default  Creating
+ Network docker_default  Created
+ Container docker-node-dag-cbor-1  Creating
+ Container docker-php-cbor-1  Creating
+ Container docker-node-cbor-redux-1  Creating
+ Container docker-node-cbor-sync-1  Creating
+ Container docker-node-borc-1  Creating
+ Container docker-node-tiny-cbor-1  Creating
+ Container docker-node-stablelib-cbor-1  Creating
+ Container docker-python-cbor2-1  Creating
+ Container docker-node-cborg-1  Creating
+ Container docker-go-cbor-1  Creating
+ Container docker-node-nachos-1  Creating
+ Container docker-node-cbor-1  Creating
+ Container docker-node-cbor-js-1  Creating
+ Container docker-csharp-cbor-1  Creating
+ Container docker-node-cbor-x-1  Creating
+ Container docker-node-cbor2-1  Creating
+ Container docker-node-oslo-cbor-1  Creating
+ Container docker-node-harmonic-cbor-1  Creating
+ Container docker-ruby-cbor-1  Creating
+ Container docker-node-strica-cbors-1  Creating
+ Container docker-perl-cbor-1  Creating
+ Container docker-java-cbor-1  Creating
+ Container docker-rust-ciborium-1  Creating
+ Container docker-node-cardano-csl-1  Creating
+ Container docker-c-libcbor-1  Creating
+ Container docker-node-cardano-cml-1  Creating
+ Container docker-node-cbor-js-1  Created
+ Container docker-ruby-cbor-1  Created
+ Container docker-node-cardano-cml-1  Created
+ Container docker-php-cbor-1  Created
+ Container docker-node-cborg-1  Created
+ Container docker-node-dag-cbor-1  Created
+ Container docker-rust-ciborium-1  Created
+ Container docker-node-cbor-x-1  Created
+ Container docker-perl-cbor-1  Created
+ Container docker-go-cbor-1  Created
+ Container docker-python-cbor2-1  Created
+ Container docker-node-oslo-cbor-1  Created
+ Container docker-node-harmonic-cbor-1  Created
+ Container docker-node-cbor-redux-1  Created
+ Container docker-node-cbor-1  Created
+ Container docker-node-cardano-csl-1  Created
+ Container docker-node-strica-cbors-1  Created
+ Container docker-c-libcbor-1  Created
+ Container docker-java-cbor-1  Created
+ Container docker-csharp-cbor-1  Created
+ Container docker-node-nachos-1  Created
+ Container docker-node-stablelib-cbor-1  Created
+ Container docker-node-cbor-sync-1  Created
+ Container docker-node-borc-1  Created
+ Container docker-node-tiny-cbor-1  Created
+ Container docker-node-cbor2-1  Created
+ Container docker-node-cbor-x-1  Starting
+ Container docker-node-oslo-cbor-1  Starting
+ Container docker-node-cbor-redux-1  Starting
+ Container docker-ruby-cbor-1  Starting
+ Container docker-c-libcbor-1  Starting
+ Container docker-node-cbor-sync-1  Starting
+ Container docker-rust-ciborium-1  Starting
+ Container docker-node-cbor-js-1  Starting
+ Container docker-node-harmonic-cbor-1  Starting
+ Container docker-node-stablelib-cbor-1  Starting
+ Container docker-node-dag-cbor-1  Starting
+ Container docker-node-cbor2-1  Starting
+ Container docker-node-borc-1  Starting
+ Container docker-node-strica-cbors-1  Starting
+ Container docker-java-cbor-1  Starting
+ Container docker-node-tiny-cbor-1  Starting
+ Container docker-perl-cbor-1  Starting
+ Container docker-node-cardano-cml-1  Starting
+ Container docker-node-nachos-1  Starting
+ Container docker-node-cardano-csl-1  Starting
+ Container docker-go-cbor-1  Starting
+ Container docker-csharp-cbor-1  Starting
+ Container docker-python-cbor2-1  Starting
+ Container docker-php-cbor-1  Starting
+ Container docker-node-cbor-1  Starting
+ Container docker-node-cborg-1  Starting
+ Container docker-node-cbor-x-1  Started
+ Container docker-node-cardano-cml-1  Started
+ Container docker-ruby-cbor-1  Started
+ Container docker-rust-ciborium-1  Started
+ Container docker-node-cbor-js-1  Started
+ Container docker-node-dag-cbor-1  Started
+ Container docker-node-borc-1  Started
+ Container docker-go-cbor-1  Started
+ Container docker-node-cbor-1  Started
+ Container docker-node-strica-cbors-1  Started
+ Container docker-csharp-cbor-1  Started
+ Container docker-php-cbor-1  Started
+ Container docker-python-cbor2-1  Started
+ Container docker-node-cbor-sync-1  Started
+ Container docker-node-oslo-cbor-1  Started
+ Container docker-node-cbor2-1  Started
+ Container docker-perl-cbor-1  Started
+ Container docker-node-cborg-1  Started
+ Container docker-node-stablelib-cbor-1  Started
+ Container docker-node-cardano-csl-1  Started
+ Container docker-node-cbor-redux-1  Started
+ Container docker-node-nachos-1  Started
+ Container docker-c-libcbor-1  Started
+ Container docker-java-cbor-1  Started
+ Container docker-node-tiny-cbor-1  Started
+ Container docker-node-harmonic-cbor-1  Started
+ Container docker-node-cbor-1  Waiting
+ Container docker-node-cbor2-1  Waiting
+ Container docker-node-dag-cbor-1  Waiting
+ Container docker-node-oslo-cbor-1  Waiting
+ Container docker-perl-cbor-1  Waiting
+ Container docker-node-cbor-js-1  Waiting
+ Container docker-node-cborg-1  Waiting
+ Container docker-python-cbor2-1  Waiting
+ Container docker-node-harmonic-cbor-1  Waiting
+ Container docker-node-stablelib-cbor-1  Waiting
+ Container docker-java-cbor-1  Waiting
+ Container docker-node-cardano-csl-1  Waiting
+ Container docker-csharp-cbor-1  Waiting
+ Container docker-node-cbor-sync-1  Waiting
+ Container docker-node-nachos-1  Waiting
+ Container docker-node-strica-cbors-1  Waiting
+ Container docker-go-cbor-1  Waiting
+ Container docker-node-cardano-cml-1  Waiting
+ Container docker-node-cbor-x-1  Waiting
+ Container docker-rust-ciborium-1  Waiting
+ Container docker-ruby-cbor-1  Waiting
+ Container docker-node-borc-1  Waiting
+ Container docker-php-cbor-1  Waiting
+ Container docker-node-cbor-redux-1  Waiting
+ Container docker-c-libcbor-1  Waiting
+ Container docker-node-tiny-cbor-1  Waiting
+ Container docker-rust-ciborium-1  Healthy
+ Container docker-ruby-cbor-1  Healthy
+ Container docker-go-cbor-1  Healthy
+ Container docker-php-cbor-1  Healthy
+ Container docker-python-cbor2-1  Healthy
+ Container docker-node-cbor-x-1  Healthy
+ Container docker-csharp-cbor-1  Healthy
+ Container docker-perl-cbor-1  Healthy
+ Container docker-node-dag-cbor-1  Healthy
+ Container docker-c-libcbor-1  Healthy
+ Container docker-node-cbor-js-1  Healthy
+ Container docker-node-cbor-1  Healthy
+ Container docker-node-strica-cbors-1  Healthy
+ Container docker-node-borc-1  Healthy
+ Container docker-node-oslo-cbor-1  Healthy
+ Container docker-node-cbor2-1  Healthy
+ Container docker-java-cbor-1  Healthy
+ Container docker-node-cbor-redux-1  Healthy
+ Container docker-node-stablelib-cbor-1  Healthy
+ Container docker-node-cborg-1  Healthy
+ Container docker-node-cbor-sync-1  Healthy
+ Container docker-node-nachos-1  Healthy
+ Container docker-node-cardano-csl-1  Healthy
+ Container docker-node-tiny-cbor-1  Healthy
+ Container docker-node-harmonic-cbor-1  Healthy
+ Container docker-node-cardano-cml-1  Healthy
+TACO 3.0.0: 3195 vectors, 26 required libraries
+node-cbor2: 2787/3195; bridge errors 0
+node-borc: 2675/3195; bridge errors 0
+node-cbor-x: 2359/3195; bridge errors 0
+node-cbor: 2546/3195; bridge errors 0
+node-nachos: 3195/3195; bridge errors 0
+node-cbor-js: 2311/3195; bridge errors 0
+node-cbor-redux: 2351/3195; bridge errors 0
+node-tiny-cbor: 1504/3195; bridge errors 0
+node-cborg: 2416/3195; bridge errors 0
+node-cbor-sync: 752/3195; bridge errors 0
+node-dag-cbor: 1661/3195; bridge errors 0
+node-oslo-cbor: 2256/3195; bridge errors 0
+node-harmonic-cbor: 2650/3195; bridge errors 0
+node-stablelib-cbor: 2461/3195; bridge errors 0
+node-cardano-csl: 2034/3195; bridge errors 0
+node-strica-cbors: 2593/3195; bridge errors 0
+node-cardano-cml: 2031/3195; bridge errors 0
+go-cbor: 2693/3195; bridge errors 0
+rust-ciborium: 2767/3195; bridge errors 0
+python-cbor2: 2646/3195; bridge errors 0
+c-libcbor: 2718/3195; bridge errors 0
+csharp-cbor: 2796/3195; bridge errors 0
+java-cbor: 2796/3195; bridge errors 0
+php-cbor: 2697/3195; bridge errors 0
+ruby-cbor: 2746/3195; bridge errors 0
+perl-cbor: 2420/3195; bridge errors 0

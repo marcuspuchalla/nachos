@@ -48,7 +48,7 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
   const options = { ...DEFAULT_ENCODE_OPTIONS, ...globalOptions }
 
   // Get other encoders
-  const { encodeInteger } = useCborIntegerEncoder()
+  const { encodeInteger } = useCborIntegerEncoder(options)
   const { encodeTextString, encodeByteString } = useCborStringEncoder(globalOptions)
   const { encodeFloat } = useCborSimpleEncoder(options)
   const { isCborByteString } = useCborByteString()
@@ -78,15 +78,20 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
    * @returns Encoded CBOR bytes
    */
   const encodeValue = (value: EncodableValue, ctx: EncodeContext): Uint8Array => {
+    if (mainEncode) return mainEncode(value).bytes
     // Check depth limit
     if (ctx.depth > ctx.options.maxDepth) {
       throw new Error('Maximum nesting depth exceeded')
     }
 
     // Encode based on type
-    if (value === null || value === undefined) {
-      // null/undefined -> CBOR null (0xf6)
+    if (value === null) {
+      // null -> CBOR null (0xf6)
       return new Uint8Array([0xf6])
+    }
+    else if (value === undefined) {
+      // undefined -> CBOR undefined (0xf7), RFC 8949 §3.3
+      return new Uint8Array([0xf7])
     }
     else if (typeof value === 'boolean') {
       // true: 0xf5, false: 0xf4
@@ -133,9 +138,6 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
     }
     else if (typeof value === 'object' && value !== null && 'tag' in value && 'value' in value) {
       // Tagged value - delegate to main encoder if available
-      if (mainEncode) {
-        return mainEncode(value).bytes
-      }
       throw new Error('Tagged value encoding requires main encoder to be set')
     }
     else if (value instanceof Map || (typeof value === 'object' && value !== null)) {
@@ -243,7 +245,7 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
     const isIndefinite = (array as any)[INDEFINITE_SYMBOL] === true
 
     // Handle indefinite-length encoding
-    if (encodeOptions?.indefinite || isIndefinite) {
+    if (encodeOptions?.indefinite || (isIndefinite && !options.canonical)) {
       if (options.allowIndefinite === false) {
         throw new Error('Indefinite-length encoding is not allowed')
       }
@@ -323,7 +325,7 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
     // This avoids re-encoding keys O(N log N) times inside the sort comparator
     let preEncodedKeys: Uint8Array[] | null = null
 
-    if (ctx.options.canonical && !(map as any)[ALL_ENTRIES_SYMBOL]) {
+    if (ctx.options.canonical) {
       const childCtx = { ...ctx, depth: ctx.depth + 1 }
       const withEncodedKeys = entries.map(entry => ({
         encodedKey: encodeValue(entry[0], childCtx),
@@ -383,7 +385,7 @@ export function useCborCollectionEncoder(globalOptions?: Partial<EncodeOptions>)
     const isIndefinite = (map as any)[INDEFINITE_SYMBOL] === true
 
     // Handle indefinite-length encoding
-    if (encodeOptions?.indefinite || isIndefinite) {
+    if (encodeOptions?.indefinite || (isIndefinite && !options.canonical)) {
       if (options.allowIndefinite === false) {
         throw new Error('Indefinite-length encoding is not allowed')
       }

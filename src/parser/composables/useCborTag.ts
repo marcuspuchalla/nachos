@@ -4,12 +4,9 @@
  * Supports standard tags (0-5), encoding hints (21-36), self-describe (55799), and Cardano tags
  */
 
-import type { ParseResult, CborValue, TaggedValue, CborMap, ParseOptions, PlutusConstr, CborByteString } from '../types'
-import { INDEFINITE_SYMBOL, DEFAULT_LIMITS } from '../types'
-import { hexToBytes, readByte, readUint, readBigUint, extractCborHeader, hasDuplicates, validateCanonicalInteger } from '../utils'
-import { useCborInteger } from './useCborInteger'
-import { useCborString } from './useCborString'
-import { useCborFloat } from './useCborFloat'
+import type { ParseResult, CborValue, TaggedValue, ParseOptions, PlutusConstr, CborByteString } from '../types'
+import { hasDuplicates } from '../utils'
+import { createScanner, inputBytes, resolveOptions } from '../scanner'
 
 /**
  * Composable for parsing CBOR tags (Major Type 6)
@@ -23,341 +20,6 @@ import { useCborFloat } from './useCborFloat'
  * ```
  */
 export function useCborTag() {
-  const { parseIntegerFromBuffer } = useCborInteger()
-  const { parseByteString, parseTextString } = useCborString()
-  const { parseFromBuffer: parseFloatOrSimpleFromBuffer } = useCborFloat()
-
-  /** Tracks when parsing started for timeout enforcement */
-  let parseStartTime = 0
-
-  /**
-   * Internal parser dispatcher for CBOR items
-   * Handles recursive parsing of tagged values
-   *
-   * @param buffer - Data buffer
-   * @param offset - Current offset
-   * @param options - Parser options
-   * @param tagDepth - Current tag nesting depth (for limit checking)
-   * @returns Parsed value and bytes consumed
-   */
-  const parseItem = (buffer: Uint8Array, offset: number, options?: ParseOptions, tagDepth: number = 0, collectionDepth: number = 0): ParseResult => {
-    // Check timeout on every recursive call
-    if (parseStartTime > 0 && options?.limits?.maxParseTime) {
-      const elapsed = Date.now() - parseStartTime
-      if (elapsed > options.limits.maxParseTime) {
-        throw new Error(`Parse timeout: exceeded ${options.limits.maxParseTime}ms limit`)
-      }
-    }
-
-    if (offset >= buffer.length) {
-      throw new Error(`Unexpected end of buffer at offset ${offset}`)
-    }
-
-    const initialByte = readByte(buffer, offset)
-    const { majorType } = extractCborHeader(initialByte)
-
-    switch (majorType) {
-      case 0: // Unsigned integer
-      case 1: // Negative integer
-        return parseIntegerFromBuffer(buffer, offset, options)
-
-      case 2: // Byte string
-        return parseByteString(buffer, offset, options)
-
-      case 3: // Text string
-        return parseTextString(buffer, offset, options)
-
-      case 4: // Array
-        return parseArrayInternal(buffer, offset, options, collectionDepth)
-
-      case 5: // Map
-        return parseMapInternal(buffer, offset, options, collectionDepth)
-
-      case 6: // Tag (recursive)
-        return parseTagFromBuffer(buffer, offset, options, tagDepth)
-
-      case 7: // Simple/Float
-        return parseFloatOrSimpleFromBuffer(buffer, offset, options)
-
-      default:
-        throw new Error(`Unknown major type: ${majorType}`)
-    }
-  }
-
-  /**
-   * Internal array parser with full security checks
-   * Mirrors useCborCollection.parseArrayFromBuffer security hardening
-   */
-  const parseArrayInternal = (buffer: Uint8Array, offset: number, options?: ParseOptions, depth: number = 0): ParseResult => {
-    const initialByte = readByte(buffer, offset)
-    const { majorType, additionalInfo } = extractCborHeader(initialByte)
-
-    if (majorType !== 4) {
-      throw new Error(`Expected major type 4 (array), got ${majorType}`)
-    }
-
-    // Check if indefinite length is allowed
-    const isIndefiniteAllowed = options?.allowIndefinite ?? !(options?.validateCanonical || options?.strict)
-    if (additionalInfo === 31 && !isIndefiniteAllowed) {
-      throw new Error('Indefinite-length encoding is not allowed (strict/canonical mode)')
-    }
-
-    // Check depth limit before descending
-    const maxDepth = options?.limits?.maxDepth ?? DEFAULT_LIMITS.maxDepth
-    if (depth >= maxDepth) {
-      throw new Error(`Maximum nesting depth ${maxDepth} exceeded`)
-    }
-
-    // Parse length
-    let length: number | null
-    let bytesConsumed: number
-
-    if (additionalInfo < 24) {
-      length = additionalInfo
-      bytesConsumed = 0
-    } else if (additionalInfo === 24) {
-      length = readByte(buffer, offset + 1)
-      bytesConsumed = 1
-    } else if (additionalInfo === 25) {
-      length = readUint(buffer, offset + 1, 2)
-      bytesConsumed = 2
-    } else if (additionalInfo === 26) {
-      length = readUint(buffer, offset + 1, 4)
-      bytesConsumed = 4
-    } else if (additionalInfo === 27) {
-      const lengthBigInt = readBigUint(buffer, offset + 1, 8)
-      if (lengthBigInt > BigInt(Number.MAX_SAFE_INTEGER)) {
-        throw new Error(`Array length ${lengthBigInt} exceeds maximum safe integer`)
-      }
-      length = Number(lengthBigInt)
-      bytesConsumed = 8
-    } else if (additionalInfo === 31) {
-      length = null // Indefinite
-      bytesConsumed = 0
-    } else {
-      throw new Error(`Invalid additional info for array: ${additionalInfo}`)
-    }
-
-    // Check array length limit before parsing
-    if (length !== null && options?.limits?.maxArrayLength && length > options.limits.maxArrayLength) {
-      throw new Error(`Array length ${length} exceeds limit of ${options.limits.maxArrayLength}`)
-    }
-
-    let currentOffset = offset + 1 + bytesConsumed
-    const items: CborValue[] = []
-
-    if (length === null) {
-      // Indefinite-length array
-      let index = 0
-      let foundBreak = false
-      while (currentOffset < buffer.length) {
-        const nextByte = readByte(buffer, currentOffset)
-        if (nextByte === 0xff) {
-          currentOffset++
-          foundBreak = true
-          break
-        }
-
-        // Check array length limit
-        if (options?.limits?.maxArrayLength && index >= options.limits.maxArrayLength) {
-          throw new Error(`Array length exceeds limit of ${options.limits.maxArrayLength}`)
-        }
-
-        const itemResult = parseItem(buffer, currentOffset, options, 0, depth + 1)
-        items.push(itemResult.value)
-        currentOffset += itemResult.bytesRead
-        index++
-      }
-
-      if (!foundBreak) {
-        throw new Error('Indefinite-length array missing break code (0xFF)')
-      }
-
-      // Mark as indefinite-length for round-trip preservation
-      ;(items as any)[INDEFINITE_SYMBOL] = true
-    } else {
-      // Definite-length array
-      for (let i = 0; i < length; i++) {
-        if (currentOffset >= buffer.length) {
-          throw new Error(`Unexpected end of buffer while parsing array element ${i}/${length}`)
-        }
-        const itemResult = parseItem(buffer, currentOffset, options, 0, depth + 1)
-        items.push(itemResult.value)
-        currentOffset += itemResult.bytesRead
-      }
-    }
-
-    return {
-      value: items,
-      bytesRead: currentOffset - offset
-    }
-  }
-
-  /**
-   * Internal map parser with full security checks
-   * Mirrors useCborCollection.parseMapFromBuffer security hardening
-   */
-  const parseMapInternal = (buffer: Uint8Array, offset: number, options?: ParseOptions, depth: number = 0): ParseResult => {
-    const initialByte = readByte(buffer, offset)
-    const { majorType, additionalInfo } = extractCborHeader(initialByte)
-
-    if (majorType !== 5) {
-      throw new Error(`Expected major type 5 (map), got ${majorType}`)
-    }
-
-    // Check if indefinite length is allowed
-    const isIndefiniteAllowed = options?.allowIndefinite ?? !(options?.validateCanonical || options?.strict)
-    if (additionalInfo === 31 && !isIndefiniteAllowed) {
-      throw new Error('Indefinite-length encoding is not allowed (strict/canonical mode)')
-    }
-
-    // Check depth limit before descending
-    const maxDepth = options?.limits?.maxDepth ?? DEFAULT_LIMITS.maxDepth
-    if (depth >= maxDepth) {
-      throw new Error(`Maximum nesting depth ${maxDepth} exceeded`)
-    }
-
-    // Parse length
-    let length: number | null
-    let bytesConsumed: number
-
-    if (additionalInfo < 24) {
-      length = additionalInfo
-      bytesConsumed = 0
-    } else if (additionalInfo === 24) {
-      length = readByte(buffer, offset + 1)
-      bytesConsumed = 1
-    } else if (additionalInfo === 25) {
-      length = readUint(buffer, offset + 1, 2)
-      bytesConsumed = 2
-    } else if (additionalInfo === 26) {
-      length = readUint(buffer, offset + 1, 4)
-      bytesConsumed = 4
-    } else if (additionalInfo === 27) {
-      const lengthBigInt = readBigUint(buffer, offset + 1, 8)
-      if (lengthBigInt > BigInt(Number.MAX_SAFE_INTEGER)) {
-        throw new Error(`Map length ${lengthBigInt} exceeds maximum safe integer`)
-      }
-      length = Number(lengthBigInt)
-      bytesConsumed = 8
-    } else if (additionalInfo === 31) {
-      length = null // Indefinite
-      bytesConsumed = 0
-    } else {
-      throw new Error(`Invalid additional info for map: ${additionalInfo}`)
-    }
-
-    // Check map size limit before parsing
-    if (length !== null && options?.limits?.maxMapSize && length > options.limits.maxMapSize) {
-      throw new Error(`Map size ${length} exceeds limit of ${options.limits.maxMapSize}`)
-    }
-
-    let currentOffset = offset + 1 + bytesConsumed
-    const map: CborMap = new Map()
-
-    if (length === null) {
-      // Indefinite-length map
-      let index = 0
-      let foundBreak = false
-      while (currentOffset < buffer.length) {
-        const nextByte = readByte(buffer, currentOffset)
-        if (nextByte === 0xff) {
-          currentOffset++
-          foundBreak = true
-          break
-        }
-
-        // Check map size limit
-        if (options?.limits?.maxMapSize && index >= options.limits.maxMapSize) {
-          throw new Error(`Map size exceeds limit of ${options.limits.maxMapSize}`)
-        }
-
-        const keyResult = parseItem(buffer, currentOffset, options, 0, depth + 1)
-        currentOffset += keyResult.bytesRead
-
-        const valueResult = parseItem(buffer, currentOffset, options, 0, depth + 1)
-        currentOffset += valueResult.bytesRead
-
-        // Store with original key type (not string!)
-        map.set(keyResult.value, valueResult.value)
-        index++
-      }
-
-      if (!foundBreak) {
-        throw new Error('Indefinite-length map missing break code (0xFF)')
-      }
-
-      // Mark as indefinite-length for round-trip preservation
-      ;(map as any)[INDEFINITE_SYMBOL] = true
-    } else {
-      // Definite-length map
-      for (let i = 0; i < length; i++) {
-        if (currentOffset >= buffer.length) {
-          throw new Error(`Unexpected end of buffer while parsing map entry ${i}/${length}`)
-        }
-
-        const keyResult = parseItem(buffer, currentOffset, options, 0, depth + 1)
-        currentOffset += keyResult.bytesRead
-
-        const valueResult = parseItem(buffer, currentOffset, options, 0, depth + 1)
-        currentOffset += valueResult.bytesRead
-
-        // Store with original key type (not string!)
-        map.set(keyResult.value, valueResult.value)
-      }
-    }
-
-    return {
-      value: map,
-      bytesRead: currentOffset - offset
-    }
-  }
-
-  /**
-   * Parses a tag number from the buffer
-   *
-   * @param buffer - Data buffer
-   * @param offset - Current offset (at initial byte)
-   * @param ai - Additional info field
-   * @returns Tag number and bytes consumed for the tag number
-   */
-  const parseTagNumber = (
-    buffer: Uint8Array,
-    offset: number,
-    ai: number
-  ): { tagNumber: number, bytesConsumed: number } => {
-    if (ai < 24) {
-      // Direct encoding (tags 0-23)
-      return { tagNumber: ai, bytesConsumed: 0 }
-    } else if (ai === 24) {
-      // 1 byte follows (tags 24-255)
-      const tagNumber = readByte(buffer, offset)
-      return { tagNumber, bytesConsumed: 1 }
-    } else if (ai === 25) {
-      // 2 bytes follow (tags 256-65535)
-      const tagNumber = readUint(buffer, offset, 2)
-      return { tagNumber, bytesConsumed: 2 }
-    } else if (ai === 26) {
-      // 4 bytes follow (tags 65536-4294967295)
-      const tagNumber = readUint(buffer, offset, 4)
-      return { tagNumber, bytesConsumed: 4 }
-    } else if (ai === 27) {
-      // 8 bytes follow (very large tag numbers)
-      const tagBigInt = readBigUint(buffer, offset, 8)
-
-      // Convert to number if it fits
-      if (tagBigInt <= BigInt(Number.MAX_SAFE_INTEGER)) {
-        return { tagNumber: Number(tagBigInt), bytesConsumed: 8 }
-      } else {
-        throw new Error(`Tag number ${tagBigInt} exceeds maximum safe integer`)
-      }
-    } else if (ai >= 28 && ai <= 30) {
-      throw new Error(`Reserved additional info ${ai} for major type 6`)
-    } else {
-      throw new Error(`Invalid additional info ${ai} for tags`)
-    }
-  }
-
   /**
    * Validates semantic constraints for specific CBOR tags
    *
@@ -371,8 +33,12 @@ export function useCborTag() {
    */
   const isValidRfc3339 = (dateStr: string): boolean => {
     // RFC 3339 format: YYYY-MM-DDTHH:MM:SS[.fraction][Z|+/-HH:MM]
-    const rfc3339Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?$/i
-    return rfc3339Regex.test(dateStr)
+    const parts = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|[+-](\d{2}):(\d{2}))$/i.exec(dateStr)
+    if (!parts) return false
+    const year = Number(parts[1]), month = Number(parts[2]), day = Number(parts[3])
+    const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
+    const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    return month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1]! && Number(parts[4]) <= 23 && Number(parts[5]) <= 59 && Number(parts[6]) <= 60 && (!parts[8] || Number(parts[8]) <= 23) && (!parts[9] || Number(parts[9]) <= 59)
   }
 
   /**
@@ -415,10 +81,11 @@ export function useCborTag() {
     return String(value)
   }
 
-  const validateTagSemantics = (tagNumber: number, value: CborValue, options?: ParseOptions): void => {
+  const validateTagSemantics = (tagNumber: number | bigint, value: CborValue, options?: ParseOptions): void => {
+    if (typeof tagNumber === 'bigint') return
     // Check different validation types separately
     // Standard tag semantics (Tags 0, 1, 4, 5, 32, 35, 36, 258)
-    const shouldValidateStandard = options?.strict || options?.validateTagSemantics
+    const shouldValidateStandard = options?.validateTagSemantics ?? options?.strict
 
     switch (tagNumber) {
       case 0: // Date/Time String (RFC 3339)
@@ -463,7 +130,7 @@ export function useCborTag() {
             (typeof value[0] === 'number' && !Number.isInteger(value[0]))) {
           throw new Error(`Tag 4 (decimal fraction) exponent must be an integer, got ${value[0]}`)
         }
-        if ((typeof value[1] !== 'number' && typeof value[1] !== 'bigint') ||
+        if ((typeof value[1] !== 'number' && typeof value[1] !== 'bigint' && !(value[1] && typeof value[1] === 'object' && 'tag' in value[1] && (value[1].tag === 2 || value[1].tag === 3) && typeof value[1].value === 'bigint')) ||
             (typeof value[1] === 'number' && !Number.isInteger(value[1]))) {
           throw new Error(`Tag 4 (decimal fraction) mantissa must be an integer, got ${value[1]}`)
         }
@@ -482,7 +149,7 @@ export function useCborTag() {
             (typeof value[0] === 'number' && !Number.isInteger(value[0]))) {
           throw new Error(`Tag 5 (bigfloat) exponent must be an integer, got ${value[0]}`)
         }
-        if ((typeof value[1] !== 'number' && typeof value[1] !== 'bigint') ||
+        if ((typeof value[1] !== 'number' && typeof value[1] !== 'bigint' && !(value[1] && typeof value[1] === 'object' && 'tag' in value[1] && (value[1].tag === 2 || value[1].tag === 3) && typeof value[1].value === 'bigint')) ||
             (typeof value[1] === 'number' && !Number.isInteger(value[1]))) {
           throw new Error(`Tag 5 (bigfloat) mantissa must be an integer, got ${value[1]}`)
         }
@@ -502,10 +169,32 @@ export function useCborTag() {
 
       case 33: // base64url without padding
       case 34: // base64 without padding
-        if (!shouldValidateStandard) break
+        {
+          if (!shouldValidateStandard) break
 
-        if (!isTextString(value)) {
-          throw new Error(`Tag ${tagNumber} (base64${tagNumber === 33 ? 'url' : ''}) must contain a text string, got ${typeof value}`)
+          if (!isTextString(value)) {
+            throw new Error(`Tag ${tagNumber} (base64${tagNumber === 33 ? 'url' : ''}) must contain a text string, got ${typeof value}`)
+          }
+          // RFC 8949 §3.4.5.3: content must use the respective RFC 4648
+          // alphabet. Tag 33: base64url (A-Z a-z 0-9 - _), tag 34: base64
+          // (A-Z a-z 0-9 + /); '=' padding tolerated only for tag 34.
+          const b64Str = getTextStringValue(value)
+          const alphabet = tagNumber === 33
+            ? /^[A-Za-z0-9_-]*$/
+            : /^[A-Za-z0-9+/]*={0,2}$/
+          const unpadded = b64Str.replace(/=+$/, '')
+          const padding = b64Str.length - unpadded.length
+          const tail = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789' + (tagNumber === 33 ? '-_' : '+/')
+          const last = tail.indexOf(unpadded.slice(-1))
+          const remainder = unpadded.length % 4
+          const badPadding = padding > 0 && (b64Str.length % 4 !== 0 || padding !== (4 - remainder) % 4)
+          const badBits = (remainder === 2 && (last & 15) !== 0) || (remainder === 3 && (last & 3) !== 0)
+          if (!alphabet.test(b64Str) || remainder === 1 || badPadding || badBits) {
+            throw new Error(
+              `Tag ${tagNumber} (base64${tagNumber === 33 ? 'url' : ''}) contains characters outside the ` +
+              `${tagNumber === 33 ? 'base64url' : 'base64'} alphabet: "${b64Str}"`
+            )
+          }
         }
         break
 
@@ -525,11 +214,16 @@ export function useCborTag() {
         }
         break
 
+      case 24:
+        if (shouldValidateStandard && !isByteString(value)) throw new Error('Tag 24 must contain a byte string')
+        break
+
       case 258: // Mathematical Finite Set
         {
           // Validate set uniqueness if enabled
-          const shouldValidateUniqueness = options?.strict || options?.validateSetUniqueness
+          const shouldValidateUniqueness = options?.validateSetUniqueness ?? options?.strict
 
+          if (shouldValidateStandard && !Array.isArray(value)) throw new Error('Tag 258 (set) must contain an array')
           if (shouldValidateUniqueness) {
             if (!Array.isArray(value)) {
               throw new Error(`Tag 258 (set) must contain an array, got ${typeof value}`)
@@ -572,8 +266,8 @@ export function useCborTag() {
    * @param value - Tagged value (should be array)
    * @param options - Parser options
    */
-  const validatePlutusCompactConstructor = (tagNumber: number, value: CborValue, options?: ParseOptions): void => {
-    const shouldValidate = options?.strict || options?.validatePlutusSemantics
+  const validatePlutusCompactConstructor = (tagNumber: number | bigint, value: CborValue, options?: ParseOptions): void => {
+    const shouldValidate = options?.validatePlutusSemantics ?? options?.strict
 
     if (!shouldValidate) {
       return
@@ -598,7 +292,7 @@ export function useCborTag() {
    * @param options - Parser options
    */
   const validatePlutusAlternativeConstructor = (value: CborValue, options?: ParseOptions): void => {
-    const shouldValidate = options?.strict || options?.validatePlutusSemantics
+    const shouldValidate = options?.validatePlutusSemantics ?? options?.strict
 
     if (!shouldValidate) {
       return
@@ -619,7 +313,7 @@ export function useCborTag() {
     const constructorIndex = value[0]
     const fields = value[1]
 
-    if (typeof constructorIndex !== 'number' || constructorIndex < 0 || !Number.isInteger(constructorIndex)) {
+    if ((typeof constructorIndex !== 'number' && typeof constructorIndex !== 'bigint') || constructorIndex < 0 || (typeof constructorIndex === 'number' && !Number.isSafeInteger(constructorIndex)) || constructorIndex > 18446744073709551615n) {
       throw new Error(
         `Plutus constructor index must be non-negative integer, got ${typeof constructorIndex}`
       )
@@ -639,8 +333,8 @@ export function useCborTag() {
    * @param value - Tagged value (should be array)
    * @param options - Parser options
    */
-  const validatePlutusExtendedConstructor = (tagNumber: number, value: CborValue, options?: ParseOptions): void => {
-    const shouldValidate = options?.strict || options?.validatePlutusSemantics
+  const validatePlutusExtendedConstructor = (tagNumber: number | bigint, value: CborValue, options?: ParseOptions): void => {
+    const shouldValidate = options?.validatePlutusSemantics ?? options?.strict
 
     if (!shouldValidate) {
       return
@@ -652,7 +346,7 @@ export function useCborTag() {
       )
     }
 
-    const constructorIndex = (tagNumber - 1280) + 7
+    const constructorIndex = (Number(tagNumber) - 1280) + 7
 
     // Extended constructors can have any number of fields (0 to unlimited)
     // Constructor index is 7-127
@@ -671,14 +365,15 @@ export function useCborTag() {
    * @param value - Tagged value
    * @returns PlutusConstr or null if not a Plutus constructor
    */
-  const decodePlutusConstructor = (tagNumber: number, value: CborValue): PlutusConstr | null => {
+  const decodePlutusConstructor = (tagNumber: number | bigint, value: CborValue): PlutusConstr | null => {
+    if (typeof tagNumber === 'bigint') return null
     // Tag 102: Alternative constructor [index, fields]
     if (tagNumber === 102) {
       if (!Array.isArray(value) || value.length !== 2) {
         return null
       }
       const [constructorIndex, fields] = value
-      if (typeof constructorIndex !== 'number' || !Array.isArray(fields)) {
+      if ((typeof constructorIndex !== 'number' && typeof constructorIndex !== 'bigint') || !Array.isArray(fields)) {
         return null
       }
       return {
@@ -704,7 +399,7 @@ export function useCborTag() {
       if (!Array.isArray(value)) {
         return null
       }
-      const constructorIndex = (tagNumber - 1280) + 7
+      const constructorIndex = (Number(tagNumber) - 1280) + 7
       return {
         constructor: constructorIndex,
         fields: value as any[]
@@ -722,121 +417,76 @@ export function useCborTag() {
    * @param options - Parser options
    * @returns Parsed tagged value and bytes read
    */
-  const parseTagFromBuffer = (buffer: Uint8Array, offset: number, options?: ParseOptions, tagDepth: number = 0): ParseResult => {
-    const initialByte = readByte(buffer, offset)
-    const { majorType, additionalInfo } = extractCborHeader(initialByte)
-
-    if (majorType !== 6) {
-      throw new Error(`Expected major type 6 (tag), got ${majorType}`)
-    }
-
-    // Check tag nesting depth limit (RUSTSEC-2019-0025 mitigation)
-    const maxTagDepth = options?.limits?.maxTagDepth ?? DEFAULT_LIMITS.maxTagDepth
-    if (tagDepth >= maxTagDepth) {
-      throw new Error(`Tag nesting depth ${tagDepth} exceeds limit of ${maxTagDepth}`)
-    }
-
-    // Parse the tag number
-    const { tagNumber, bytesConsumed } = parseTagNumber(buffer, offset + 1, additionalInfo)
-
-    // Enforce canonical (shortest-form) tag number encoding when requested.
-    // RFC 8949 §4.2.1 preferred serialization applies to the tag number too.
-    if (options?.validateCanonical) {
-      validateCanonicalInteger(tagNumber, additionalInfo)
-    }
-
-    let currentOffset = offset + 1 + bytesConsumed
-
-    // Parse the tagged value (recursively)
-    if (currentOffset >= buffer.length) {
-      throw new Error(`Unexpected end of buffer after tag ${tagNumber}`)
-    }
-
-    const valueResult = parseItem(buffer, currentOffset, options, tagDepth + 1)
-    currentOffset += valueResult.bytesRead
-
-    // Validate bignum size limits for tags 2 and 3 (CVE-2020-28491 mitigation)
-    if ((tagNumber === 2 || tagNumber === 3) && valueResult.value instanceof Uint8Array) {
-      const maxBignumBytes = options?.limits?.maxBignumBytes ?? 1024
-      if (valueResult.value.length > maxBignumBytes) {
-        throw new Error(
-          `Bignum (tag ${tagNumber}) size ${valueResult.value.length} bytes exceeds limit of ${maxBignumBytes} bytes`
-        )
-      }
-
-      // Convert bignum bytes to BigInt, then to decimal string
-      // This provides the expected format for test compatibility
-      const bytes = valueResult.value
-      let bigintValue = 0n
-
-      // Convert bytes to BigInt (big-endian)
-      for (let i = 0; i < bytes.length; i++) {
-        bigintValue = (bigintValue << 8n) | BigInt(bytes[i]!)
-      }
-
-      // Tag 2: Positive bignum - return as decimal string
-      // Tag 3: Negative bignum - apply formula: -1 - n
-      if (tagNumber === 2) {
-        valueResult.value = bigintValue
-      } else if (tagNumber === 3) {
-        valueResult.value = -1n - bigintValue
-      }
-    }
-
-    // Validate semantic constraints for specific tags
-    validateTagSemantics(tagNumber, valueResult.value, options)
-
-    // Decode Plutus constructor if applicable
-    const plutusConstr = decodePlutusConstructor(tagNumber, valueResult.value)
-
-    const taggedValue: TaggedValue = {
-      tag: tagNumber,
-      value: valueResult.value,
-      ...(plutusConstr && { plutus: plutusConstr })
-    }
-
-    return {
-      value: taggedValue,
-      bytesRead: currentOffset - offset
-    }
+  const parseTagFromBuffer = (buffer: Uint8Array, offset: number, options?: ParseOptions, tagDepth = 0): ParseResult => {
+    if ((buffer[offset]! >> 5) !== 6) throw new Error(`Expected major type 6 (tag), got ${buffer[offset]! >> 5}`)
+    const node = createScanner(buffer, options).scan(offset, 0, tagDepth)
+    return { value: node.value, bytesRead: node.end - offset }
   }
-
-  /**
-   * Parses CBOR tag (Major Type 6) from hex string
-   *
-   * @param hexString - CBOR hex string
-   * @param options - Parser options (optional)
-   * @returns Parsed tagged value and bytes read
-   */
-  const parseTag = (hexString: string, options?: ParseOptions): ParseResult => {
-    // Remove spaces from hex string
-    const cleanHex = hexString.replace(/\s+/g, '')
-    const buffer = hexToBytes(cleanHex)
-
-    // Set parse start time for timeout enforcement (only if not already set by caller)
-    const isTopLevel = parseStartTime === 0
-    if (isTopLevel && options?.limits?.maxParseTime) {
-      parseStartTime = Date.now()
-    }
-    try {
-      return parseTagFromBuffer(buffer, 0, options)
-    } finally {
-      if (isTopLevel) {
-        parseStartTime = 0
-      }
-    }
-  }
-
-  /**
-   * Alias for parseTag (for consistency with other composables)
-   */
+  const parseTag = (hex: string, options?: ParseOptions) => parseTagFromBuffer(inputBytes(hex, resolveOptions(options)), 0, options)
   const parse = parseTag
+
+  /**
+   * Applies the "expected later encoding" conversion for tags 21-23
+   * (RFC 8949 §3.4.5.2) for diagnostic/interop purposes.
+   *
+   * Decoding keeps these tags as pass-through { tag, value } wrappers; this
+   * helper converts a byte-string content to the string form the tag promises:
+   * - Tag 21: base64url without padding
+   * - Tag 22: base64 (with padding)
+   * - Tag 23: base16 (lowercase hex)
+   *
+   * @param tagged - A decoded tagged value
+   * @returns The converted string, or null when the tag/content don't apply
+   */
+  const applyExpectedEncoding = (tagged: TaggedValue): string | null => {
+    if (tagged.tag !== 21 && tagged.tag !== 22 && tagged.tag !== 23) {
+      return null
+    }
+
+    let bytes: Uint8Array | null = null
+    if (tagged.value instanceof Uint8Array) {
+      bytes = tagged.value
+    } else if (
+      tagged.value && typeof tagged.value === 'object' &&
+      'type' in tagged.value && (tagged.value as CborByteString).type === 'cbor-byte-string'
+    ) {
+      bytes = (tagged.value as CborByteString).bytes
+    }
+    if (!bytes) {
+      return null
+    }
+
+    if (tagged.tag === 23) {
+      // base16 (lowercase)
+      return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
+    }
+
+    // base64 via btoa-compatible manual encoding (no Node Buffer dependency)
+    const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    let b64 = ''
+    for (let i = 0; i < bytes.length; i += 3) {
+      const b0 = bytes[i]!
+      const b1 = i + 1 < bytes.length ? bytes[i + 1]! : 0
+      const b2 = i + 2 < bytes.length ? bytes[i + 2]! : 0
+      b64 += BASE64_CHARS[b0 >> 2]
+      b64 += BASE64_CHARS[((b0 & 0x03) << 4) | (b1 >> 4)]
+      b64 += i + 1 < bytes.length ? BASE64_CHARS[((b1 & 0x0f) << 2) | (b2 >> 6)] : '='
+      b64 += i + 2 < bytes.length ? BASE64_CHARS[b2 & 0x3f] : '='
+    }
+
+    if (tagged.tag === 22) {
+      return b64
+    }
+    // Tag 21: base64url without padding
+    return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  }
 
   return {
     parseTag,
     parse,
     parseTagFromBuffer,
     validateTagSemantics,
-    decodePlutusConstructor
+    decodePlutusConstructor,
+    applyExpectedEncoding
   }
 }
